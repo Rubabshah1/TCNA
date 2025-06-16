@@ -1,8 +1,6 @@
 # TCNA - The Cancer Noise Atlas
 
-## Project info
-
-TCNA is a comprehensive analysis platform for gene expression variability, pathway interactions, and tumor analysis across different cancer types. Uncover hidden patterns in tumor heterogeneity and discover therapeutic targets.
+## TCNA is a comprehensive analysis platform for gene expression variability, pathway interactions, and tumor analysis across different cancer types. Uncover hidden patterns in tumor heterogeneity and discover therapeutic targets.
 
 
 
