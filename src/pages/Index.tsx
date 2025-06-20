@@ -217,21 +217,25 @@ const Index = () => {
           </div>
         </div>
       </section>
+           
+    <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 border-t border-gray-300">
+  <div className="flex flex-col items-center justify-center space-y-4">
+    <p className="text-blue-700">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
+    
+    <a
+      className="font-semibold text-blue-700"
+      href="https://birl.lums.edu.pk/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences
+    </a>
+    
+    <p className="text-blue-700">DHA, Lahore, Pakistan</p>
+    <p className="text-blue-700">+92 (42) 3560 8352</p>
+  </div>
+</footer>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-blue-100 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Dna className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-blue-900">TCNA</span>
-          </div>
-          <p className="text-center text-blue-700 mt-4">
-            The Cancer Noise Atlas - Advanced multi-omics analysis for cancer research
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };

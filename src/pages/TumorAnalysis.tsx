@@ -78,8 +78,8 @@ const tumorAnalysis = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <h2 className="text-4xl font-bold text-blue-900 mb-2">Tumor Analysis</h2>
-          <p className="text-lg text-blue-700"></p>
+          {/* <h2 className="text-4xl font-bold text-blue-900 mb-2">Tumor Analysis</h2>
+          <p className="text-lg text-blue-700"></p> */}
 
           <h1 className="text-4xl font-bold text-blue-900 mb-4">Tumor Analysis</h1>
           <p className="text-xl text-blue-700">
@@ -247,6 +247,12 @@ const tumorAnalysis = () => {
             )} */}
           {/* </div> */}
         {/* </div> */}
+        <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
+      <p className=" text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
+      <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
+      <p className=" text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
+      <p className=" text-blue-700 mt-4">+92 (42) 3560 8352</p>
+    </footer>
       </div>
   );
 };

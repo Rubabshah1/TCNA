@@ -184,6 +184,12 @@ const PathwayAnalysis = () => {
           </div>
         </div>
       </div>
+      <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
+      <p className=" text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
+      <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
+      <p className=" text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
+      <p className=" text-blue-700 mt-4">+92 (42) 3560 8352</p>
+    </footer>
     </div>
   );
 };
