@@ -711,11 +711,11 @@ const TumourResults = () => {
   
   // Filter states
   const [normalizationMethod, setNormalizationMethod] = useState('TPM');
-  const [selectedNoiseMetrics, setSelectedNoiseMetrics] = useState<string[]>(['CV', 'DEPTH2', 'DEPTH - tITH']);
+  const [selectedNoiseMetrics, setSelectedNoiseMetrics] = useState<string[]>(['DEPTH2', 'DEPTH - tITH']);
   const [selectedSites, setSelectedSites] = useState(['Prostate']);
   const [isAllCollapsed, setIsAllCollapsed] = useState(false);
   const [visiblePlots, setVisiblePlots] = useState({
-    cv: true,
+    cv: false,
     stdDev: false,
     variance: false,
     mad: false,
@@ -778,7 +778,7 @@ const TumourResults = () => {
     });
     setVisiblePlots(prev => ({
       ...prev,
-      cv: selectedNoiseMetrics.includes('CV') || selectedNoiseMetrics.includes('CV2'),
+      // cv: selectedNoiseMetrics.includes('CV') || selectedNoiseMetrics.includes('CV2'),
       stdDev: selectedNoiseMetrics.includes('Standard Deviation'),
       variance: selectedNoiseMetrics.includes('Variance'),
       mad: selectedNoiseMetrics.includes('MAD'),
@@ -815,7 +815,32 @@ const TumourResults = () => {
     return data;
   };
 
+    // Generate mock data for boxplots and other plots
+  const generateGeneData = () => {
+    const genes = ['TP53', 'BRCA1', 'BRCA2', 'ARF5', 'PON1'];
+    const data = genes.map(gene => ({
+      gene,
+      tpm: Math.random() * 1,
+      fpkm: Math.random() * 1.5,
+      fpkm_uq: Math.random() * 1.2,
+      depth2: Math.random() * 0.5,
+      depth2Q1: Math.random() * 0.4,
+      depth2Q3: Math.random() * 0.6,
+      depth2Min: Math.random() * 0.3,
+      depth2Max: Math.random() * 0.7,
+      depth2Median: Math.random() * 0.5,
+      tith: Math.random() * 0.1,
+      diffNoise: Math.random() * 0.5,
+      normalNoise: Math.random() * 0.5,
+      tumorNoise: Math.random() * 0.5,
+      tumorSamples: Math.floor(Math.random() * 200) + 100,
+      normalSamples: Math.floor(Math.random() * 50) + 20
+    }));
+    return data;
+  };
+
   const [tumorData, setTumorData] = useState(generateTumorData());
+  const [geneData, setGeneData] = useState(generateGeneData());
 
   const getCancerTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
@@ -826,7 +851,8 @@ const TumourResults = () => {
       liver: "Liver Cancer (LIHC)",
       kidney: "Kidney Cancer (KIRC)",
       stomach: "Stomach Cancer (STAD)",
-      ovarian: "Ovarian Cancer (OV)"
+      ovarian: "Ovarian Cancer (OV)",
+      "TCGA-BLCA": "Bladder Cancer (BLCA)"
     };
     return labels[type] || type;
   };
@@ -1220,7 +1246,7 @@ const TumourResults = () => {
                 <div className="grid lg:grid-cols-3 md:grid-cols-1 gap-4">
                   {visiblePlots.diffNoise && (
                     <BarChart 
-                      data={tumorData.slice(0, 5)} 
+                      data={geneData.slice(0, 5)} 
                       dataKey="diffNoise" 
                       color="#dc2626" 
                       title="Genes with Highest Differential Noise" 
@@ -1228,7 +1254,7 @@ const TumourResults = () => {
                   )}
                   {visiblePlots.normalNoise && (
                     <BarChart 
-                      data={tumorData.slice(0, 5)} 
+                      data={geneData.slice(0, 5)} 
                       dataKey="normalNoise" 
                       color="#059669" 
                       title="Genes with Highest Normal State Noise" 
@@ -1236,7 +1262,7 @@ const TumourResults = () => {
                   )}
                   {visiblePlots.tumorNoise && (
                     <BarChart 
-                      data={tumorData.slice(0, 5)} 
+                      data={geneData.slice(0, 5)} 
                       dataKey="tumorNoise" 
                       color="#7c3aed" 
                       title="Genes with Highest Tumor State Noise" 
@@ -1248,6 +1274,12 @@ const TumourResults = () => {
           </div>
         </div>
       </div>
+      <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
+      <p className=" text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
+      <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
+      <p className=" text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
+      <p className=" text-blue-700 mt-4">+92 (42) 3560 8352</p>
+    </footer>
     </div>
   );
 };
