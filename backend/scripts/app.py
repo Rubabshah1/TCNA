@@ -44,10 +44,10 @@ cancer_mapping = {
 
 # --- Helpers ---
 def load_expression_file(cancer_name, dtype, input_dir):
-    filename = f"tumor_{dtype}.csv"
+    filename = f"tumor_{dtype}.csv.gz"
     filepath = os.path.join(input_dir, cancer_name, filename)
     try:
-        df = pd.read_csv(filepath, index_col=0)
+        df = pd.read_csv(filepath, index_col=0, compression='gzip')
         df.drop(columns=["gene_name"], inplace=True, errors='ignore')
         df = df.groupby(df.index).mean()
         df = df.fillna(0)
