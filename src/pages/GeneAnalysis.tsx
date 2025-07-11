@@ -8,51 +8,13 @@ import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
 // import SiteTypeSelector from "@/components/siteSelector";
 import CancerTypeSelector from "@/components/CancerTypeSelector";
 import GeneSelector from "@/components/GeneSelector";
-import { useEffect } from "react";
-import { getWithExpiry, setWithExpiry } from "@/lib/storageWithExpiry";
 
 const GeneAnalysis = () => {
-  // const [selectedCancerType, setSelectedCancerType] = useState<string>('');
+  const [selectedCancerType, setSelectedCancerType] = useState<string>('');
   // const [selectedCancerType, setSelectedCancerType] = useState<string[]>([]);
-  // // const [viewMode, setViewMode] = useState<'tumor' | 'gene'>('gene');
-  // const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
-//   const [selectedCancerType, setSelectedCancerType] = useState<string[]>(
-//   () => JSON.parse(sessionStorage.getItem("selectedCancerType") || "[]")
-// );
-// const [selectedGenes, setSelectedGenes] = useState<string[]>(
-//   () => JSON.parse(sessionStorage.getItem("selectedGenes") || "[]")
-// );
-
-  // const [selectedCancerType, setSelectedCancerType] = useState<string[]>(
-  //   () => getWithExpiry("selectedCancerType") || []
-  // );
-  const [selectedCancerType, setSelectedCancerType] = useState<string>(
-  () => getWithExpiry("selectedCancerType") || ''
-  );
-
-  const [selectedGenes, setSelectedGenes] = useState<string[]>(
-    () => getWithExpiry("selectedGenes") || []
-  );
-
-
+  // const [viewMode, setViewMode] = useState<'tumor' | 'gene'>('gene');
+  const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
   const navigate = useNavigate();
-  // Save cancer type
-  // useEffect(() => {
-  //   sessionStorage.setItem("selectedCancerType", JSON.stringify(selectedCancerType));
-  // }, [selectedCancerType]);
-
-  // // Save genes
-  // useEffect(() => {
-  //   sessionStorage.setItem("selectedGenes", JSON.stringify(selectedGenes));
-  // }, [selectedGenes]);
-
-  useEffect(() => {
-  setWithExpiry("selectedCancerType", selectedCancerType, 5 * 60 * 1000); // 15 minutes
-  }, [selectedCancerType]);
-
-  useEffect(() => {
-    setWithExpiry("selectedGenes", selectedGenes, 5 * 60 * 1000); // 15 minutes
-  }, [selectedGenes]);
 
   // const canShowAnalysis = selectedCancerType && (viewMode === 'tumor' || (viewMode === 'gene' && selectedGenes.length > 0));
   const canShowAnalysis = selectedCancerType && (selectedGenes.length > 0);
@@ -111,7 +73,7 @@ const GeneAnalysis = () => {
         <div className="mb-8">
           <h2 className="text-4xl font-bold text-blue-900 mb-2">Gene Expression Noise Analysis</h2>
           <p className="text-lg text-blue-700">
-            Select a cancer type and gene to analyze the selected genes noise in tumor and normal states. 
+            Select a cancer type and gene to analyze the selected gene's noise across multiple sites, in tumor and normal states. 
           </p>
         </div>
 
@@ -124,14 +86,14 @@ const GeneAnalysis = () => {
             </CardHeader>
             <CardContent>
               <CancerTypeSelector 
+                // selectedCancerTypes={selectedCancerType}
+                // onCancerTypesChange={setSelectedCancerType}
                 selectedCancerType={selectedCancerType}
                 onCancerTypeChange={setSelectedCancerType}
-                // selectedCancerType={selectedCancerType}
-                // onCancerTypeChange={setSelectedCancerType}
               />
             </CardContent>
           </Card>
-          
+
           {/* Analysis Mode Selection
           {selectedCancerType && (
             <Card className="border-0 shadow-lg">
@@ -225,13 +187,15 @@ const GeneAnalysis = () => {
         )}
       </div>
       <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
-      <p className=" text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
-      <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
-      <p className=" text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
-      <p className=" text-blue-700 mt-4">+92 (42) 3560 8352</p>
-    </footer>
-
+        <p className="text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
+        <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
+        <p className="text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
+        <p className="text-blue-700 mt-4">+92 (42) 3560 8352</p>
+      </footer>
     </div>
+    // </div>
+      
+    // </div>
   );
 };
 
