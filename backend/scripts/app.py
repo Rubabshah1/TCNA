@@ -13,7 +13,7 @@ from DEPTH_ITH import depth_ith_calculation
 # --- Initialize Flask App ---
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {
-    "origins": ["http://localhost:8080"],
+    "origins": ["http://localhost:8081"],
     "methods": ["GET", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
