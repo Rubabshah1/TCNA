@@ -7,7 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Download, Box, ChevronRight, ChevronDown } from "lucide-react";
-// import { debounce } from "lodash"; // Assuming lodash.debounce is used
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+
 import {
   ResponsiveContainer,
   XAxis,
@@ -200,7 +202,7 @@ const fetchTumorExpressionData = async ({
       .eq("name", cancerSite);
 
     if (siteRowsErr) {
-      console.error("❌ Failed to fetch cancer site:", siteRowsErr);
+      console.error("  Failed to fetch cancer site:", siteRowsErr);
       setTumorData([]);
       setIsLoading(false);
       return;
@@ -222,7 +224,7 @@ const fetchTumorExpressionData = async ({
 
     console.log("cancertype data fetched:", cancerTypeRows);
     if (cancerTypeErr) {
-      console.error("❌ Failed to fetch cancer_type ids:", cancerTypeErr);
+      console.error("  Failed to fetch cancer_type ids:", cancerTypeErr);
       setTumorData([]);
       setIsLoading(false);
       return;
@@ -239,7 +241,7 @@ const fetchTumorExpressionData = async ({
 
     console.log("samples data fetched:", sampleRows);
     if (sampleErr) {
-      console.error("❌ Failed to fetch matching samples:", sampleErr);
+      console.error("  Failed to fetch matching samples:", sampleErr);
       setTumorData([]);
       setIsLoading(false);
       return;
@@ -257,7 +259,7 @@ const fetchTumorExpressionData = async ({
         };
       } else {
         console.warn(
-          `⚠️ No matching cancer_type found for sample id ${sample.id}`
+          `  No matching cancer_type found for sample id ${sample.id}`
         );
         sampleToCancerTypeMap[sample.id] = {
           barcode: sample.sample_barcode,
@@ -268,7 +270,7 @@ const fetchTumorExpressionData = async ({
 
     setSampleToCancerType(sampleToCancerTypeMap);
   } catch (error) {
-    console.error("❌ Unexpected error while fetching sample info:", error);
+    console.error("  Unexpected error while fetching sample info:", error);
     setTumorData([]);
     setIsLoading(false);
     return;
@@ -316,12 +318,12 @@ const fetchTumorExpressionData = async ({
         .in("sample_id", Object.keys(sampleToCancerTypeMap)) as { data: { sample_id: number; [key: string]: number | null }[] | null; error: any };
 
       if (metricError) {
-        console.error(`❌ Failed to fetch ${metric} from Supabase table ${tableName}:`, metricError);
+        console.error(`  Failed to fetch ${metric} from Supabase table ${tableName}:`, metricError);
         continue;
       }
 
       if (!metricData) {
-        console.warn(`⚠️ No data returned for ${metric} from Supabase table ${tableName}`);
+        console.warn(`  No data returned for ${metric} from Supabase table ${tableName}`);
         missingDataMetrics.push({ metric, sampleIds: Object.keys(sampleToCancerTypeMap) });
         continue;
       }
@@ -336,7 +338,7 @@ const fetchTumorExpressionData = async ({
       );
 
       console.log(
-        `✅ Found complete ${metric} data in Supabase for ${sampleIdsWithCompleteData.size} samples for ${normalizationMethod}`
+        `  Found complete ${metric} data in Supabase for ${sampleIdsWithCompleteData.size} samples for ${normalizationMethod}`
       );
 
       // const missingSampleIds = Object.keys(sampleToCancerTypeMap).filter(
@@ -348,7 +350,7 @@ const fetchTumorExpressionData = async ({
 
       if (missingSampleIds.length > 0) {
         console.log(
-          `⚠️ Missing or incomplete ${metric} data for ${missingSampleIds.length} samples for ${normalizationMethod}`,
+          `  Missing or incomplete ${metric} data for ${missingSampleIds.length} samples for ${normalizationMethod}`,
           missingSampleIds.slice(0, 2)
         );
         missingDataMetrics.push({ metric, sampleIds: missingSampleIds });
@@ -360,7 +362,7 @@ const fetchTumorExpressionData = async ({
         const sampleInfo = sampleToCancerTypeMap[sampleId];
 
         if (!sampleInfo) {
-          console.warn(`⚠️ No matching sample info for sample_id ${sampleId}`);
+          console.warn(`  No matching sample info for sample_id ${sampleId}`);
           return;
         }
 
@@ -390,7 +392,7 @@ const fetchTumorExpressionData = async ({
         });
         if (!hasValidMetric) {
           console.warn(
-            `⚠️ No valid metric values for sample ${sampleData.sample}`
+            `  No valid metric values for sample ${sampleData.sample}`
           );
           return false;
         }
@@ -399,14 +401,14 @@ const fetchTumorExpressionData = async ({
     );
 
     console.log(
-      `✅ Processed ${processedData.length} samples from Supabase`,
+      `  Processed ${processedData.length} samples from Supabase`,
       processedData.slice(0, 2)
     );
 
     // If all samples have complete data, use Supabase data
     if (missingDataMetrics.length === 0) {
       console.log(
-        `✅ All data found in Supabase for ${normalizationMethod}, skipping API calls`
+        `  All data found in Supabase for ${normalizationMethod}, skipping API calls`
       );
       if (isMounted) {
         setTumorData(processedData);
@@ -416,7 +418,7 @@ const fetchTumorExpressionData = async ({
       return;
     }
   } catch (error) {
-    console.error("❌ Error querying metrics from Supabase:", error);
+    console.error("  Error querying metrics from Supabase:", error);
     setTumorData([]);
     setIsLoading(false);
     return;
@@ -444,7 +446,7 @@ const fetchTumorExpressionData = async ({
       for (const normMethod of normalizationMethods) {
         promises.push(
           fetch(
-            `http://localhost:5001/api/calculate-metrics?cancer=${cancerSite}&method=${normMethod}&metric=${metric}&sample_ids=${sampleIds.join(",")}`
+            `http://localhost:5001/api/TH-metrics?cancer=${cancerSite}&method=${normMethod}&metric=${metric}&sample_ids=${sampleIds.join(",")}`
           )
             .then((response) => {
               console.log(`API response for ${metric} (${normMethod}):`, {
@@ -488,7 +490,7 @@ const fetchTumorExpressionData = async ({
         data.forEach((item: any) => {
           const sampleId = item.sample_id || item.sample_barcode;
           if (!sampleId) {
-            console.warn(`⚠️ No sample_id or sample_barcode in API data:`, item);
+            console.warn(`  No sample_id or sample_barcode in API data:`, item);
             return;
           }
 
@@ -500,7 +502,7 @@ const fetchTumorExpressionData = async ({
 
           if (!supabaseSampleId) {
             console.warn(
-              `⚠️ No matching Supabase sample_id for API sample_id ${sampleId}`
+              `  No matching Supabase sample_id for API sample_id ${sampleId}`
             );
             return;
           }
@@ -508,7 +510,7 @@ const fetchTumorExpressionData = async ({
           const sampleInfo = sampleToCancerTypeMap[supabaseSampleId];
           if (!sampleInfo) {
             console.warn(
-              `⚠️ No sample info for Supabase sample_id ${supabaseSampleId}`
+              `  No sample info for Supabase sample_id ${supabaseSampleId}`
             );
             return;
           }
@@ -581,7 +583,7 @@ const fetchTumorExpressionData = async ({
             (entry.tpm === undefined && entry.fpkm === undefined && entry.fpkm_uq === undefined)
         );
         if (invalidEntries.length > 0) {
-          console.error("❌ Invalid upsert data detected:", invalidEntries);
+          console.error("  Invalid upsert data detected:", invalidEntries);
           continue;
         }
 
@@ -592,7 +594,7 @@ const fetchTumorExpressionData = async ({
           .in("sample_id", dataToUpsert.map((entry) => entry.sample_id));
 
         if (fetchError) {
-          console.error(`❌ Failed to fetch existing rows from ${tableName}:`, fetchError);
+          console.error(`  Failed to fetch existing rows from ${tableName}:`, fetchError);
           console.error("Upsert data sample:", dataToUpsert.slice(0, 2));
           continue;
         }
@@ -615,10 +617,10 @@ const fetchTumorExpressionData = async ({
             .from(tableName)
             .upsert(toInsert, {onConflict: 'sample_id' });
           if (insertError) {
-            console.error(`❌ Failed to insert ${metric} data:`, insertError);
+            console.error(`  Failed to insert ${metric} data:`, insertError);
             console.error("Insert data sample:", toInsert.slice(0, 2));
           } else {
-            console.log(`✅ Inserted ${toInsert.length} records for ${metric}`);
+            console.log(`  Inserted ${toInsert.length} records for ${metric}`);
           }
         }
 
@@ -636,12 +638,12 @@ const fetchTumorExpressionData = async ({
               .eq("id", rowId);
             if (updateError) {
               console.error(
-                `❌ Failed to update ${metric} data for sample_id ${entry.sample_id}:`,
+                `  Failed to update ${metric} data for sample_id ${entry.sample_id}:`,
                 updateError
               );
             } else {
               console.log(
-                `✅ Updated record for ${metric} (sample_id: ${entry.sample_id})`
+                `  Updated record for ${metric} (sample_id: ${entry.sample_id})`
               );
             }
           }
@@ -666,12 +668,12 @@ const fetchTumorExpressionData = async ({
         .in("sample_id", Object.keys(sampleToCancerTypeMap)) as { data: { sample_id: number; [key: string]: number | null }[] | null; error: any };
 
       if (metricError) {
-        console.error(`❌ Failed to fetch updated ${metric} from Supabase table ${tableName}:`, metricError);
+        console.error(`Failed to fetch updated ${metric} from Supabase table ${tableName}:`, metricError);
         continue;
       }
 
       if (!metricData) {
-        console.warn(`⚠️ No updated data returned for ${metric} from Supabase table ${tableName}`);
+        console.warn(`No updated data returned for ${metric} from Supabase table ${tableName}`);
         continue;
       }
 
@@ -682,7 +684,7 @@ const fetchTumorExpressionData = async ({
         const sampleInfo = sampleToCancerTypeMap[sampleId];
 
         if (!sampleInfo) {
-          console.warn(`⚠️ No matching sample info for sample_id ${sampleId}`);
+          console.warn(`  No matching sample info for sample_id ${sampleId}`);
           return;
         }
 
@@ -712,7 +714,7 @@ const fetchTumorExpressionData = async ({
         });
         if (!hasValidMetric) {
           console.warn(
-            `⚠️ No valid metric values for sample ${sampleData.sample}`
+            `  No valid metric values for sample ${sampleData.sample}`
           );
           return false;
         }
@@ -721,11 +723,11 @@ const fetchTumorExpressionData = async ({
     );
 
     console.log(
-      `✅ Processed ${processedData.length} samples from Supabase after upsert`,
+      ` Processed ${processedData.length} samples from Supabase after upsert`,
       processedData.slice(0, 2)
     );
   } catch (error) {
-    console.error("❌ Error during API fetch or Supabase upsert:", error);
+    console.error("  Error during API fetch or Supabase upsert:", error);
     setTumorData([]);
     setIsLoading(false);
     return;
@@ -761,18 +763,18 @@ const fetchTumorExpressionData = async ({
         }
       });
 
-      console.log(`✅ Final tumor data:`, processedData);
+      console.log(`  Final tumor data:`, processedData);
       setTumorData((prev) => {
         console.log("🛠️ Setting tumorData:", processedData);
         return processedData;
       });
       setTotalTumorSamples(processedData.length);
     } else {
-      console.warn("⚠️ No valid data to set");
+      console.warn("  No valid data to set");
       setTumorData([]);
     }
   } else {
-    console.warn("⚠️ Component unmounted before setting data");
+    console.warn("  Component unmounted before setting data");
   }
 
   setIsLoading(false);
@@ -1018,54 +1020,9 @@ const debouncedFetch = debounce(
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50">
-      <style>
-        {`
-          .chart-container {
-            min-height: 200px;
-            width: 100%;
-            position: relative;
-          }
-        `}
-      </style>
-      <header className="bg-white shadow-sm border-b border-blue-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold text-blue-900">
-                Tumor Analysis Results
-              </h1>
-            </div>
-            <nav className="flex space-x-6">
-              <Link
-                to="/"
-                className="text-blue-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                to="/gene-analysis"
-                className="text-blue-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Gene Analysis
-              </Link>
-              <Link
-                to="/pathway-analysis"
-                className="text-blue-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Pathway Analysis
-              </Link>
-              <Link
-                to="/tumour-analysis"
-                className="text-blue-500 font-medium"
-              >
-                Tumor Analysis
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+    < Header/>
+      <main className="flex-grow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-6">
           {/* Left Sidebar - Filters */}
@@ -1080,39 +1037,6 @@ const debouncedFetch = debounce(
                   <h3 className="font-semibold text-blue-900 mb-3">
                     Expression Normalization Method
                   </h3>
-                  {/* <RadioGroup
-                    // value={normalizationMethod}
-                    // onValueChange={setNormalizationMethod}
-                    onValueChange={(value) => {
-                    console.log("Normalization method changed to:", value);
-                    setNormalizationMethod(value);
-                    // Clear cache and trigger fetch immediately
-                    const cacheKeySite = `tumorData_site_${cancerSite}_${value}_${selectedNoiseMetrics
-                      .sort()
-                      .join(",")}`;
-                    localStorage.removeItem(cacheKeySite);
-                    cancerTypes.forEach((ct) => {
-                      const cacheKeyType = `tumorData_type_${ct}_${value}_${selectedNoiseMetrics
-                        .sort()
-                        .join(",")}`;
-                      localStorage.removeItem(cacheKeyType);
-                    });
-                    debouncedFetch();
-                  }} */}
-                  {/* <RadioGroup
-                  value={normalizationMethod}
-                  onValueChange={(value) => {
-                    console.log("Normalization method changed to:", value);
-                    // Clear cache
-                    const cacheKeySite = `tumorData_site_${cancerSite}_${value}_${selectedNoiseMetrics.sort().join(",")}`;
-                    localStorage.removeItem(cacheKeySite);
-                    cancerTypes.forEach((ct) => {
-                      const cacheKeyType = `tumorData_type_${ct}_${value}_${selectedNoiseMetrics.sort().join(",")}`;
-                      localStorage.removeItem(cacheKeyType);
-                    // });
-                    setNormalizationMethod(value); // Set state last to ensure fetch uses new value
-                  }}
-                  > */}
                   <RadioGroup
                     value={normalizationMethod}
                     onValueChange={(value) => {
@@ -1259,7 +1183,7 @@ const debouncedFetch = debounce(
               <div className="text-center text-blue-900">Loading charts...</div>
             ) : tumorData.length === 0 ? (
               <div className="text-center text-blue-900">
-                No data available for the selected parameters.
+                {/* No data available for the selected parameters. */}
               </div>
             ) : (
               <>
@@ -1273,7 +1197,7 @@ const debouncedFetch = debounce(
 
                 <div className="mb-8">
                   <h2 className="text-4xl font-bold text-blue-900 mb-2">
-                    Results for {cancerSite}{" "}
+                    Results for {cancerSite}{" Cancer "}
                     {cancerTypes.length > 0 && `(${cancerTypes.join(", ")})`}
                   </h2>
                   <div className="flex items-center justify-between mb-4">
@@ -1321,18 +1245,8 @@ const debouncedFetch = debounce(
           </div>
         </div>
       </div>
-      <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
-        <p className="text-blue-700 mt-4">
-          © 2025 BIRL — This website is free and open to all users and there is no
-          login requirement.
-        </p>
-        <p className="font-semibold text-blue-700 mt-4">
-          Biomedical Informatics & Engineering Research Laboratory, Lahore
-          University of Management Sciences
-        </p>
-        <p className="text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
-        <p className="text-blue-700 mt-4">+92 (42) 3560 8352</p>
-      </footer>
+      </main>
+     < Footer/>
     </div>
   );
 };
