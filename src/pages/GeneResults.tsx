@@ -407,7 +407,7 @@ const GeneResults = () => {
     logFC: true,
     logDist: false,
     exprTrend: false,
-    // meanStdBox: true,
+    meanStdBox: true,
   });
   const areAllPlotsSelected = useMemo(
     () => allPlotKeys.every((plot) => visiblePlots[plot]),
