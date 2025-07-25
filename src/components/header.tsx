@@ -22,25 +22,32 @@ const Header = () => {
           </div>
           <nav className="flex space-x-6">
             <Link
-              to="/gene-analysis"
-              className={`text-blue-700 hover:text-blue-600 font-medium transition-colors ${
-                isActiveDashboard("/gene-analysis") ? "text-blue-800" : ""
-              }`}
+            to="/gene-analysis"
+            className={`text-blue-700 hover:text-blue-600 transition-colors ${
+                isActiveDashboard("/gene-analysis") || isActiveDashboard("/gene-results")
+                ? "font-bold"
+                : "font-medium"
+            }`}
             >
-              Gene Analysis
+            Gene Analysis
             </Link>
+
             <Link
               to="/pathway-analysis"
-              className={`text-blue-700 hover:text-blue-600 font-medium transition-colors ${
-                isActiveDashboard("/pathway-analysis") ? "text-blue-800" : ""
+              className={`text-blue-700 hover:text-blue-600 transition-colors ${
+                isActiveDashboard("/pathway-analysis") || isActiveDashboard("/pathway-results")
+                  ? "font-bold"
+                  : "font-medium"
               }`}
             >
               Pathway Analysis
             </Link>
             <Link
               to="/tumour-analysis"
-              className={`text-blue-700 hover:text-blue-600 font-medium transition-colors ${
-                isActiveDashboard("/tumour-analysis") ? "text-blue-800" : ""
+              className={`text-blue-700 hover:text-blue-600 transition-colors ${
+                isActiveDashboard("/tumour-analysis") || isActiveDashboard("/tumour-results")
+                  ? "font-bold"
+                  : "font-medium"
               }`}
             >
               Tumor Analysis
