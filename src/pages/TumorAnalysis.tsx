@@ -41,14 +41,14 @@ const TumourAnalysis = () => {
 
           <h1 className="text-4xl font-bold text-blue-900 mb-4">Tumor Analysis</h1>
           <p className="text-xl text-blue-700">
-            Select a cancer site and types to analyse  noise and tumor values across different metrics.
+            Select a cancer site and project to analyse  noise and tumor values across different metrics.
           </p>
         </div>
 
         {/* Selection Section */}
         <Card className="border-0 shadow-lg mb-10">
           <CardHeader>
-            <CardTitle className="text-xl text-blue-800">Select Cancer Site & Type(s)</CardTitle>
+            <CardTitle className="text-xl text-blue-800">Select Cancer Site & Project(s)</CardTitle>
           </CardHeader>
           <CardContent>
             <CancerTypeSelector
