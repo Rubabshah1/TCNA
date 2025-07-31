@@ -119,14 +119,14 @@ const CancerTypeSelector = ({
       {/* Step 2: Select Cancer Types */}
       {selectedSite && (
         <div className="space-y-3">
-          <label className="block mb-1 font-semibold">Select Cancer Types</label>
+          <label className="block mb-1 font-semibold">Select Project</label>
           <Select onValueChange={handleTypeChange} disabled={loadingTypes}>
             <SelectTrigger className="w-full">
               <SelectValue
                 placeholder={
                   selectedCancerTypes.length > 0
-                    ? `${selectedCancerTypes.length} type(s) selected`
-                    : "Choose cancer types"
+                    ? `${selectedCancerTypes.length} project(s) selected`
+                    : "Choose cancer projects"
                 }
               />
             </SelectTrigger>
@@ -154,7 +154,7 @@ const CancerTypeSelector = ({
       {/* Summary */}
       {selectedCancerTypes.length > 0 && (
         <div className="p-4 bg-blue-50 border rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">Selected Cancer Types:</h4>
+          <h4 className="font-medium text-blue-800 mb-2">Selected Cancer Projects:</h4>
           <ul className="text-blue-700 list-disc list-inside">
             {selectedCancerTypes.map((type) => (
               <li key={type}>{type}</li>
