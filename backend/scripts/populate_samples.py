@@ -92,8 +92,16 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # === Load Sample Sheet CSV ===
-tsv_path = "/Users/rubabshah/Downloads/cancer-gene-noise-explorer-main 2/backend/data/raw/breast/gdc_sample_sheet.2025-07-09 (1).tsv"
+tsv_path = "/Users/rubabshah/Desktop/lums research/breast/gdc_sample_sheet.2025-07-09 (1).tsv"
+# tsv_path = "/Users/rubabshah/Downloads/cancer-gene-noise-explorer-main 2/backend/data/raw/colon/gdc_sample_sheet.2025-07-11.tsv"
 df = pd.read_csv(tsv_path, sep='\t')
+# dupes = df[df.duplicated(subset=["Sample ID"], keep=False)]
+df = df.drop_duplicates(subset=["Sample ID"])
+
+# if not dupes.empty:
+#         print("⚠️ Duplicate sample_barcodes in missing_df:")
+#         print(dupes["Sample ID"])
+
 # print("Available columns:", df.column s.tolist())
 # print(len(df["Sample ID"]))
 # === Basic Cleaning ===
@@ -157,6 +165,11 @@ else:
 if missing_in_supabase:
     print("🚀 Inserting missing samples into Supabase...")
     missing_df = df[df["sample_barcode"].isin(missing_in_supabase)]
+    dupes = missing_df[missing_df.duplicated(subset=["sample_barcode"], keep=False)]
+    if not dupes.empty:
+        print("⚠️ Duplicate sample_barcodes in missing_df:")
+        print(dupes["sample_barcode"])
+
 
     # Reorder columns
     # missing_df = missing_df[["sample_barcode", "cancer_type_id", "sample_type"]]
@@ -176,8 +189,8 @@ if missing_in_supabase:
 
     for i in range(0, len(records), 1000):
         batch = records[i:i+1000]
-        response = supabase.table("samples").insert(batch).execute()
-        # supabase.table("samples").upsert(batch, on_conflict="sample_barcode").execute()
+        # response = supabase.table("samples").insert(batch).execute()
+        supabase.table("samples").upsert(batch, on_conflict="sample_barcode").execute()
 
         # if response.error:
         #     print(f"❌ Failed inserting batch {i}-{i+len(batch)}: {response.error}")

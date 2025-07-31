@@ -23,7 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 venv/
-.env
 backend/data/raw/
 
 
