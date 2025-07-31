@@ -32,7 +32,7 @@ const Index = () => {
           
           <div className="flex justify-center space-x-4 flex-wrap gap-4">
             <Link to="/gene-analysis">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
+              <Button className="bg-blue-700 hover:bg-blue-700 text-white px-8 py-3 text-lg">
                 Gene Analysis
               </Button>
             </Link>
@@ -42,7 +42,7 @@ const Index = () => {
               </Button>
             </Link>
             <Link to="/tumour-analysis">
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 text-lg">
+              <Button className="bg-blue-700 hover:bg-blue-600 text-white px-8 py-3 text-lg">
                 Tumor Analysis
               </Button>
             </Link>
@@ -129,6 +129,11 @@ const Index = () => {
             <Link to="/pathway-analysis">
               <Button className="bg-white hover:bg-gray-100 text-blue-900 px-8 py-3 text-lg font-semibold">
                 Explore Pathways
+              </Button>
+            </Link>
+            <Link to="/tumour-analysis">
+              <Button className="bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-8 py-3 text-lg font-semibold">
+                Begin Tumor Analysis
               </Button>
             </Link>
           </div>
