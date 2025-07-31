@@ -1,197 +1,857 @@
+// // import { useState } from "react";
+// // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// // import { Button } from "@/components/ui/button";
+// // import { Link, useNavigate } from "react-router-dom";
+// // import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
+// // import CancerTypeSelector from "@/components/siteSelector";
+// // import Header from "@/components/header";
+// // import Footer from "@/components/footer";
 
+// // const PathwayAnalysis = () => {
+// //   const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]); // Array for multiple cancer types
+// //   // const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+// //   const [selectedSite, setSelectedSite] = useState<string>(""); // Required site
+// //   const navigate = useNavigate();
+
+// //   // Require site and genes, but cancerTypes is optional
+// //   const canShowAnalysis = selectedSite;
+
+// //   const handleAnalyze = () => {
+// //     if (canShowAnalysis) {
+// //       const params = new URLSearchParams({
+// //         site: selectedSite,
+// //         cancerTypes: selectedCancerTypes.join(","), // Empty string if no cancer types
+// //         // genes: selectedGenes.join(","),
+// //       });
+// //       console.log("Navigating to:", `/pathway-results?${params.toString()}`);
+// //       navigate(`/pathway-results?${params.toString()}`);
+// //     } else {
+// //       console.log("Cannot navigate: Missing required fields", {
+// //         selectedSite,
+// //         selectedCancerTypes,
+// //         // selectedGenes,
+// //       });
+// //     }
+// //   };
+
+// //   return (
+// //     // <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50">
+// //     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+// //       < Header/>
+// //       <main className="flex-grow">
+
+// //       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+// //         {/* Back Button */}
+// //         <Link
+// //           to="/"
+// //           className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+// //         >
+// //           <ArrowLeft className="h-4 w-4 mr-2" />
+// //           Back to Home
+// //         </Link>
+
+// //         {/* Page Title */}
+// //         <div className="mb-8">
+// //           <h2 className="text-4xl font-bold text-blue-900 mb-2">
+// //             Pathway Analysis
+// //           </h2>
+// //           <p className="text-xl text-blue-700">
+// //             Select a cancer site and types to analyse the noise of a gene pathway.
+// //           </p>
+// //           <p className="text-lg text-blue-700">
+// //           </p>
+// //         </div>
+
+// //         {/* Selection Controls */}
+// //         <div className="grid gap-6 mb-8">
+// //           {/* Cancer Site and Type Selection */}
+// //           <Card className="border-0 shadow-lg">
+// //             <CardHeader>
+// //               <CardTitle className="text-xl text-blue-800">
+// //                 Select Cancer Site and Type
+// //               </CardTitle>
+// //             </CardHeader>
+// //             <CardContent>
+// //               <CancerTypeSelector
+// //                 selectedCancerTypes={selectedCancerTypes}
+// //                 onCancerTypesChange={setSelectedCancerTypes}
+// //                 onSiteChange={setSelectedSite}
+// //               />
+// //             </CardContent>
+// //           </Card>
+
+// //           {/* Gene Selection */}
+// //           {/* {selectedSite && (
+// //             <GeneSelector
+// //               selectedGenes={selectedGenes}
+// //               onGenesChange={setSelectedGenes}
+// //             />
+// //           )} */}
+
+// //           {/* Analyze Button */}
+// //           <div className="flex justify-center">
+// //             <Button
+// //               onClick={handleAnalyze}
+// //               disabled={!canShowAnalysis}
+// //               className={`px-8 py-3 text-lg ${
+// //                 canShowAnalysis
+// //                   ? "bg-blue-600 hover:bg-blue-700 text-white"
+// //                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
+// //               }`}
+// //             >
+// //               <Activity className="h-5 w-5 mr-2" />
+// //               Analyze{" "}
+// //               {/* {selectedGenes.length > 0
+// //                 ? `${selectedGenes.length} Gene${selectedGenes.length > 1 ? "s" : ""}`
+// //                 : ""} */}
+// //               <ArrowRight className="h-5 w-5 ml-2" />
+// //             </Button>
+// //           </div>
+// //         </div>
+
+// //       </div>
+// //       </main>
+// //     <Footer />
+// //     </div>
+// //   );
+// // };
+
+// // export default PathwayAnalysis;
+// import { useState } from "react";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+// import { Link, useNavigate } from "react-router-dom";
+// import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
+// import CancerTypeSelector from "@/components/siteSelector";
+// import Header from "@/components/header";
+// import Footer from "@/components/footer";
+
+
+// const PathwayAnalysis = () => {
+//   const [selectedMethod, setSelectedMethod] = useState<"ORA" | "GSEA">("ORA"); // ✅ moved inside
+//   const [customGeneInput, setCustomGeneInput] = useState(""); // ✅ moved inside
+//   const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]);
+//   const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+//   const [geneInput, setGeneInput] = useState<string>("");
+//   const [selectedSite, setSelectedSite] = useState<string>("");
+
+//   const navigate = useNavigate();
+
+//   // Require site, genes are optional
+//   const canShowAnalysis = selectedSite;
+
+//  const handleGeneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//   const input = e.target.value;
+//   setGeneInput(input);
+//   const genes = input
+//     .split(/[\n,]+/)
+//     .map((gene) => gene.trim().toUpperCase())  // 👈 normalize to uppercase
+//     .filter((gene) => gene.length > 0);
+//   setSelectedGenes(genes);
+// };
+
+
+//   // const handleAnalyze = () => {
+//   //   if (canShowAnalysis) {
+//   //     const params = new URLSearchParams({
+//   //       site: selectedSite,
+//   //       cancerTypes: selectedCancerTypes.join(","),
+//   //       genes: selectedGenes.join(","),
+//   //     });
+//   //     console.log("Navigating to:", `/pathway-results?${params.toString()}`);
+//   //     navigate(`/pathway-results?${params.toString()}`);
+//   //   } else {
+//   //     console.log("Cannot navigate: Missing required fields", {
+//   //       selectedSite,
+//   //       selectedCancerTypes,
+//   //       selectedGenes,
+//   //     });
+//   //   }
+//   // };
+//   const handleAnalyze = () => {
+//     const selectedGenes = customGeneInput
+//       .split(/[\s,]+/)
+//       .map((g) => g.trim().toUpperCase())
+//       .filter((g) => g);
+
+//     if (selectedMethod === "ORA" && selectedGenes.length === 0) {
+//       alert("Please enter a custom gene list for ORA.");
+//       return;
+//     }
+
+//     const params = new URLSearchParams({
+//       site: selectedSite,
+//       cancerTypes: selectedCancerTypes.join(","),
+//       genes: selectedGenes.join(","),
+//       method: selectedMethod,
+//     });
+
+//     navigate(`/pathway-results?${params.toString()}`);
+//   };
+
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+//       <Header />
+//       <main className="flex-grow">
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//           {/* Back Button */}
+//           <Link
+//             to="/"
+//             className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+//           >
+//             <ArrowLeft className="h-4 w-4 mr-2" />
+//             Back to Home
+//           </Link>
+
+//           {/* Page Title */}
+//           <div className="mb-8">
+//             <h2 className="text-4xl font-bold text-blue-900 mb-2">
+//               Pathway Analysis
+//             </h2>
+//             <p className="text-xl text-blue-700">
+//               Select a cancer site and types, and optionally provide a custom gene list to analyze the noise of a gene pathway.
+//             </p>
+//           </div>
+
+//           {/* Selection Controls */}
+//           <div className="grid gap-6 mb-8">
+//             {/* Cancer Site and Type Selection */}
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">
+//                   Select Cancer Site and Type
+//                 </CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <CancerTypeSelector
+//                   selectedCancerTypes={selectedCancerTypes}
+//                   onCancerTypesChange={setSelectedCancerTypes}
+//                   onSiteChange={setSelectedSite}
+//                 />
+//               </CardContent>
+//             </Card>
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">Analysis Method</CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <div className="flex space-x-4">
+//                   <label className="flex items-center space-x-2">
+//                     <input
+//                       type="radio"
+//                       value="ORA"
+//                       checked={selectedMethod === "ORA"}
+//                       onChange={() => setSelectedMethod("ORA")}
+//                     />
+//                     <span>Overrepresentation Analysis (ORA)</span>
+//                   </label>
+//                   <label className="flex items-center space-x-2">
+//                     <input
+//                       type="radio"
+//                       value="GSEA"
+//                       checked={selectedMethod === "GSEA"}
+//                       onChange={() => setSelectedMethod("GSEA")}
+//                     />
+//                     <span>Gene Set Enrichment Analysis (GSEA)</span>
+//                   </label>
+//                 </div>
+//               </CardContent>
+//             </Card>
+//             {selectedMethod === "ORA" && (
+//             <Card className="mt-4 border-0 shadow-md">
+//               <CardHeader>
+//                 <CardTitle className="text-lg text-blue-800">
+//                   Custom Gene List (Required for ORA)
+//                 </CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <textarea
+//                   className="w-full border rounded-md p-2 text-sm"
+//                   placeholder="Enter gene symbols (e.g., BRCA1, TP53), comma-separated or one per line"
+//                   rows={5}
+//                   value={customGeneInput}
+//                   onChange={(e) => setCustomGeneInput(e.target.value)}
+//                 />
+//               </CardContent>
+//             </Card>
+//           )}
+
+
+//             {/* Gene Input */}
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">
+//                   Custom Gene List (Optional)
+//                 </CardTitle>
+//               </CardHeader>
+//               {/* <CardContent>
+//                 <input
+//                   type="text"
+//                   value={geneInput}
+//                   onChange={handleGeneInputChange}
+//                   placeholder="Enter genes (comma-separated, e.g., BRCA1,TP53)"
+//                   className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+//                 />
+//                 {selectedGenes.length > 0 && (
+//                   <p className="mt-2 text-sm text-blue-600">
+//                     Selected genes: {selectedGenes.join(", ")}
+//                   </p>
+//                 )}
+//               </CardContent> */}
+//               <CardContent className="space-y-4">
+//                   <input
+//                     type="text"
+//                     value={geneInput}
+//                     onChange={handleGeneInputChange}
+//                     placeholder="Enter genes (comma-separated or one per line)"
+//                     className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+//                   />
+
+//                   <div>
+//                     <label className="block mb-1 text-blue-700 font-medium">
+//                       Or Upload Gene List File (.txt)
+//                     </label>
+//                     <input
+//                       type="file"
+//                       accept=".txt"
+//                       onChange={(e) => {
+//                         const file = e.target.files?.[0];
+//                         if (!file) return;
+
+//                         const reader = new FileReader();
+//                         reader.onload = (event) => {
+//                           const content = event.target?.result as string;
+//                           if (content) {
+//                             // Split by commas and newlines, normalize whitespace
+//                           //   const parsedGenes = content
+//                           //     .split(/[\n,]+/)
+//                           //     .map((gene) => gene.trim())
+//                           //     .filter((gene) => gene.length > 0);
+//                           //   setSelectedGenes(parsedGenes);
+//                           //   setGeneInput(parsedGenes.join(", "));
+//                           // }
+//                           const parsedGenes = content
+//                           .split(/[\n,]+/)
+//                           .map((gene) => gene.trim().toUpperCase())  // 👈 normalize to uppercase
+//                           .filter((gene) => gene.length > 0);
+//                           }
+//                         };
+//                         reader.readAsText(file);
+//                       }}
+//                       className="mt-1"
+//                     />
+//                   </div>
+
+//                   {selectedGenes.length > 0 && (
+//                     <p className="text-sm text-blue-600">
+//                       Selected genes: {selectedGenes.join(", ")}
+//                     </p>
+//                   )}
+//                 </CardContent>
+
+//             </Card>
+
+//             {/* Analyze Button */}
+//             <div className="flex justify-center">
+//               <Button
+//                 onClick={handleAnalyze}
+//                 disabled={!canShowAnalysis}
+//                 className={`px-8 py-3 text-lg ${
+//                   canShowAnalysis
+//                     ? "bg-blue-600 hover:bg-blue-700 text-white"
+//                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
+//                 }`}
+//               >
+//                 <Activity className="h-5 w-5 mr-2" />
+//                 Analyze{" "}
+//                 {selectedGenes.length > 0
+//                   ? `${selectedGenes.length} Gene${selectedGenes.length > 1 ? "s" : ""}`
+//                   : ""}
+//                 <ArrowRight className="h-5 w-5 ml-2" />
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       </main>
+//       <Footer />
+//     </div>
+//   );
+// };
+
+// export default PathwayAnalysis;
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Network, ArrowLeft } from "lucide-react";
-import { Network, Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
+import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
+import CancerTypeSelector from "@/components/siteSelector";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const PathwayAnalysis = () => {
-  const [selectedCancerType, setSelectedCancerType] = useState("");
-  const [selectedPathway, setSelectedPathway] = useState("");
+  const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]);
+  const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+  const [geneInput, setGeneInput] = useState<string>("");
+  const [selectedSite, setSelectedSite] = useState<string>("");
+  const [analysisType, setAnalysisType] = useState<"ORA" | "GSEA">("ORA");
+  const navigate = useNavigate();
 
-  const pathways = [
-    { value: "p53", label: "p53 Signaling Pathway", description: "Cell cycle regulation and apoptosis" },
-    { value: "wnt", label: "Wnt/β-catenin Pathway", description: "Cell proliferation and differentiation" },
-    { value: "pi3k", label: "PI3K/AKT Pathway", description: "Cell survival and metabolism" },
-    { value: "mapk", label: "MAPK/ERK Pathway", description: "Cell growth and division" },
-    { value: "tgf", label: "TGF-β Pathway", description: "Cell growth inhibition" },
-    { value: "nf-kb", label: "NF-κB Pathway", description: "Inflammation and immune response" }
-  ];
+  // Require site for both ORA and GSEA, genes are required for ORA
+  // const canShowAnalysis = selectedSite && (analysisType === "GSEA" || selectedGenes.length > 0);
+  const canShowAnalysis = !!selectedSite;
 
-  const cancerTypes = [
-    { value: "breast", label: "Breast Cancer (BRCA)" },
-    { value: "lung", label: "Lung Cancer (LUAD)" },
-    { value: "prostate", label: "Prostate Cancer (PRAD)" },
-    { value: "colorectal", label: "Colorectal Cancer (COAD)" }
-  ];
+
+  const handleGeneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setGeneInput(input);
+    const genes = input
+      .split(/[\n,]+/)
+      .map((gene) => gene.trim().toUpperCase())
+      .filter((gene) => gene.length > 0);
+    setSelectedGenes(genes);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        const parsedGenes = content
+          .split(/[\n,]+/)
+          .map((gene) => gene.trim().toUpperCase())
+          .filter((gene) => gene.length > 0);
+        setSelectedGenes(parsedGenes);
+        setGeneInput(parsedGenes.join(", "));
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleAnalyze = () => {
+    if (canShowAnalysis) {
+      const params = new URLSearchParams({
+        site: selectedSite,
+        cancerTypes: selectedCancerTypes.join(","),
+        genes: selectedGenes.join(","),
+        analysisType,
+      });
+      console.log("Navigating to:", `/pathway-results?${params.toString()}`);
+      navigate(`/pathway-results?${params.toString()}`);
+    } else {
+      console.log("Cannot navigate: Missing required fields", {
+        selectedSite,
+        selectedCancerTypes,
+        selectedGenes,
+        analysisType,
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-blue-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Dna className="h-6 w-6 text-white" />
-              </div>
-              {/* <h1 className="text-2xl font-bold text-blue-900">TCNA</h1> */}
-              <Link to="/" className="text-2xl font-bold text-blue-900">
-                TCNA
-              </Link>
-              <span className="text-sm text-blue-700 hidden sm:block">The Cancer Noise Atlas</span>
-            </div>
-            <nav className="flex space-x-6">
-              {/* <Link to="/" className="text-blue-700 hover:text-blue-600 font-medium transition-colors">
-                Home
-              </Link> */}
-              <Link to="/gene-analysis" className="text-blue-700 hover:text-blue-600 font-medium transition-colors">
-                Gene Analysis
-              </Link>
-              <Link to="/pathway-analysis" className="text-blue-500 font-medium">
-                Pathway Analysis
-              </Link>
-              <Link to="/tumour-analysis" className="text-blue-700 hover:text-blue-600 font-medium transition-colors">
-                Tumor Analysis
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+      <Header />
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back Button */}
+          <Link
+            to="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <h1 className="text-4xl font-bold text-blue-900 mb-4">Pathway Analysis</h1>
-          <p className="text-xl text-blue-700">
-            Analyze biological pathway dysregulation and cross-pathway interactions in cancer
-          </p>
-        </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Controls */}
-          <div className="lg:col-span-1">
+          {/* Page Title */}
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold text-blue-900 mb-2">
+              Pathway Analysis
+            </h2>
+            <p className="text-xl text-blue-700">
+              Select a cancer site and project, choose analysis type (ORA or GSEA), and provide a custom gene list for ORA to analyze the noise of a gene pathway.
+            </p>
+          </div>
+
+          {/* Selection Controls */}
+          <div className="grid gap-6 mb-8">
+            {/* Cancer Site and Type Selection */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-blue-800">Analysis Parameters</CardTitle>
+                <CardTitle className="text-xl text-blue-800">
+                  Select Cancer Site and Project
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-2">
-                    Cancer Type
-                  </label>
-                  <Select value={selectedCancerType} onValueChange={setSelectedCancerType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select cancer type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cancerTypes.map((cancer) => (
-                        <SelectItem key={cancer.value} value={cancer.value}>
-                          {cancer.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-2">
-                    Pathway
-                  </label>
-                  <Select value={selectedPathway} onValueChange={setSelectedPathway}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select pathway" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pathways.map((pathway) => (
-                        <SelectItem key={pathway.value} value={pathway.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{pathway.label}</span>
-                            <span className="text-sm text-gray-500">{pathway.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
-                  disabled={!selectedCancerType || !selectedPathway}
-                >
-                  Analyze Pathway
-                </Button>
+              <CardContent>
+                <CancerTypeSelector
+                  selectedCancerTypes={selectedCancerTypes}
+                  onCancerTypesChange={setSelectedCancerTypes}
+                  onSiteChange={setSelectedSite}
+                />
               </CardContent>
             </Card>
-          </div>
 
-          {/* Results */}
-          <div className="lg:col-span-2">
-            {selectedCancerType && selectedPathway ? (
-              <div className="space-y-6">
-                <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-yellow-50">
-                  <CardHeader>
-                    <CardTitle className="text-blue-800">
-                      Pathway Network Visualization
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64 bg-gradient-to-br from-blue-100 to-yellow-100 rounded-lg flex items-center justify-center">
-                      <div className="text-center text-blue-700">
-                        <Network className="h-16 w-16 mx-auto mb-4" />
-                        <p className="text-lg font-medium">Interactive Pathway Network</p>
-                        <p className="text-sm">
-                          Showing {pathways.find(p => p.value === selectedPathway)?.label} in{" "}
-                          {cancerTypes.find(c => c.value === selectedCancerType)?.label}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            {/* Analysis Type Selection */}
+              <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl text-blue-800">Analysis Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={analysisType}
+                  onValueChange={(value) => setAnalysisType(value as "ORA" | "GSEA")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select analysis type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ORA">ORA (Over-Representation Analysis)</SelectItem>
+                    <SelectItem value="GSEA">GSEA (Gene Set Enrichment Analysis)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
 
-                <Card className="border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-blue-800">Pathway Activity Metrics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-blue-600 font-medium">Activity Score</p>
-                        <p className="text-2xl font-bold text-blue-800">0.73</p>
-                      </div>
-                      <div className="p-4 bg-yellow-50 rounded-lg">
-                        <p className="text-sm text-yellow-600 font-medium">Dysregulation Index</p>
-                        <p className="text-2xl font-bold text-yellow-800">2.14</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <Card className="border-0 shadow-lg h-96 flex items-center justify-center">
-                <div className="text-center text-blue-600">
-                  <Network className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Select Parameters to Begin Analysis</p>
-                  <p className="text-sm opacity-75">Choose a cancer type and pathway to explore</p>
-                </div>
+
+            
+
+            {/* Gene Input (only shown for ORA) */}
+            {analysisType === "ORA" && (
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl text-blue-800">
+                    Custom Gene List
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <input
+                    type="text"
+                    value={geneInput}
+                    onChange={handleGeneInputChange}
+                    placeholder="Enter genes (comma-separated or one per line, e.g., BRCA1,TP53)"
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                  <div>
+                    <label className="block mb-1 text-blue-700 font-medium">
+                      Or Upload Gene List File (.txt)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".txt"
+                      onChange={handleFileUpload}
+                      className="mt-1"
+                    />
+                  </div>
+                  {selectedGenes.length > 0 && (
+                    <p className="text-sm text-blue-600">
+                      Selected genes: {selectedGenes.join(", ")}
+                    </p>
+                  )}
+                </CardContent>
               </Card>
             )}
+
+            {/* Analyze Button */}
+            <div className="flex justify-center">
+              <Button
+                onClick={handleAnalyze}
+                disabled={!canShowAnalysis}
+                className={`px-8 py-3 text-lg ${
+                  canShowAnalysis
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                <Activity className="h-5 w-5 mr-2" />
+                Analyze{" "}
+                {/* {analysisType === "ORA" && selectedGenes.length > 0
+                  ? `${selectedGenes.length} Gene${selectedGenes.length > 1 ? "s" : ""}`
+                  : ""} */}
+                  {analysisType === "ORA" && selectedGenes.length > 0
+                  ? `${selectedGenes.length} Gene${selectedGenes.length > 1 ? "s" : ""}`
+                  : ""}
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-      <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-8 text-center border-t border-gray-300">
-      <p className=" text-blue-700 mt-4">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
-      <p className="font-semibold text-blue-700 mt-4">Biomedical Informatics & Engineering Research Laboratory, Lahore University of Management Sciences</p>
-      <p className=" text-blue-700 mt-4">DHA, Lahore, Pakistan</p>
-      <p className=" text-blue-700 mt-4">+92 (42) 3560 8352</p>
-    </footer>
+      </main>
+      <Footer />
     </div>
   );
 };
 
 export default PathwayAnalysis;
+
+// import { useState } from "react";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+// import { Link, useNavigate } from "react-router-dom";
+// import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
+// import CancerTypeSelector from "@/components/siteSelector";
+// import Header from "@/components/header";
+// import Footer from "@/components/footer";
+
+
+// const PathwayAnalysis = () => {
+//   const [selectedMethod, setSelectedMethod] = useState<"ORA" | "GSEA">("ORA"); // ✅ moved inside
+//   const [customGeneInput, setCustomGeneInput] = useState(""); // ✅ moved inside
+//   const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]);
+//   const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+//   const [geneInput, setGeneInput] = useState<string>("");
+//   const [selectedSite, setSelectedSite] = useState<string>("");
+
+//   const navigate = useNavigate();
+
+//   // Require site, genes are optional
+//   const canShowAnalysis = selectedSite;
+
+//  const handleGeneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//   const input = e.target.value;
+//   setGeneInput(input);
+//   const genes = input
+//     .split(/[\n,]+/)
+//     .map((gene) => gene.trim().toUpperCase())  // 👈 normalize to uppercase
+//     .filter((gene) => gene.length > 0);
+//   setSelectedGenes(genes);
+// };
+
+
+//   // const handleAnalyze = () => {
+//   //   if (canShowAnalysis) {
+//   //     const params = new URLSearchParams({
+//   //       site: selectedSite,
+//   //       cancerTypes: selectedCancerTypes.join(","),
+//   //       genes: selectedGenes.join(","),
+//   //     });
+//   //     console.log("Navigating to:", `/pathway-results?${params.toString()}`);
+//   //     navigate(`/pathway-results?${params.toString()}`);
+//   //   } else {
+//   //     console.log("Cannot navigate: Missing required fields", {
+//   //       selectedSite,
+//   //       selectedCancerTypes,
+//   //       selectedGenes,
+//   //     });
+//   //   }
+//   // };
+//   const handleAnalyze = () => {
+//     const selectedGenes = customGeneInput
+//       .split(/[\s,]+/)
+//       .map((g) => g.trim().toUpperCase())
+//       .filter((g) => g);
+
+//     if (selectedMethod === "ORA" && selectedGenes.length === 0) {
+//       alert("Please enter a custom gene list for ORA.");
+//       return;
+//     }
+
+//     const params = new URLSearchParams({
+//       site: selectedSite,
+//       cancerTypes: selectedCancerTypes.join(","),
+//       genes: selectedGenes.join(","),
+//       method: selectedMethod,
+//     });
+
+//     navigate(`/pathway-results?${params.toString()}`);
+//   };
+
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+//       <Header />
+//       <main className="flex-grow">
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//           {/* Back Button */}
+//           <Link
+//             to="/"
+//             className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+//           >
+//             <ArrowLeft className="h-4 w-4 mr-2" />
+//             Back to Home
+//           </Link>
+
+//           {/* Page Title */}
+//           <div className="mb-8">
+//             <h2 className="text-4xl font-bold text-blue-900 mb-2">
+//               Pathway Analysis
+//             </h2>
+//             <p className="text-xl text-blue-700">
+//               Select a cancer site and types, and optionally provide a custom gene list to analyze the noise of a gene pathway.
+//             </p>
+//           </div>
+
+//           {/* Selection Controls */}
+//           <div className="grid gap-6 mb-8">
+//             {/* Cancer Site and Type Selection */}
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">
+//                   Select Cancer Site and Type
+//                 </CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <CancerTypeSelector
+//                   selectedCancerTypes={selectedCancerTypes}
+//                   onCancerTypesChange={setSelectedCancerTypes}
+//                   onSiteChange={setSelectedSite}
+//                 />
+//               </CardContent>
+//             </Card>
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">Analysis Method</CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <div className="flex space-x-4">
+//                   <label className="flex items-center space-x-2">
+//                     <input
+//                       type="radio"
+//                       value="ORA"
+//                       checked={selectedMethod === "ORA"}
+//                       onChange={() => setSelectedMethod("ORA")}
+//                     />
+//                     <span>Overrepresentation Analysis (ORA)</span>
+//                   </label>
+//                   <label className="flex items-center space-x-2">
+//                     <input
+//                       type="radio"
+//                       value="GSEA"
+//                       checked={selectedMethod === "GSEA"}
+//                       onChange={() => setSelectedMethod("GSEA")}
+//                     />
+//                     <span>Gene Set Enrichment Analysis (GSEA)</span>
+//                   </label>
+//                 </div>
+//               </CardContent>
+//             </Card>
+//             {selectedMethod === "ORA" && (
+//             <Card className="mt-4 border-0 shadow-md">
+//               <CardHeader>
+//                 <CardTitle className="text-lg text-blue-800">
+//                   Custom Gene List (Required for ORA)
+//                 </CardTitle>
+//               </CardHeader>
+//               <CardContent>
+//                 <textarea
+//                   className="w-full border rounded-md p-2 text-sm"
+//                   placeholder="Enter gene symbols (e.g., BRCA1, TP53), comma-separated or one per line"
+//                   rows={5}
+//                   value={customGeneInput}
+//                   onChange={(e) => setCustomGeneInput(e.target.value)}
+//                 />
+//               </CardContent>
+//             </Card>
+//           )}
+
+
+//             {/* Gene Input */}
+//             <Card className="border-0 shadow-lg">
+//               <CardHeader>
+//                 <CardTitle className="text-xl text-blue-800">
+//                   Custom Gene List (Optional)
+//                 </CardTitle>
+//               </CardHeader>
+//               {/* <CardContent>
+//                 <input
+//                   type="text"
+//                   value={geneInput}
+//                   onChange={handleGeneInputChange}
+//                   placeholder="Enter genes (comma-separated, e.g., BRCA1,TP53)"
+//                   className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+//                 />
+//                 {selectedGenes.length > 0 && (
+//                   <p className="mt-2 text-sm text-blue-600">
+//                     Selected genes: {selectedGenes.join(", ")}
+//                   </p>
+//                 )}
+//               </CardContent> */}
+//               <CardContent className="space-y-4">
+//                   <input
+//                     type="text"
+//                     value={geneInput}
+//                     onChange={handleGeneInputChange}
+//                     placeholder="Enter genes (comma-separated or one per line)"
+//                     className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+//                   />
+
+//                   <div>
+//                     <label className="block mb-1 text-blue-700 font-medium">
+//                       Or Upload Gene List File (.txt)
+//                     </label>
+//                     <input
+//                       type="file"
+//                       accept=".txt"
+//                       onChange={(e) => {
+//                         const file = e.target.files?.[0];
+//                         if (!file) return;
+
+//                         const reader = new FileReader();
+//                         reader.onload = (event) => {
+//                           const content = event.target?.result as string;
+//                           if (content) {
+//                             // Split by commas and newlines, normalize whitespace
+//                           //   const parsedGenes = content
+//                           //     .split(/[\n,]+/)
+//                           //     .map((gene) => gene.trim())
+//                           //     .filter((gene) => gene.length > 0);
+//                           //   setSelectedGenes(parsedGenes);
+//                           //   setGeneInput(parsedGenes.join(", "));
+//                           // }
+//                           const parsedGenes = content
+//                           .split(/[\n,]+/)
+//                           .map((gene) => gene.trim().toUpperCase())  // 👈 normalize to uppercase
+//                           .filter((gene) => gene.length > 0);
+//                           }
+//                         };
+//                         reader.readAsText(file);
+//                       }}
+//                       className="mt-1"
+//                     />
+//                   </div>
+
+//                   {selectedGenes.length > 0 && (
+//                     <p className="text-sm text-blue-600">
+//                       Selected genes: {selectedGenes.join(", ")}
+//                     </p>
+//                   )}
+//                 </CardContent>
+
+//             </Card>
+
+//             {/* Analyze Button */}
+//             <div className="flex justify-center">
+//               <Button
+//                 onClick={handleAnalyze}
+//                 disabled={!canShowAnalysis}
+//                 className={`px-8 py-3 text-lg ${
+//                   canShowAnalysis
+//                     ? "bg-blue-600 hover:bg-blue-700 text-white"
+//                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
+//                 }`}
+//               >
+//                 <Activity className="h-5 w-5 mr-2" />
+//                 Analyze{" "}
+//                 {selectedGenes.length > 0
+//                   ? `${selectedGenes.length} Gene${selectedGenes.length > 1 ? "s" : ""}`
+//                   : ""}
+//                 <ArrowRight className="h-5 w-5 ml-2" />
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       </main>
+//       <Footer />
+//     </div>
+//   );
+// };
+
+// export default PathwayAnalysis;
