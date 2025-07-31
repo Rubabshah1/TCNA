@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Download, Box, ChevronRight, ChevronDown } from "lucide-react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 
 import {
   ResponsiveContainer,
@@ -1179,8 +1180,8 @@ const debouncedFetch = debounce(
 
           {/* Main Content */}
           <div className="flex-1">
-            {isLoading ? (
-              <div className="text-center text-blue-900">Loading charts...</div>
+              {isLoading ? (
+              <LoadingSpinner message="Loading results..." />
             ) : tumorData.length === 0 ? (
               <div className="text-center text-blue-900">
                 {/* No data available for the selected parameters. */}
