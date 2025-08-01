@@ -322,7 +322,8 @@ const PathwayResults = () => {
             ...(params.genes.length > 0 && params.analysisType === "ORA" && { genes: params.genes.join(",") }),
           });
 
-          const response = await fetch(`http://localhost:5001/api/pathway-analysis?${queryParams}`);
+          // const response = await fetch(`http://localhost:5001/api/pathway-analysis?${queryParams}`);
+          const response = await fetch(`/api/pathway-analysis?${queryParams}`);
           if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Failed to fetch pathway analysis data for ${method}: ${errorText}`);
