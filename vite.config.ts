@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8081,
+    // added tcna address here as proxy
+    proxy: {
+      "/api": {
+        target: "https://tcna.lums.edu.pk",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   plugins: [
     react(),
