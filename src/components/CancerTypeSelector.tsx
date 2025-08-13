@@ -1,100 +1,187 @@
+
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import supabase from "@/supabase-client";
+import { Button } from "@/components/ui/button";
 
 interface CancerTypeSelectorProps {
-  selectedCancerType: string;
-  onCancerTypeChange: (value: string) => void;
+  selectedCancerTypes: string[];
+  onCancerTypesChange: (values: string[]) => void;
+  onSiteChange: (siteName: string) => void;
 }
 
-const CancerTypeSelector = ({ selectedCancerType, onCancerTypeChange }: CancerTypeSelectorProps) => {
-  const [cancerTypes, setCancerTypes] = useState<{ value: string; label: string; description: string }[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const CancerTypeSelector = ({
+  selectedCancerTypes,
+  onCancerTypesChange,
+  onSiteChange,
+}: CancerTypeSelectorProps) => {
+  const [cancerSites, setCancerSites] = useState<{ id: number; name: string }[]>([]);
+  const [selectedSite, setSelectedSite] = useState<string>("");
+  const [cancerTypes, setCancerTypes] = useState<string[]>([]);
+  const [loadingSites, setLoadingSites] = useState<boolean>(true);
+  const [loadingTypes, setLoadingTypes] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-      useEffect(() => {
-      const fetchCancerTypes = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase.from("cancer_types").select("*");
-          if (error) throw error;
 
-          console.log("Fetched cancers from Supabase:", data);
+  // Fetch cancer sites
+  useEffect(() => {
+    const fetchSites = async () => {
+      setLoadingSites(true);
+      try {
+        const { data, error } = await supabase.from("Sites").select("id, name");
+        if (error) throw error;
+        // Hardcoded fallback
+        // const hardcodedSites = [
+        //   { id: 3, name: "Breast" },
+        //   { id: 1, name: "Liver and Bile Duct" },
+        //   { id: 2, name: "Colorectal" },
+        //   { id: 23, name: "Thymus" },
+        //   { id: 25, name: "Uterus" },
+        //   { id: 7, name: "Brain and Nervous System" },
+        //   { id: 4, name: "Kidney" },
+        //   { id: 27, name: "Rectum" },
+        //   { id: 26, name: "Lung" },
+        //   { id: 21, name: "Stomach" },
+        //   { id: 14, name: "Eye and Adnexa" },
+        //   { id: 9, name: "Esophagus" },
+        //   { id: 10, name: "Bladder" },
+        //   { id: 8, name: "Head and Neck" },
+        //   { id: 13, name: "Cervix" },
+        //   { id: 18, name: "Prostate" },
+        //   { id: 6, name: "Adrenal Gland" },
+        //   { id: 24, name: "Thyroid" },
+        //   { id: 16, name: "Pancreas" },
+        //   { id: 22, name: "Testis" },
+        //   { id: 15, name: "Ovary" },
+        //   { id: 20, name: "Connective, Subcutaneous and other Soft Tissues" },
+        // ];
+        // setCancerSites(hardcodedSites);
+        setCancerSites(data.sort((a, b) => a.name.localeCompare(b.name)));
+        // setCancerSites(data);
+        // setCancerSites(data.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        setError("Failed to load cancer sites.");
+        console.error(err);
+      } finally {
+        setLoadingSites(false);
+      }
+    };
+    fetchSites();
+  }, []);
 
-          const labelMap: { [key: string]: string } = {
-            "TCGA-BLCA": "Bladder Cancer (BLCA)",
-            "TCGA-BRCA": "Breast Cancer (BRCA)",
-            "TCGA-LUAD": "Lung Cancer (LUAD)",
-            "TCGA-PRAD": "Prostate Cancer (PRAD)",
-            "TCGA-COAD": "Colorectal Cancer (COAD)",
-            "TCGA-LIHC": "Liver Cancer (LIHC)",
-            "TCGA-KIRC": "Kidney Cancer (KIRC)",
-            "TCGA-STAD": "Stomach Cancer (STAD)",
-            "TCGA-OV": "Ovarian Cancer (OV)",
-          };
+  // Fetch cancer types when a site is selected
+  const handleSiteChange = async (siteName: string) => {
+    setSelectedSite(siteName);
+    setCancerTypes([]);
+    onCancerTypesChange([]); // Clear selection
+    setLoadingTypes(true);
+    onSiteChange(siteName);
 
-          const descriptionMap: { [key: string]: string } = {
-            "TCGA-BLCA": "Urothelial carcinoma",
-            "TCGA-BRCA": "Invasive breast carcinoma",
-            "TCGA-LUAD": "Lung adenocarcinoma",
-            "TCGA-PRAD": "Prostate adenocarcinoma",
-            "TCGA-COAD": "Colon adenocarcinoma",
-            "TCGA-LIHC": "Liver hepatocellular carcinoma",
-            "TCGA-KIRC": "Kidney renal clear cell carcinoma",
-            "TCGA-STAD": "Stomach adenocarcinoma",
-            "TCGA-OV": "Ovarian serous cystadenocarcinoma",
-          };
+    try {
+      const selected = cancerSites.find((s) => s.name === siteName);
+      if (!selected) throw new Error("Site not found");
 
-          const mapped = data.map((cancer: any) => {
-            const name = cancer.tcga_code;
-            return {
-              value: name.toString(), // like "tcga-blca"
-              label: labelMap[name] || name,
-              description: cancer.name || "No description available",
-            };
-          });
+      const { data, error } = await supabase
+        .from("cancer_types")
+        .select("tcga_code")
+        .eq("site_id", selected.id);
 
-          setCancerTypes(mapped);
-        } catch (err) {
-          setError("Failed to load cancer types");
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
+      if (error) throw error;
 
-      fetchCancerTypes();
-    }, []);
+      const codes = data.map((item: any) => item.tcga_code);
+      setCancerTypes(codes);
+    } catch (err) {
+      setError("Failed to load cancer types.");
+      console.error(err);
+    } finally {
+      setLoadingTypes(false);
+    }
+  };
 
+  const handleTypeChange = (value: string) => {
+    if (value === "select-all") {
+      onCancerTypesChange(cancerTypes);
+    } else if (value === "clear") {
+      onCancerTypesChange([]);
+    } else {
+      if (selectedCancerTypes.includes(value)) {
+        onCancerTypesChange(selectedCancerTypes.filter((t) => t !== value));
+      } else {
+        onCancerTypesChange([...selectedCancerTypes, value]);
+      }
+    }
+  };
 
-  // if (loading) return <div>Loading cancer types...</div>;
   if (error) return <div>{error}</div>;
 
   return (
-    <div className="space-y-4">
-      <Select value={selectedCancerType} onValueChange={onCancerTypeChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Choose a cancer type" />
-        </SelectTrigger>
-        <SelectContent>
-          {cancerTypes.map((cancer) => (
-            <SelectItem key={cancer.value} value={cancer.value}>
-              <div className="flex flex-col">
-                <span className="font-medium">{cancer.label}</span>
-                <span className="text-sm text-gray-500">{cancer.description}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="space-y-6">
+      {/* Step 1: Select Cancer Site */}
+      <div>
+        <label className="block mb-1 font-semibold">Select Cancer Site</label>
+        <Select onValueChange={handleSiteChange} disabled={loadingSites}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Choose a cancer site" />
+          </SelectTrigger>
+          <SelectContent>
+            {cancerSites.map((site) => (
+              <SelectItem key={site.id} value={site.name}>
+                {site.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {selectedCancerType && (
-        <div className="p-4 bg-gradient-to-r from-blue-50 to-yellow-50 rounded-lg border border-blue-200">
-          <h4 className="font-medium text-blue-800 mb-2">Selected Cancer Type:</h4>
-          <p className="text-blue-700">
-            {
-              cancerTypes.find((c) => c.value === selectedCancerType)?.description
-            }
-          </p>
+      {/* Step 2: Select Cancer Types */}
+      {selectedSite && (
+        <div className="space-y-3">
+          <label className="block mb-1 font-semibold">Select Project</label>
+          <Select onValueChange={handleTypeChange} disabled={loadingTypes}>
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={
+                  selectedCancerTypes.length > 0
+                    ? `${selectedCancerTypes.length} project(s) selected`
+                    : "Choose cancer projects"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="select-all">Select All</SelectItem>
+              <SelectItem value="clear">Clear Selection</SelectItem>
+              {cancerTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedCancerTypes.includes(type)}
+                      readOnly
+                      className="mr-2"
+                    />
+                    {type}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Summary */}
+      {selectedCancerTypes.length > 0 && (
+        <div className="p-4 bg-blue-50 border rounded-lg">
+          <h4 className="font-medium text-blue-800 mb-2">Selected Cancer Projects:</h4>
+          <ul className="text-blue-700 list-disc list-inside">
+            {selectedCancerTypes.map((type) => (
+              <li key={type}>{type}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

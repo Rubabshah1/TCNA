@@ -2,103 +2,181 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useSearchParams, Link } from "react-router-dom";
 import supabase from "@/supabase-client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Download, Activity, Users, Info, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Download, Activity, Users, Info } from "lucide-react";
 import { PlotlyHeatmap, PlotlyBarChart } from "@/components/charts/index";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { GeneStats, Enrichment, ResultsData } from "@/hooks/types/pathway";
 import { useCache } from "@/hooks/use-cache";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import FilterPanel from "@/components/FilterPanel";
+import { DataTable } from "@/components/ui/data-table";
+import CollapsibleCard from "@/components/ui/collapsible-card";
+import SampleCounts from "@/components/SampleCounts";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 
-// CollapsibleCard component with resize handling
-const CollapsibleCard: React.FC<{
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  className?: string;
-  downloadButton?: React.ReactNode;
-}> = ({ title, children, defaultOpen = true, className = "", downloadButton }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const contentRef = useRef<HTMLDivElement>(null);
+// Updated TypeScript Interfaces
+export interface GeneStats {
+  gene: string;
+  ensembl_id: string;
+  metrics: {
+    [cancer: string]: {
+      cv_normal: number;
+      cv_tumor: number;
+      logfc: number;
+      mean_normal: number;
+      mean_tumor: number;
+    };
+  };
+}
 
-  useEffect(() => {
-    if (isOpen && contentRef.current) {
-      // Trigger window resize to fix Plotly plot rendering
-      window.dispatchEvent(new Event("resize"));
-    }
-  }, [isOpen]);
+export interface Enrichment {
+  Term: string;
+  "P-value": number;
+  "Adjusted P-value": number;
+  "Combined Score": number;
+  Genes: string[];
+  GeneSet?: string;
+}
 
-  return (
-    <Card className={`border-0 shadow-lg ${className}`}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-blue-800">{title}</CardTitle>
-        <div className="flex items-center space-x-2">
-          {downloadButton}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOpen(!isOpen)}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </div>
-      </CardHeader>
-      {isOpen && (
-        <CardContent ref={contentRef}>
-          {children}
-        </CardContent>
-      )}
-    </Card>
-  );
-};
+export interface HeatmapData {
+  [gene: string]: {
+    [key: string]: number; // e.g., "colon Tumor", "colon Normal"
+  };
+}
+
+export interface NormalizationResults {
+  enrichment: Enrichment[];
+  top_genes: string[];
+  gene_stats: GeneStats[];
+  heatmap_data: HeatmapData;
+  noise_metrics: { [key: string]: any };
+  warning?: string | null;
+}
+
+export interface ResultsData {
+  [method: string]: NormalizationResults; // tpm, fpkm, fpkm_uq
+}
 
 const PathwayResults = () => {
   const [searchParams] = useSearchParams();
   const params = useMemo(
     () => ({
-      cancerSite: searchParams.get("site") || "",
+      sites: searchParams.get("sites")?.split(",").filter(Boolean) || [],
       cancerTypes: searchParams.get("cancerTypes")?.split(",").filter(Boolean) || [],
       genes: searchParams.get("genes")?.split(",").filter(Boolean) || [],
-      method: searchParams.get("method") || "tpm",
       topN: parseInt(searchParams.get("top_n") || "15", 10),
       analysisType: searchParams.get("analysisType") || "ORA",
+      siteAnalysisType: searchParams.get("siteAnalysisType") || "pan-cancer",
     }),
     [searchParams]
   );
 
-  const [normalizationMethod, setNormalizationMethod] = useState(params.method);
-  const [currentResults, setCurrentResults] = useState<ResultsData>({ enrichment: [], top_genes: [], gene_stats: [] });
+  const [normalizationMethod, setNormalizationMethod] = useState("tpm");
+  const [allResults, setAllResults] = useState<ResultsData>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [totalTumorSamples, setTotalTumorSamples] = useState(0);
-  const [totalNormalSamples, setTotalNormalSamples] = useState(0);
+  const [siteSampleCounts, setSiteSampleCounts] = useState<{ site: string; tumor: number; normal: number }[]>([]);
+  const [isOpen, setIsOpen] = useState(true);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(["normal", "tumor"]);
   const [customGeneInput, setCustomGeneInput] = useState("");
   const [selectedPathway, setSelectedPathway] = useState<Enrichment | null>(null);
   const [showGeneInput, setShowGeneInput] = useState(params.analysisType === "ORA");
-
+  const [sortBy, setSortBy] = useState<"pval" | "adjPval">("pval");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [logFCThreshold, setLogFCThreshold] = useState(0.7); // New state for logFC threshold
+  const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { getCachedData, setCachedData, generateCacheKey } = useCache<ResultsData>();
-
   const normalizationMethods = ["tpm", "fpkm", "fpkm_uq"];
+  const [totalTumorSamples, setTotalTumorSamples] = useState(0);
+  const [totalNormalSamples, setTotalNormalSamples] = useState(0);
 
-  const sampleCountData = useMemo(
-    () => [
-      { type: "Tumor", count: totalTumorSamples, color: "#ef4444" },
-      { type: "Normal", count: totalNormalSamples, color: "#3b82f6" },
-    ],
-    [totalTumorSamples, totalNormalSamples]
+  // Get current results for the selected normalization method
+  const currentResults = useMemo(() => {
+    return allResults[normalizationMethod] || {
+      enrichment: [],
+      top_genes: [],
+      gene_stats: [],
+      heatmap_data: {},
+      noise_metrics: {},
+      warning: null,
+    };
+  }, [allResults, normalizationMethod]);
+
+  // Compute most enriched pathway for each cancer site based on logFC threshold
+  const enrichedPathwaysBySite = useMemo(() => {
+    const results: { site: string; pathway: string; adjPValue: number; genes: string[] }[] = [];
+    params.sites.forEach((site) => {
+      const lowerSite = site.toLowerCase();
+      // Filter genes with |logFC| >= threshold for this site
+      const significantGenes = currentResults.gene_stats
+        .filter((geneStat) => {
+          const logFC = geneStat.metrics[lowerSite]?.logfc || 0;
+          return Math.abs(logFC) >= logFCThreshold;
+        })
+        .map((geneStat) => geneStat.gene);
+
+      // Find pathways containing these significant genes
+      const relevantPathways = currentResults.enrichment
+        .filter((pathway) => pathway.Genes.some((gene) => significantGenes.includes(gene)))
+        .map((pathway) => ({
+          ...pathway,
+          matchingGenes: pathway.Genes.filter((gene) => significantGenes.includes(gene)),
+        }));
+
+      // Select the pathway with the lowest adjusted p-value
+      const mostEnriched = relevantPathways.reduce(
+        (best, pathway) =>
+          !best || pathway["Adjusted P-value"] < best["Adjusted P-value"] ? pathway : best,
+        null as (Enrichment & { matchingGenes: string[] }) | null
+      );
+
+      if (mostEnriched) {
+        results.push({
+          site,
+          pathway: mostEnriched.Term,
+          adjPValue: mostEnriched["Adjusted P-value"],
+          genes: mostEnriched.matchingGenes,
+        });
+      } else {
+        results.push({
+          site,
+          pathway: "None",
+          adjPValue: 0,
+          genes: [],
+        });
+      }
+    });
+    return results;
+  }, [currentResults.enrichment, currentResults.gene_stats, params.sites, logFCThreshold]);
+
+  const logFCColors = useMemo(() => {
+    return currentResults.gene_stats.map((geneStat) => {
+      const logFCs = Object.values(geneStat.metrics).map((m) => m.logfc || 0);
+      const avgLogFC = logFCs.length > 0 ? logFCs.reduce((sum, val) => sum + val, 0) / logFCs.length : 0;
+      return avgLogFC < 0 ? "#ef4444" : "#3b82f6";
+    });
+  }, [currentResults.gene_stats]);
+
+  const updateFilters = useCallback(
+    (newFilters: { normalizationMethod?: string }) => {
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+      }
+      filterTimeoutRef.current = setTimeout(() => {
+        if (newFilters.normalizationMethod && normalizationMethods.includes(newFilters.normalizationMethod)) {
+          setNormalizationMethod(newFilters.normalizationMethod);
+        }
+      }, 300);
+    },
+    [normalizationMethods]
   );
 
   const formatPValue = (pValue: number) => {
-    if (pValue < 0.001) return "***";
-    if (pValue < 0.01) return "**";
-    if (pValue < 0.05) return "*";
+    if (pValue <= 0.001) return "****";
+    if (pValue <= 0.01) return "***";
+    if (pValue <= 0.05) return "**";
     return pValue.toExponential(2);
   };
 
@@ -116,18 +194,18 @@ const PathwayResults = () => {
   const submitCustomGenes = () => {
     const genes = processCustomGenes();
     if (genes.length > 0) {
-      // Clear cache for new gene list
       localStorage.clear();
-      window.location.href = `/pathway-results?site=${params.cancerSite}&cancerTypes=${params.cancerTypes.join(
+      window.location.href = `/pathway-results?sites=${params.sites.join(
         ","
-      )}&genes=${genes.join(",")}&method=${normalizationMethod}&top_n=${params.topN}&analysisType=ORA`;
+      )}&cancerTypes=${params.cancerTypes.join(
+        ","
+      )}&genes=${genes.join(",")}&top_n=${params.topN}&analysisType=ORA&siteAnalysisType=${params.siteAnalysisType}`;
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -137,32 +215,29 @@ const PathwayResults = () => {
     reader.readAsText(file);
   };
 
-  // Fetch sample counts separately without caching
-  const fetchSampleCounts = useCallback(async (cancerSite: string, cancerTypes: string[]) => {
+  const fetchSampleCounts = useCallback(async (sites: string[], cancerTypes: string[]) => {
     try {
       const { data: siteRows, error: siteRowsErr } = await supabase
         .from("Sites")
         .select("id, name")
-        .eq("name", cancerSite);
-
-      if (siteRowsErr) throw new Error(`Failed to fetch cancer site: ${siteRowsErr.message}`);
-      if (!siteRows?.length) throw new Error(`Cancer site not found: ${cancerSite}`);
-
-      const cancerSiteId = siteRows[0].id;
+        .in("name", sites);
+      if (siteRowsErr) throw new Error(`Failed to fetch cancer sites: ${siteRowsErr.message}`);
+      if (!siteRows?.length) throw new Error(`Cancer sites not found: ${sites.join(", ")}`);
+      const cancerSiteIds = siteRows.map((row) => row.id);
 
       const { data: cancerTypeRows, error: cancerTypeErr } =
         cancerTypes.length > 0
           ? await supabase
               .from("cancer_types")
-              .select("id, tcga_code")
+              .select("id, tcga_code, site_id")
               .in("tcga_code", cancerTypes)
+              .in("site_id", cancerSiteIds)
           : await supabase
               .from("cancer_types")
               .select("id, tcga_code, site_id")
-              .eq("site_id", cancerSiteId);
+              .in("site_id", cancerSiteIds);
 
       if (cancerTypeErr) throw new Error(`Failed to fetch cancer types: ${cancerTypeErr.message}`);
-
       const cancerTypeIds = cancerTypeRows.map((row) => row.id);
 
       const { data: samplesData, error: samplesError } = await supabase
@@ -172,109 +247,62 @@ const PathwayResults = () => {
 
       if (samplesError) throw new Error(`Failed to fetch samples: ${samplesError.message}`);
 
-      const tumorSamples = samplesData
-        .filter((s) => s.sample_type?.toLowerCase() === "tumor")
-        .map((s) => s.sample_barcode);
-      const normalSamples = samplesData
-        .filter((s) => s.sample_type?.toLowerCase() === "normal")
-        .map((s) => s.sample_barcode);
+      const siteCounts = sites.map((site) => {
+        const siteId = siteRows.find((s) => s.name === site)?.id;
+        if (!siteId) return { site, tumor: 0, normal: 0 };
 
-      setTotalTumorSamples(tumorSamples.length);
-      setTotalNormalSamples(normalSamples.length);
+        const siteSamples = samplesData.filter((s) => {
+          const cancerType = cancerTypeRows.find((ct) => ct.id === s.cancer_type_id);
+          return cancerType?.site_id === siteId;
+        });
 
-      return { tumorSamples, normalSamples };
-    } catch (error: any) {
+        const tumorSamples = siteSamples.filter((s) => s.sample_type?.toLowerCase() === "tumor").length;
+        const normalSamples = siteSamples.filter((s) => s.sample_type?.toLowerCase() === "normal").length;
+
+        return { site, tumor: tumorSamples, normal: normalSamples };
+      });
+
+      setSiteSampleCounts(siteCounts);
+      return siteCounts;
+    } catch (error) {
       console.error("Error fetching sample counts:", error);
       setError(error.message || "An error occurred while fetching sample counts.");
-      return { tumorSamples: [], normalSamples: [] };
+      return [];
     }
   }, []);
 
   useEffect(() => {
-    if (params.cancerSite) {
-      fetchSampleCounts(params.cancerSite, params.cancerTypes);
+    if (params.sites.length > 0) {
+      fetchSampleCounts(params.sites, params.cancerTypes);
     }
-  }, [params.cancerSite, params.cancerTypes, fetchSampleCounts]);
+  }, [params.sites, params.cancerTypes, fetchSampleCounts]);
 
   useEffect(() => {
     if (!normalizationMethods.includes(normalizationMethod)) {
       setNormalizationMethod("tpm");
     }
-
-    const cacheKey = generateCacheKey({
-      cancerSite: params.cancerSite,
-      cancerTypes: params.cancerTypes,
-      genes: params.genes,
-      method: normalizationMethod,
-      topN: params.topN,
-      analysisType: params.analysisType,
-    });
-
-    const cachedResults = getCachedData(cacheKey);
-    if (cachedResults) {
-      setCurrentResults(cachedResults);
-    } else {
-      setCurrentResults({ enrichment: [], top_genes: [], gene_stats: [] });
-    }
-  }, [normalizationMethod, params, getCachedData, generateCacheKey]);
+  }, [normalizationMethod, normalizationMethods]);
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchData = async () => {
-      if (!params.cancerSite) {
+      if (params.sites.length === 0) {
         if (isMounted) {
-          setError("Please select a cancer site.");
+          setError("Please select at least one cancer site.");
           setIsLoading(false);
         }
         return;
       }
-
-      // Check if all normalization methods are cached
-      const cacheKeys = normalizationMethods.map((method) =>
-        generateCacheKey({
-          cancerSite: params.cancerSite,
-          cancerTypes: params.cancerTypes,
-          genes: params.genes,
-          method,
-          topN: params.topN,
-          analysisType: params.analysisType,
-        })
-      );
-
-      const allCachedResults = cacheKeys.map((key) => getCachedData(key));
-      if (allCachedResults.every((result) => result !== null)) {
-        console.log("Using cached data for all normalization methods");
-        if (isMounted) {
-          const currentCacheKey = generateCacheKey({
-            cancerSite: params.cancerSite,
-            cancerTypes: params.cancerTypes,
-            genes: params.genes,
-            method: normalizationMethod,
-            topN: params.topN,
-            analysisType: params.analysisType,
-          });
-          const currentResults = allCachedResults[cacheKeys.indexOf(currentCacheKey)]!;
-          setCurrentResults(currentResults);
-          setIsLoading(false);
-          setError(null);
-        }
-        return;
-      }
-
       setIsLoading(true);
       setError(null);
-
       try {
         const { data: siteRows, error: siteRowsErr } = await supabase
           .from("Sites")
           .select("id, name")
-          .eq("name", params.cancerSite);
-
-        if (siteRowsErr) throw new Error(`Failed to fetch cancer site: ${siteRowsErr.message}`);
-        if (!siteRows?.length) throw new Error(`Cancer site not found: ${params.cancerSite}`);
-
-        const cancerSiteId = siteRows[0].id;
+          .in("name", params.sites);
+        if (siteRowsErr) throw new Error(`Failed to fetch cancer sites: ${siteRowsErr.message}`);
+        if (!siteRows?.length) throw new Error(`Cancer sites not found: ${params.sites.join(", ")}`);
+        const cancerSiteIds = siteRows.map((row) => row.id);
 
         const { data: cancerTypeRows, error: cancerTypeErr } =
           params.cancerTypes.length > 0
@@ -285,10 +313,9 @@ const PathwayResults = () => {
             : await supabase
                 .from("cancer_types")
                 .select("id, tcga_code, site_id")
-                .eq("site_id", cancerSiteId);
+                .in("site_id", cancerSiteIds);
 
         if (cancerTypeErr) throw new Error(`Failed to fetch cancer types: ${cancerTypeErr.message}`);
-
         const cancerTypeIds = cancerTypeRows.map((row) => row.id);
 
         const { data: samplesData, error: samplesError } = await supabase
@@ -297,148 +324,141 @@ const PathwayResults = () => {
           .in("cancer_type_id", cancerTypeIds);
 
         if (samplesError) throw new Error(`Failed to fetch samples: ${samplesError.message}`);
-
         const tumorSamples = samplesData
           .filter((s) => s.sample_type?.toLowerCase() === "tumor")
           .map((s) => s.sample_barcode);
         const normalSamples = samplesData
           .filter((s) => s.sample_type?.toLowerCase() === "normal")
           .map((s) => s.sample_barcode);
-
         if (isMounted) {
           setTotalTumorSamples(tumorSamples.length);
           setTotalNormalSamples(normalSamples.length);
         }
 
-        // Fetch data for all normalization methods in parallel
-        const fetchPromises = normalizationMethods.map(async (method) => {
-          const queryParams = new URLSearchParams({
-            cancer: params.cancerSite,
-            method,
-            tumor_samples: tumorSamples.join(",") || "sample1",
-            normal_samples: normalSamples.join(",") || "sample2",
-            top_n: params.topN.toString(),
-            analysis_type: params.analysisType,
-            ...(params.genes.length > 0 && params.analysisType === "ORA" && { genes: params.genes.join(",") }),
-          });
-
-          const response = await fetch(`http://localhost:5001/api/pathway-analysis?${queryParams}`);
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to fetch pathway analysis data for ${method}: ${errorText}`);
-          }
-          const apiData = await response.json();
-          return { method, apiData };
+        const cancerParam = params.siteAnalysisType === "cancer-specific" ? params.sites[0] : params.sites.join(",");
+        const queryParams = new URLSearchParams({
+          cancer: cancerParam,
+          top_n: params.topN.toString(),
+          analysis_type: params.analysisType,
+          ...(params.genes.length > 0 && params.analysisType === "ORA" && { genes: params.genes.join(",") }),
         });
+        const response = await fetch(`http://localhost:5001/api/pathway-analysis?${queryParams}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch pathway analysis data: ${errorText}`);
+        }
+        const apiData: ResultsData = await response.json();
+        console.log("API Response:", apiData);
 
-        const results = await Promise.allSettled(fetchPromises);
-
-        // Process results and cache them
         let geneToEnsemblMap = new Map<string, string>();
         let allGenesToProcess: string[] = [];
-
-        // Collect all unique genes to fetch Ensembl IDs
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            const { apiData } = result.value;
-            const genes = params.analysisType === "ORA" && params.genes.length > 0 ? params.genes : apiData.top_genes;
-            allGenesToProcess = [...new Set([...allGenesToProcess, ...genes])];
-          }
+        normalizationMethods.forEach((method) => {
+          const genes = params.analysisType === "ORA" && params.genes.length > 0 ? params.genes : apiData[method]?.top_genes || [];
+          allGenesToProcess = [...new Set([...allGenesToProcess, ...genes])];
         });
 
-        // Fetch Ensembl IDs for all unique genes
         if (allGenesToProcess.length > 0) {
           const { data: geneData, error: geneError } = await supabase
             .from("genes")
             .select("id, ensembl_id, gene_symbol")
             .in("gene_symbol", allGenesToProcess);
-
-          if (geneError) {
-            console.error("Gene error:", geneError);
-            throw new Error(`Failed to fetch genes: ${geneError.message}`);
-          }
+          if (geneError) throw new Error(`Failed to fetch genes: ${geneError.message}`);
           geneToEnsemblMap = new Map(geneData.map((g) => [g.gene_symbol, g.ensembl_id]));
         }
 
-        // Process and cache results for each normalization method
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            const { method, apiData } = result.value;
-            const genesToProcess = params.analysisType === "ORA" && params.genes.length > 0 ? params.genes : apiData.top_genes;
-
-            const processedGeneStats: GeneStats[] = genesToProcess.map((gene: string) => {
-              const stats = apiData.gene_stats[gene] || {};
-              return {
-                gene,
-                ensembl_id: geneToEnsemblMap.get(gene) || "N/A",
-                mean_tumor: stats.mean_tumor || 0,
-                mean_normal: stats.mean_normal || 0,
-                cv_tumor: stats.cv_tumor || 0,
-                cv_normal: stats.cv_normal || 0,
-                logFC: stats.logfc,
-              };
-            });
-
-            const newResults: ResultsData = {
-              enrichment: apiData.enrichment || [],
-              top_genes: genesToProcess,
-              gene_stats: processedGeneStats,
+        // Process gene_stats for each normalization method
+        const processedResults: ResultsData = {};
+        normalizationMethods.forEach((method) => {
+          const methodData = apiData[method] || {
+            enrichment: [],
+            top_genes: [],
+            gene_stats: [],
+            heatmap_data: {},
+            noise_metrics: {},
+            warning: `No data available for ${method} normalization`,
+          };
+          const genes = params.analysisType === "ORA" && params.genes.length > 0 ? params.genes : methodData.top_genes || [];
+          const processedGeneStats: GeneStats[] = genes.map((gene: string) => {
+            const stats = methodData.gene_stats[gene] || {};
+            return {
+              gene,
+              ensembl_id: geneToEnsemblMap.get(gene) || "N/A",
+              metrics: stats,
             };
-
-            const cacheKey = generateCacheKey({
-              cancerSite: params.cancerSite,
-              cancerTypes: params.cancerTypes,
-              genes: params.genes,
-              method,
-              topN: params.topN,
-              analysisType: params.analysisType,
-            });
-
-            setCachedData(cacheKey, newResults);
-
-            if (isMounted && method === normalizationMethod) {
-              setCurrentResults(newResults);
-            }
-          } else {
-            console.error(`Error fetching data for ${normalizationMethods[index]}:`, result.reason);
-            if (isMounted && normalizationMethods[index] === normalizationMethod) {
-              setError(`Failed to fetch data for ${normalizationMethods[index]}: ${result.reason.message}`);
-              setCurrentResults({ enrichment: [], top_genes: [], gene_stats: [] });
-            }
-          }
+          });
+          processedResults[method] = {
+            enrichment: methodData.enrichment || [],
+            top_genes: genes,
+            gene_stats: processedGeneStats,
+            heatmap_data: methodData.heatmap_data || {},
+            noise_metrics: methodData.noise_metrics || {},
+            warning: methodData.warning || null,
+          };
         });
 
+        const cacheKey = generateCacheKey({
+          sites: params.sites,
+          cancerTypes: params.cancerTypes,
+          genes: params.genes,
+          topN: params.topN,
+          analysisType: params.analysisType,
+          siteAnalysisType: params.siteAnalysisType,
+        });
+        setCachedData(cacheKey, processedResults);
         if (isMounted) {
+          setAllResults(processedResults);
           setIsLoading(false);
+          setError(null);
         }
       } catch (error: any) {
         console.error("Error fetching data:", error);
         if (isMounted) {
           setError(error.message || "An error occurred while fetching data.");
-          setCurrentResults({ enrichment: [], top_genes: [], gene_stats: [] });
+          setAllResults({});
           setIsLoading(false);
         }
       }
     };
 
-    fetchData();
+    // Check cache first
+    const cacheKey = generateCacheKey({
+      sites: params.sites,
+      cancerTypes: params.cancerTypes,
+      genes: params.genes,
+      topN: params.topN,
+      analysisType: params.analysisType,
+      siteAnalysisType: params.siteAnalysisType,
+    });
+    const cachedResults = getCachedData(cacheKey);
+    if (cachedResults) {
+      setAllResults(cachedResults);
+    } else {
+      fetchData();
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [params.cancerSite, params.cancerTypes, params.genes, params.topN, params.analysisType, getCachedData, setCachedData, generateCacheKey]);
+  }, [params.sites, params.cancerTypes, params.genes, params.topN, params.analysisType, params.siteAnalysisType, getCachedData, setCachedData, generateCacheKey]);
 
   const downloadData = useCallback(
     (type: "enrichment" | "mean_expression" | "noise_metrics") => {
       let data: any[] = [];
       let headers: string[] = [];
-      let filename = `pathway_analysis_${params.cancerSite}_${params.analysisType}_${normalizationMethod}_${Date.now()}`;
-
+      let filename = `pathway_analysis_${params.sites.join("_")}_${params.siteAnalysisType}_${params.analysisType}_${normalizationMethod}_${Date.now()}`;
       if (type === "enrichment") {
         data = currentResults.enrichment;
-        headers = ["Term", "P-value", "Adjusted P-value", "Combined Score", "Genes"];
+        headers = ["Term", "P-value", "Adjusted P-value", "Combined Score", "Genes", "GeneSet"];
         filename = `enrichment_${filename}.csv`;
         const rows = data.map((row) =>
-          [row.Term, row["P-value"], row["Adjusted P-value"], row["Combined Score"], row.Genes.join(", ")].join(",")
+          [
+            row.Term,
+            row["P-value"],
+            row["Adjusted P-value"],
+            row["Combined Score"],
+            row.Genes.join(", "),
+            row.GeneSet || "",
+          ].join(",")
         );
         const content = [headers.join(","), ...rows].join("\n");
         const blob = new Blob([content], { type: "text/csv" });
@@ -450,11 +470,19 @@ const PathwayResults = () => {
         URL.revokeObjectURL(url);
       } else if (type === "mean_expression") {
         data = currentResults.gene_stats;
-        headers = ["Gene", "Ensembl ID", "Mean Tumor", "Mean Normal"];
+        headers = ["Gene", "Ensembl ID", ...params.sites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])];
         filename = `mean_expression_${filename}.csv`;
-        const rows = data.map((row) =>
-          [row.gene, row.ensembl_id, row.mean_tumor.toFixed(2), row.mean_normal.toFixed(2)].join(",")
-        );
+        const rows = data.map((row) => {
+          const metrics = params.sites.map((site) => {
+            const lowerSite = site.toLowerCase();
+            const metric = row.metrics[lowerSite] || {};
+            return [
+              metric.mean_normal?.toFixed(2) || "0.00",
+              metric.mean_tumor?.toFixed(2) || "0.00",
+            ];
+          }).flat();
+          return [row.gene, row.ensembl_id, ...metrics].join(",");
+        });
         const content = [headers.join(","), ...rows].join("\n");
         const blob = new Blob([content], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
@@ -465,11 +493,20 @@ const PathwayResults = () => {
         URL.revokeObjectURL(url);
       } else if (type === "noise_metrics") {
         data = currentResults.gene_stats;
-        headers = ["Gene", "Ensembl ID", "CV Tumor", "CV Normal", "Log2FC"];
+        headers = ["Gene", "Ensembl ID", ...params.sites.flatMap((site) => [`${site} Normal`, `${site} Tumor`, `${site} Log2FC`])];
         filename = `noise_metrics_${filename}.csv`;
-        const rows = data.map((row) =>
-          [row.gene, row.ensembl_id, row.cv_tumor.toFixed(2), row.cv_normal.toFixed(2), row.logFC.toFixed(2)].join(",")
-        );
+        const rows = data.map((row) => {
+          const metrics = params.sites.map((site) => {
+            const lowerSite = site.toLowerCase();
+            const metric = row.metrics[lowerSite] || {};
+            return [
+              metric.cv_normal?.toFixed(2) || "0.00",
+              metric.cv_tumor?.toFixed(2) || "0.00",
+              metric.logfc?.toFixed(2) || "0.00",
+            ];
+          }).flat();
+          return [row.gene, row.ensembl_id, ...metrics].join(",");
+        });
         const content = [headers.join(","), ...rows].join("\n");
         const blob = new Blob([content], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
@@ -480,87 +517,76 @@ const PathwayResults = () => {
         URL.revokeObjectURL(url);
       }
     },
-    [currentResults, params.cancerSite, params.cancerTypes, params.analysisType, normalizationMethod]
+    [currentResults, params.sites, params.siteAnalysisType, params.analysisType, normalizationMethod]
   );
+
+  const getZValues = useCallback(
+    (dataKey: "mean" | "cv" | "logfc") => {
+      const zValues = currentResults.gene_stats.map((geneStat) => {
+        const gene = geneStat.gene;
+        if (dataKey === "mean") {
+          return params.sites.flatMap((site) => {
+            const lowerSite = site.toLowerCase();
+            return [
+              geneStat.metrics[lowerSite]?.mean_normal || 0,
+              geneStat.metrics[lowerSite]?.mean_tumor || 0,
+            ];
+          });
+        } else if (dataKey === "cv") {
+          return params.sites.flatMap((site) => {
+            const lowerSite = site.toLowerCase();
+            return [
+              geneStat.metrics[lowerSite]?.cv_normal || 0,
+              geneStat.metrics[lowerSite]?.cv_tumor || 0,
+            ];
+          });
+        } else {
+          return params.sites.map((site) => {
+            const lowerSite = site.toLowerCase();
+            return geneStat.metrics[lowerSite]?.logfc || 0;
+          });
+        }
+      });
+      console.log(`All zValues (${dataKey}):`, zValues);
+      return zValues;
+    },
+    [currentResults.gene_stats, params.sites]
+  );
+
+  const toggleOpen = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggleGroup = (group: string) => {
+    setSelectedGroups((prev) =>
+      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
       <Header />
       <main className="flex-grow">
-        <div className="content-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex gap-6">
-            <div className="w-80 flex-shrink-0">
-              <CollapsibleCard title="Filters" className="bg-blue-100">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-blue-900 mb-3">Expression Normalization Method</h3>
-                    <RadioGroup value={normalizationMethod} onValueChange={setNormalizationMethod}>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="tpm" id="tpm" />
-                        <Label htmlFor="tpm">TPM</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="fpkm" id="fpkm" />
-                        <Label htmlFor="fpkm">FPKM</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="fpkm_uq" id="fpkm_uq" />
-                        <Label htmlFor="fpkm_uq">FPKM_UQ</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {params.analysisType === "ORA" && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-blue-900">Custom Gene List</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowGeneInput(!showGeneInput)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          {showGeneInput ? <X className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      {showGeneInput && (
-                        <div className="space-y-3">
-                          <Input
-                            placeholder="Enter gene symbols (comma, space, or | separated)"
-                            value={customGeneInput}
-                            onChange={handleGeneInput}
-                          />
-                          <div className="flex items-center space-x-2">
-                            <Button onClick={submitCustomGenes} size="sm" className="flex-1">
-                              Submit Genes
-                            </Button>
-                            <label className="relative cursor-pointer">
-                              <Button variant="outline" size="sm" asChild>
-                                <span>Upload</span>
-                              </Button>
-                              <input
-                                type="file"
-                                accept=".txt,.csv"
-                                onChange={handleFileUpload}
-                                className="absolute inset-0 opacity-0 w-full h-full"
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </CollapsibleCard>
-            </div>
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-[320px_1fr] gap-6">
+            <FilterPanel
+              normalizationMethod={normalizationMethod}
+              setNormalizationMethod={(value) => updateFilters({ normalizationMethod: value })}
+            />
             <div className="flex-1">
               {isLoading ? (
                 <LoadingSpinner message="Loading pathway results..." />
-              ) : error ? (
-                <div className="text-center text-red-600">{error}</div>
+              ) : currentResults.gene_stats.length === 0 && currentResults.warning ? (
+                <Card className="shadow-lg p-6 text-center text-yellow-700 bg-yellow-50">
+                  <p className="text-lg">Warning: {currentResults.warning}</p>
+                </Card>
               ) : (
                 <>
+                  {currentResults.warning && (
+                    <Card className="shadow-lg p-6 mb-6 text-center text-yellow-700 bg-yellow-50">
+                      <p className="text-lg">Warning: {currentResults.warning}</p>
+                    </Card>
+                  )}
                   <Link
                     to="/pathway-analysis"
                     className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
@@ -568,56 +594,59 @@ const PathwayResults = () => {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Pathway Analysis
                   </Link>
-
-                  <div className="mb-8">
+                  {/* <div className="mb-8">
                     <h2 className="text-4xl font-bold text-blue-900 mb-2">
-                      Results for {params.cancerSite} Cancer ({params.analysisType})
+                      Results for Pay Analysis ({params.sites.join(", ")})
                     </h2>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-blue-700 text-lg">
                         Normalization: <strong>{normalizationMethod.toUpperCase()}</strong>,{" "}
                         {params.analysisType === "ORA" && params.genes.length > 0
                           ? `Custom genes (${params.genes.length})`
-                          : `Top ${params.topN} genes`}
+                          : `Top ${params.topN} Noisy Genes`}
                       </p>
                       <Button
                         onClick={() => downloadData("enrichment")}
                         variant="outline"
                         size="sm"
-                        className="bg-blue-600 text-white hover:bg-blue-700"
                       >
                         <Download className="h-4 w-4 mr-2" /> Download Enrichment CSV
                       </Button>
                     </div>
-
-                    <CollapsibleCard title="Sample Counts">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <Card className="border-0 shadow-lg">
-                          <CardContent className="flex flex-col items-center p-4 text-center">
-                            <Users className="h-6 w-6 text-blue-600 mb-2" />
-                            <div className="text-2xl font-bold text-blue-600">{totalTumorSamples}</div>
-                            <div className="text-xs text-gray-600">Total Tumor Samples</div>
-                          </CardContent>
-                        </Card>
-                        <Card className="border-0 shadow-lg">
-                          <CardContent className="flex flex-col items-center p-4 text-center">
-                            <Users className="h-6 w-6 text-green-600 mb-2" />
-                            <div className="text-2xl font-bold text-green-600">{totalNormalSamples}</div>
-                            <div className="text-xs text-gray-600">Total Normal Samples</div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                      <PlotlyBarChart
-                        data={sampleCountData}
-                        xKey="type"
-                        yKey="count"
-                        title="Sample Count Distribution"
-                        xLabel="Sample Type"
-                        yLabel="Count"
-                      />
-                    </CollapsibleCard>
-                  </div>
-
+                    <SampleCounts
+                      isOpen={isOpen}
+                      toggleOpen={toggleOpen}
+                      siteSampleCounts={siteSampleCounts.length > 0 ? siteSampleCounts : params.sites.map((site) => ({ site, tumor: 0, normal: 0 }))}
+                      selectedSites={params.sites}
+                      selectedGroups={selectedGroups}
+                    />
+                  </div> */}
+                  {/* <div className="mb-8"> */}
+                    <h2 className="text-4xl font-bold text-blue-900 mb-2">Results For Pathway Analysis</h2>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-blue-700 text-lg space-y-1">
+                          <div>
+                            <strong>Normalization:</strong>{" "}
+                              log2({normalizationMethod.toUpperCase()} + 1)
+                          </div>
+                          <div>
+                            <strong>Genes:{" "}</strong>
+                              {params.genes.join(", ")}
+                          </div>
+                          <div>
+                            <strong>Cancer Site(s):</strong>{" "}
+                              {params.sites.join(", ")}
+                              {params.cancerTypes.length > 0 && ` (${params.cancerTypes.join(", ")})`}
+                          </div>
+                          </div>
+                            <Button
+                              onClick={() => downloadData("enrichment")}
+                              variant="outline"
+                              size="sm"
+                              >
+                              <Download className="h-4 w-4 mr-2" /> Download Enrichment CSV
+                            </Button>
+                          </div>
                   {currentResults.enrichment.length === 0 ? (
                     <Card className="shadow-lg p-6 text-center text-blue-700">
                       <Activity className="w-10 h-10 mx-auto mb-3" />
@@ -628,43 +657,40 @@ const PathwayResults = () => {
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         <div className="lg:col-span-2">
                           <CollapsibleCard title="Enriched Pathways" className="h-full">
-                            <ScrollArea className="h-[500px]">
-                              <Table>
-                                <TableHeader className="sticky top-0 bg-white z-10">
-                                  <TableRow>
-                                    <TableHead className="text-blue-700">Pathway</TableHead>
-                                    <TableHead className="text-blue-700">P-value</TableHead>
-                                    <TableHead className="text-blue-700">Adj. P-value</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {currentResults.enrichment.map((row, idx) => (
-                                    <TableRow
-                                      key={idx}
-                                      className="cursor-pointer hover:bg-blue-50"
-                                      onClick={() => setSelectedPathway(row)}
-                                    >
-                                      <TableCell className="font-medium">{row["Term"]}</TableCell>
-                                      <TableCell>{formatPValue(row["P-value"])}</TableCell>
-                                      <TableCell>{formatPValue(row["Adjusted P-value"])}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </ScrollArea>
+                            <DataTable
+                              data={currentResults.enrichment}
+                              columns={[
+                                { key: "Term", header: "Pathway", sortable: true },
+                                {
+                                  key: "P-value",
+                                  header: "P-value",
+                                  sortable: true,
+                                  render: (value: number) => formatPValue(value),
+                                },
+                                {
+                                  key: "Adjusted P-value",
+                                  header: "Adj. P-value",
+                                  sortable: true,
+                                  render: (value: number) => formatPValue(value),
+                                },
+                              ]}
+                              defaultSortKey={sortBy === "pval" ? "P-value" : "Adjusted P-value"}
+                              defaultSortOrder={sortOrder}
+                              onRowClick={setSelectedPathway}
+                            />
                           </CollapsibleCard>
                         </div>
-
                         <div>
                           <CollapsibleCard title="Pathway Details" className="h-full">
                             {selectedPathway ? (
-                              <div className="space-y-4">
+                              <div className="space-y-2 p-2">
                                 <div>
-                                  <h3 className="font-semibold text-blue-700">{selectedPathway.Term}</h3>
+                                  <h3 className="font-semibold text-blue-700 text-sm">{selectedPathway.Term}</h3>
+                                  <p className="text-xs text-gray-600">Gene Set: {selectedPathway.GeneSet || "N/A"}</p>
                                 </div>
                                 <div>
-                                  <h4 className="font-medium text-blue-700">Statistics</h4>
-                                  <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                  <h4 className="font-medium text-blue-700 text-xs">Statistics</h4>
+                                  <div className="grid grid-cols-2 gap-1 mt-1 text-xs">
                                     <div>P-value:</div>
                                     <div>{selectedPathway["P-value"].toExponential(2)}</div>
                                     <div>Adj. P-value:</div>
@@ -672,160 +698,295 @@ const PathwayResults = () => {
                                   </div>
                                 </div>
                                 <div>
-                                  <h4 className="font-medium text-blue-700">Associated Genes</h4>
-                                  <ScrollArea className="h-[300px]">
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                      {selectedPathway.Genes.map((gene, idx) => (
-                                        <span
-                                          key={idx}
-                                          className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs"
-                                        >
-                                          {gene}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </ScrollArea>
+                                  <h4 className="font-medium text-blue-700 text-xs">Associated Genes</h4>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {selectedPathway.Genes.map((gene, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs"
+                                      >
+                                        {gene}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             ) : (
                               <div className="text-center text-gray-500 h-full flex items-center justify-center">
                                 <div>
-                                  <Info className="h-8 w-8 mx-auto mb-2" />
-                                  <p>Select a pathway to view details</p>
+                                  <Info className="h-6 w-6 mx-auto mb-1" />
+                                  <p className="text-xs">Select a pathway to view details</p>
                                 </div>
                               </div>
                             )}
                           </CollapsibleCard>
                         </div>
                       </div>
-
-                      <div className="grid grid-cols-1 gap-6 mb-8">
-                        <CollapsibleCard title="Mean Expression Heatmap">
+                      <div className="grid grid-cols-1 gap-4 mb-8">
+                        <CollapsibleCard title="Gene Expression Heatmap">
                           <PlotlyHeatmap
-                            title="Mean Expression Heatmap"
+                            title="Gene Expression Heatmap"
                             data={currentResults.gene_stats}
-                            xValues={["Tumor", "Normal"]}
+                            xValues={params.sites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
                             yValues={currentResults.gene_stats.map((d) => d.gene)}
-                            zValues={currentResults.gene_stats.map((d) => [d.mean_tumor, d.mean_normal])}
-                            zLabel="Expression Level"
-                            chartKey="mean-expression"
-                            xLabel="Sample Type"
+                            zValues={getZValues("mean")}
+                            zLabel={`Mean Expression (${normalizationMethod.toUpperCase()})`}
+                            chartKey="expression-heatmap"
+                            xLabel="Sample Types"
                             yLabel="Genes"
-                            annotation={params.cancerSite}
+                            colorscale="RdBu"
                           />
                         </CollapsibleCard>
-                        <CollapsibleCard title="Coefficient of Variation Heatmap">
+                        <CollapsibleCard title="Gene Noise Heatmap">
                           <PlotlyHeatmap
-                            title="Coefficient of Variation Heatmap"
+                            title="Gene Noise Heatmap"
                             data={currentResults.gene_stats}
-                            xValues={["Tumor", "Normal"]}
+                            xValues={params.sites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
                             yValues={currentResults.gene_stats.map((d) => d.gene)}
-                            zValues={currentResults.gene_stats.map((d) => [d.cv_tumor, d.cv_normal])}
-                            zLabel="CV"
+                            zValues={getZValues("cv")}
+                            zLabel={`Noise (${normalizationMethod.toUpperCase()})`}
                             chartKey="cv-heatmap"
-                            xLabel="Sample Type"
+                            xLabel="Sample Types"
                             yLabel="Genes"
-                            annotation={params.cancerSite}
+                            colorscale="Viridis"
                           />
                         </CollapsibleCard>
-                        <CollapsibleCard title="Log2 Fold Change">
-                          <PlotlyBarChart
+                        <CollapsibleCard title="Differential Noise Analysis (Log2FC)">
+                          <PlotlyHeatmap
+                            title="Log2 Fold Change Heatmap"
                             data={currentResults.gene_stats}
-                            xKey="gene"
-                            yKey="logFC"
-                            title="Log2 Fold Change"
-                            xLabel="Genes"
-                            yLabel="Log2 Fold Change"
-                            colors="#3b82f6"
+                            xValues={params.sites}
+                            yValues={currentResults.gene_stats.map((d) => d.gene)}
+                            zValues={getZValues("logfc")}
+                            zLabel="Log2FC"
+                            chartKey="logfc-heatmap"
+                            xLabel="Cancer Sites"
+                            yLabel="Genes"
+                            colorscale="RdBu"
                           />
                         </CollapsibleCard>
                       </div>
-
                       <CollapsibleCard
-                        title="Mean Expression Analysis"
-                        className="mb-8"
+                        title={`Mean Expression (${normalizationMethod.toUpperCase()})`}
+                        className="mb-4"
                         downloadButton={
                           <Button
                             onClick={() => downloadData("mean_expression")}
                             variant="outline"
                             size="sm"
-                            className="bg-blue-600 text-white hover:bg-blue-700"
+                            className="h-6 px-2 text-xs"
                           >
                             <Download className="h-4 w-4 mr-2" /> Download CSV
                           </Button>
                         }
                       >
                         {currentResults.gene_stats.length > 0 ? (
-                          <ScrollArea className="h-[500px]">
-                            <Table>
-                              <TableHeader className="sticky top-0 bg-white z-10">
-                                <TableRow>
-                                  <TableHead className="text-blue-700">Gene</TableHead>
-                                  <TableHead className="text-blue-700">Ensembl ID</TableHead>
-                                  <TableHead className="text-blue-700">Mean Tumor</TableHead>
-                                  <TableHead className="text-blue-700">Mean Normal</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {currentResults.gene_stats.map((row, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell className="font-medium">{row.gene}</TableCell>
-                                    <TableCell>{row.ensembl_id}</TableCell>
-                                    <TableCell>{row.mean_tumor.toFixed(2)}</TableCell>
-                                    <TableCell>{row.mean_normal.toFixed(2)}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </ScrollArea>
+                          <DataTable
+                            data={currentResults.gene_stats}
+                            columns={[
+                              { key: "gene", header: "Gene", sortable: true },
+                              { key: "ensembl_id", header: "GeneID", sortable: true },
+                              ...params.sites.flatMap((site) => {
+                                const lowerSite = site.toLowerCase();
+                                return [
+                                  {
+                                    key: `${site}-mean_normal`,
+                                    header: `${site} Normal`,
+                                    sortable: true,
+                                    render: (_: any, row: any) => {
+                                      const value = row.metrics?.[lowerSite]?.mean_normal;
+                                      return value != null ? value.toFixed(3) : "N/A";
+                                    },
+                                  },
+                                  {
+                                    key: `${site}-mean_tumor`,
+                                    header: `${site} Tumor`,
+                                    sortable: true,
+                                    render: (_: any, row: any) => {
+                                      const value = row.metrics?.[lowerSite]?.mean_tumor;
+                                      return value != null ? value.toFixed(3) : "N/A";
+                                    },
+                                  },
+                                ];
+                              }),
+                            ]}
+                          />
                         ) : (
                           <p className="text-blue-700">No mean expression data available.</p>
                         )}
                       </CollapsibleCard>
-
                       <CollapsibleCard
-                        title="Noise Metrics Analysis"
-                        className="mb-8"
+                        title="Gene Noise Analytics"
+                        className="mb-4 p-2 text-sm"
                         downloadButton={
                           <Button
                             onClick={() => downloadData("noise_metrics")}
                             variant="outline"
                             size="sm"
-                            className="bg-blue-600 text-white hover:bg-blue-700"
+                            className="h-6 px-2 text-xs"
                           >
                             <Download className="h-4 w-4 mr-2" /> Download CSV
                           </Button>
                         }
                       >
                         {currentResults.gene_stats.length > 0 ? (
-                          <ScrollArea className="h-[500px]">
-                            <Table>
-                              <TableHeader className="sticky top-0 bg-white z-10">
-                                <TableRow>
-                                  <TableHead className="text-blue-700">Gene</TableHead>
-                                  <TableHead className="text-blue-700">Ensembl ID</TableHead>
-                                  <TableHead className="text-blue-700">CV Tumor</TableHead>
-                                  <TableHead className="text-blue-700">CV Normal</TableHead>
-                                  <TableHead className="text-blue-700">Log2FC</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {currentResults.gene_stats.map((row, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell className="font-medium">{row.gene}</TableCell>
-                                    <TableCell>{row.ensembl_id}</TableCell>
-                                    <TableCell>{row.cv_tumor.toFixed(2)}</TableCell>
-                                    <TableCell>{row.cv_normal.toFixed(2)}</TableCell>
-                                    <TableCell>{row.logFC.toFixed(2)}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </ScrollArea>
+                          <DataTable
+                            data={currentResults.gene_stats}
+                            columns={[
+                              { key: "gene", header: "Gene", sortable: true },
+                              { key: "ensembl_id", header: "GeneID", sortable: true },
+                              ...params.sites.flatMap((site) => {
+                                const lowerSite = site.toLowerCase();
+                                return [
+                                  {
+                                    key: `${site}-cv_normal`,
+                                    header: `${site} Normal`,
+                                    sortable: true,
+                                    render: (_: any, row: any) => {
+                                      const value = row.metrics?.[lowerSite]?.cv_normal;
+                                      return value != null ? value.toFixed(3) : "N/A";
+                                    },
+                                  },
+                                  {
+                                    key: `${site}-cv_tumor`,
+                                    header: `${site} Tumor`,
+                                    sortable: true,
+                                    render: (_: any, row: any) => {
+                                      const value = row.metrics?.[lowerSite]?.cv_tumor;
+                                      return value != null ? value.toFixed(3) : "N/A";
+                                    },
+                                  },
+                                ];
+                              }),
+                            ]}
+                          />
                         ) : (
                           <p className="text-blue-700">No noise metrics data available.</p>
                         )}
                       </CollapsibleCard>
+                      <CollapsibleCard
+                        title="Differential Noise (LogFC - Tumor / Normal)"
+                        className="mb-4 p-2 text-sm"
+                        downloadButton={
+                          <Button
+                            onClick={() => downloadData("noise_metrics")}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Download className="h-4 w-4 mr-2" /> Download CSV
+                          </Button>
+                        }
+                      >
+                        {currentResults.gene_stats.length > 0 ? (
+                          <DataTable
+                            data={currentResults.gene_stats}
+                            columns={[
+                              { key: "gene", header: "Gene", sortable: true },
+                              { key: "ensembl_id", header: "GeneID", sortable: true },
+                              ...params.sites.flatMap((site) => {
+                                const lowerSite = site.toLowerCase();
+                                return [
+                                  {
+                                    key: `${site}-logfc`,
+                                    header: `${site}`,
+                                    sortable: true,
+                                    render: (_: any, row: any) => {
+                                      const value = row.metrics?.[lowerSite]?.logfc;
+                                      return value != null ? value.toFixed(2) : "N/A";
+                                    },
+                                  },
+                                ];
+                              }),
+                            ]}
+                          />
+                        ) : (
+                          <p className="text-blue-700">No noise metrics data available.</p>
+                        )}
+                        </CollapsibleCard>
+                        <div className="mb-4">
+                        <CollapsibleCard title="LogFC Threshold Adjustment">
+                          <div className="p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              LogFC Threshold: {logFCThreshold.toFixed(2)}
+                            </label>
+                            <Slider
+                              value={[logFCThreshold]}
+                              onValueChange={(value) => setLogFCThreshold(value[0])}
+                              min={-0.00001}
+                              max={5}
+                              step={0.1}
+                              className="mt-2 w-24"
+                            />
+                            <Input
+                              type="number"
+                              value={logFCThreshold}
+                              onChange={(e) => setLogFCThreshold(parseFloat(e.target.value) || 0)}
+                              min={-0.01}
+                              max={5}
+                              step={0.1}
+                              className="mt-2 w-24"
+                            />
+                          </div>
+                        </CollapsibleCard>
+                      </div>
+                      <div className="mb-4">
+                        <CollapsibleCard title="Most Enriched Pathways by Cancer Site">
+                          <DataTable
+                            data={enrichedPathwaysBySite}
+                            columns={[
+                              { key: "site", header: "Cancer Site", sortable: true },
+                              { key: "pathway", header: "Most Enriched Pathway", sortable: true },
+                              {
+                                key: "adjPValue",
+                                header: "Adjusted P-value",
+                                sortable: true,
+                                render: (value: number) => (value !== 0 ? formatPValue(value) : "N/A"),
+                              },
+                              {
+                                key: "genes",
+                                header: "Significant Genes",
+                                sortable: false,
+                                render: (value: string[]) => value.join(", ") || "None",
+                              },
+                            ]}
+                          />
+                        </CollapsibleCard>
+                      </div>
+                      {/* </CollapsibleCard> */}
+                      {/* {params.sites.map((site) => {
+                        const lowerSite = site.toLowerCase();
+                        const siteLogFCData = currentResults.gene_stats
+                          .filter((geneStat) => {
+                            const logFC = geneStat.metrics[lowerSite]?.logfc || 0;
+                            return Math.abs(logFC) >= logFCThreshold;
+                          })
+                          .map((geneStat) => ({
+                            gene: geneStat.gene,
+                            logfc: geneStat.metrics[lowerSite]?.logfc || 0,
+                          }))
+                          .sort((a, b) => b.logfc - a.logfc);
+                        return siteLogFCData.length > 0 ? (
+                          <CollapsibleCard
+                            key={site}
+                            title={`${site} Differential Noise Analysis (Log2FC >= ${logFCThreshold.toFixed(2)})`}
+                            className="mb-4"
+                          >
+                            <DataTable
+                              data={siteLogFCData}
+                              columns={[
+                                { key: "gene", header: "Gene", sortable: true },
+                                {
+                                  key: "logfc",
+                                  header: "logFC",
+                                  sortable: true,
+                                  render: (value: number) => value.toFixed(2),
+                                },
+                              ]}
+                            />
+                          </CollapsibleCard>
+                        ) : null;
+                      })} */}
                     </>
                   )}
                 </>
