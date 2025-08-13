@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -20,10 +19,10 @@ const Index = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-6">
               <Dna className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-5xl font-bold text-yellow-100 mb-6">
+            <h2 className="text-5xl font-bold text-white mb-6">
               The Cancer Noise Atlas
             </h2>
-            <p className="text-xl text-yellow-100 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-white max-w-3xl mx-auto leading-relaxed">
               Comprehensive analysis platform for gene expression variability, pathway interactions, 
               and tumor analysis across different cancer types. Uncover hidden patterns in tumor 
               heterogeneity and discover therapeutic targets.
@@ -32,17 +31,17 @@ const Index = () => {
           
           <div className="flex justify-center space-x-4 flex-wrap gap-4">
             <Link to="/gene-analysis">
-              <Button className="bg-blue-700 hover:bg-blue-700 text-white px-8 py-3 text-lg">
+              <Button className="bg-gradient-to-r from-blue-900 to-blue-600 text-white px-8 py-3 text-lg">
                 Gene Analysis
               </Button>
             </Link>
             <Link to="/pathway-analysis">
-              <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 text-lg">
+              <Button className="bg-gradient-to-r from-blue-600 to-yellow-800 text-white px-8 py-3 text-lg">
                 Pathway Analysis
               </Button>
             </Link>
             <Link to="/tumour-analysis">
-              <Button className="bg-blue-700 hover:bg-blue-600 text-white px-8 py-3 text-lg">
+              <Button className="bg-gradient-to-r from-yellow-800 to-yellow-600 text-white px-8 py-3 text-lg">
                 Tumor Analysis
               </Button>
             </Link>
@@ -65,7 +64,7 @@ const Index = () => {
       </section>
 
      {/* How It Works Section */}
-      <section className="py-6 bg-gradient-to-r from-blue-100 to-yellow-100">
+      <section className="py-8 bg-gradient-to-r from-blue-100 to-yellow-100">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold text-blue-900 mb-2">
@@ -103,39 +102,6 @@ const Index = () => {
                 {/* Optional brief text here */}
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-blue-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-8">
-            <Zap className="h-12 w-12 text-yellow-400 mx-auto mb-6" />
-            <h3 className="text-3xl font-bold text-white mb-4">
-              Ready to Explore Genomic Noise in Cancer?
-            </h3>
-            <p className="text-xl text-blue-200">
-              Start analyzing genomic variability patterns across cancer types.
-            </p>
-          </div>
-          
-          <div className="flex justify-center space-x-4 flex-wrap gap-4">
-            <Link to="/gene-analysis">
-              <Button className="bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-8 py-3 text-lg font-semibold">
-                Begin Gene Analysis
-              </Button>
-            </Link>
-            <Link to="/pathway-analysis">
-              <Button className="bg-white hover:bg-gray-100 text-blue-900 px-8 py-3 text-lg font-semibold">
-                Explore Pathways
-              </Button>
-            </Link>
-            <Link to="/tumour-analysis">
-              <Button className="bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-8 py-3 text-lg font-semibold">
-                Begin Tumor Analysis
-              </Button>
-            </Link>
           </div>
         </div>
       </section>

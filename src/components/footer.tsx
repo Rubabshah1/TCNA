@@ -1,7 +1,7 @@
 const Footer = () => {
   return (
-    <footer className="bg-gray-100 text-gray-700 text-m mt-10 p-7 border-t border-gray-300">
-      <div className="flex flex-col items-center justify-center space-y-1">
+    <footer className="bg-gray-100 text-gray-700 text-m p-7 border-t border-gray-300 w-full">
+      <div className="flex flex-col items-center justify-center space-y-1 w-full">
         <p className="text-blue-700">© 2025 BIRL — This website is free and open to all users and there is no login requirement.</p>
         <a
           className="font-semibold text-blue-700"

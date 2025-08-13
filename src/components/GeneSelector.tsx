@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import supabase from "@/supabase-client"; // adjust path if needed
+import supabase from "@/supabase-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,10 @@ import { X, Search } from "lucide-react";
 interface GeneSelectorProps {
   selectedGenes: string[];
   onGenesChange: (genes: string[]) => void;
+  maxGenes?: number; // Optional prop to limit the number of genes that can be selected
 }
 
-const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
+const GeneSelector = ({ selectedGenes, onGenesChange, maxGenes }: GeneSelectorProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [allGenes, setAllGenes] = useState<string[]>([]);
@@ -36,30 +37,31 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
     fetchGenes();
   }, []);
 
-  // const filteredGenes = allGenes.filter(
-  //   (gene) =>
-  //     gene.toLowerCase().includes(searchTerm.toLowerCase()) &&
-  //     !selectedGenes.includes(gene)
-  // );
   const filteredGenes = [...allGenes]
-  .filter(gene => !selectedGenes.includes(gene))
-  .map(gene => {
-    const lowerGene = gene.toLowerCase();
-    const lowerSearch = searchTerm.toLowerCase();
+    .filter(gene => !selectedGenes.includes(gene))
+    .map(gene => {
+      const lowerGene = gene.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase();
 
-    let score = 2; // worst match by default
-    if (lowerGene.startsWith(lowerSearch)) score = 0; // best: prefix match
-    else if (lowerGene.includes(lowerSearch)) score = 1; // substring match
+      let score = 2; // worst match by default
+      if (lowerGene.startsWith(lowerSearch)) score = 0; // best: prefix match
+      else if (lowerGene.includes(lowerSearch)) score = 1; // substring match
 
-    return { gene, score };
-  })
-  .filter(({ score }) => score < 2) // remove poor matches
-  .sort((a, b) => a.score - b.score || a.gene.localeCompare(b.gene)) // prioritize match type then alphabetically
-  .map(({ gene }) => gene); // return final gene names
-
+      return { gene, score };
+    })
+    .filter(({ score }) => score < 2) // remove poor matches
+    .sort((a, b) => a.score - b.score || a.gene.localeCompare(b.gene)) // prioritize match type then alphabetically
+    .map(({ gene }) => gene); // return final gene names
 
   const handleGeneSelect = (gene: string) => {
     if (!selectedGenes.includes(gene)) {
+      if (maxGenes !== undefined && selectedGenes.length >= maxGenes) {
+        // If maxGenes is set and limit is reached, replace the first gene or do nothing
+        if (maxGenes === 1) {
+          onGenesChange([gene]); // Replace the single selected gene
+        }
+        return;
+      }
       onGenesChange([...selectedGenes, gene]);
     }
     setSearchTerm("");
@@ -72,6 +74,13 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
 
   const handleSuggestedGeneAdd = (gene: string) => {
     if (!selectedGenes.includes(gene)) {
+      if (maxGenes !== undefined && selectedGenes.length >= maxGenes) {
+        // If maxGenes is set and limit is reached, replace the first gene or do nothing
+        if (maxGenes === 1) {
+          onGenesChange([gene]); // Replace the single selected gene
+        }
+        return;
+      }
       onGenesChange([...selectedGenes, gene]);
     }
   };
@@ -79,7 +88,9 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader>
-        <CardTitle className="text-xl text-blue-800">Select Genes</CardTitle>
+        <CardTitle className="text-xl text-blue-800">
+          Select Genes {maxGenes === 1 ? "(Select 1 Gene)" : maxGenes ? `(Max ${maxGenes} Genes)` : ""}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search Input */}
@@ -94,9 +105,14 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
               setShowDropdown(e.target.value.length > 0);
             }}
             onFocus={() => setShowDropdown(searchTerm.length > 0)}
-            disabled={loading}
+            disabled={loading || (maxGenes !== undefined && selectedGenes.length >= maxGenes)}
             className="pl-10"
           />
+          {maxGenes !== undefined && selectedGenes.length >= maxGenes && (
+            <p className="text-sm text-red-600 mt-1">
+              Maximum gene limit ({maxGenes}) reached. Remove a gene to add another.
+            </p>
+          )}
 
           {/* Dropdown */}
           {showDropdown && filteredGenes.length > 0 && (
@@ -106,6 +122,7 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
                   key={gene}
                   onClick={() => handleGeneSelect(gene)}
                   className="w-full px-4 py-2 text-left hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                  disabled={maxGenes !== undefined && selectedGenes.length >= maxGenes}
                 >
                   {gene}
                 </button>
@@ -124,7 +141,7 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
                 variant={selectedGenes.includes(gene) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleSuggestedGeneAdd(gene)}
-                disabled={selectedGenes.includes(gene)}
+                disabled={selectedGenes.includes(gene) || (maxGenes !== undefined && selectedGenes.length >= maxGenes)}
                 className="text-xs"
               >
                 {gene}
@@ -137,7 +154,7 @@ const GeneSelector = ({ selectedGenes, onGenesChange }: GeneSelectorProps) => {
         {selectedGenes.length > 0 && (
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">
-              Selected Genes ({selectedGenes.length}):
+              Selected Genes ({selectedGenes.length}{maxGenes ? `/${maxGenes}` : ""}):
             </h4>
             <div className="flex flex-wrap gap-2">
               {selectedGenes.map((gene) => (

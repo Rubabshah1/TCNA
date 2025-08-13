@@ -60,13 +60,21 @@ export const PlotlyAreaChart: React.FC<PlotlyAreaChartProps> = ({
       tickfont: { size: 10 },
     },
     showlegend: true,
+    // legend: {
+    //   x: 1,
+    //   xanchor: "right",
+    //   y: 1,
+    //   yanchor: "top",
+    //   font: { size: 10 },
+    // },
     legend: {
-      x: 1,
-      xanchor: "right",
-      y: 1,
-      yanchor: "top",
-      font: { size: 10 },
-    },
+        orientation: "h",      // horizontal legend
+        x: 0.5,                // center it horizontally
+        xanchor: "center",     
+        y: 1.15,               // above the plot area
+        yanchor: "bottom",
+        font: { size: 10 },
+        },
     margin: { t: 50, b: 100, l: 50, r: 50 },
     width: 600,
     height: 400,
