@@ -1,19 +1,15 @@
 import pandas as pd
 import numpy as np
 
-def cv2_calculation(expr_matrix):
-    """
-    Calculate Coefficient of Variation (CV) for each gene across samples.
-    CV = (standard deviation / mean) * 100
-    Returns a pd.Series with ensembl_id as index and CV values.
-    """
-    if expr_matrix.empty or expr_matrix.isna().all().all():
-        return pd.Series(0, index=expr_matrix.index)
-    mean_per_gene = np.mean(expr_matrix, axis=1)
-    std_per_gene = np.std(expr_matrix, axis=1)
-    # cv_per_gene = np.divide(std_per_gene, mean_per_gene, 
-    #                         out=np.zeros_like(std_per_gene, dtype=float), 
-    #                         where=(mean_per_gene != 0) & (~np.isnan(mean_per_gene)) & (~np.isnan(std_per_gene)))
-    cv_per_gene = std_per_gene / mean_per_gene.where(mean_per_gene != 0, np.finfo(float).eps)
-    cv2_per_gene = cv_per_gene**2
-    return pd.Series(cv2_per_gene * 100, index=expr_matrix.index)
+def cv2_calculation(df):
+    try:
+        if df.shape[1] <= 1:  # Single sample or no samples
+            return pd.Series(0, index=df.index)
+        mean = df.mean(axis=1)
+        std = df.std(axis=1, ddof=1)  # ddof=1 for sample standard deviation
+        cv = std / mean
+        cv = cv.fillna(0).replace([np.inf, -np.inf], 0)  # Replace NaN, inf with 0
+        return cv**2
+    except Exception as e:
+        print(f"[ERROR] cv2_calculation failed: {e}")
+        return pd.Series(0, index=df.index)
