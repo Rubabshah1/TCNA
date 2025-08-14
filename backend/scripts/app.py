@@ -697,7 +697,17 @@ def csv_upload():
                     cv_values = metric_funcs_gene['cv'](df)
                     top_genes = cv_values.sort_values(ascending=False).head(top_n).index.tolist()
                 # Compute heatmap data
-                heatmap_data = {gene: {"Tumor": float(df.loc[gene].mean()) if gene in df.index else 0.0} for gene in top_genes}
+                # heatmap_data = {gene: {"mean": float(df.loc[gene].mean()) if gene in df.index else 0.0} for gene in top_genes}
+                cv_values = metric_funcs_gene['cv'](df)
+
+                # Compute heatmap data with both mean and CV
+                heatmap_data = {
+                    gene: {
+                        "mean": float(df.loc[gene].mean()) if gene in df.index else 0.0,
+                        "cv": float(cv_values.get(gene, 0.0))
+                    }
+                    for gene in top_genes
+                }
             else:
                 # No expression data; use gene list
                 if not selected_genes:

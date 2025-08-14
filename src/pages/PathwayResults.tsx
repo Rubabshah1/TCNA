@@ -238,7 +238,8 @@ const PathwayResults = () => {
         }));
 
       if (relevantPathways.length > 0) {
-        const pathwayNames = relevantPathways.map((p) => p.Term).join(", ");
+        const pathwayNames = relevantPathways.map((p) => p.Term.charAt(0).toUpperCase() + p.Term.slice(1))
+          .join(", ");
         const avgAdjPValue =
           relevantPathways.reduce((sum, p) => sum + p["Adjusted P-value"], 0) / relevantPathways.length;
         const allMatchingGenes = [
