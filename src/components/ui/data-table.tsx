@@ -165,6 +165,7 @@ interface DataTableProps<T> {
   scrollHeight?: string;
   stickyHeader?: boolean;
   showDownloadButtons?: boolean; // New optional prop
+  containerWidth?: string | number;
 }
 
 export const DataTable = <T extends Record<string, any>>({
@@ -176,7 +177,8 @@ export const DataTable = <T extends Record<string, any>>({
   className = "",
   scrollHeight = "400px",
   stickyHeader = true,
-  showDownloadButtons = false
+  showDownloadButtons = false,
+  containerWidth = "900px"
 }: DataTableProps<T>) => {
   const [sortKey, setSortKey] = useState<keyof T | string | undefined>(defaultSortKey);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">(defaultSortOrder);
@@ -266,8 +268,8 @@ export const DataTable = <T extends Record<string, any>>({
         </Button>
       </div>
 )}
-      <ScrollArea
-  className={`max-h-[500px] overflow-x-auto overflow-y-auto ${className}`}
+      {/* <ScrollArea
+  className={` max-h-[500px] overflow-x-auto scroll whitespace-nowrap scroll-smooth overflow-y-auto ${className}`}
   style={{ maxWidth: "100%" }}
 >
   <Table className="min-h-0 mb-0 ">
@@ -310,7 +312,54 @@ export const DataTable = <T extends Record<string, any>>({
             ))}
           </TableBody>
         </Table>
-      </ScrollArea>
+      </ScrollArea> */}
+      <div className="relative" style={{ width: containerWidth }}> {/* Fixed width container */}
+  <ScrollArea
+    className={`max-h-[500px] overflow-x-auto overflow-y-auto ${className}`}
+  >
+    <Table className="min-w-[1200px]"> {/* Force table to be wider */}
+      <TableHeader className={stickyHeader ? "sticky top-0 bg-white z-10" : ""}>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead
+              key={String(column.key)}
+              className={`text-blue-700 ${column.sortable ? "cursor-pointer" : ""}`}
+              onClick={() => column.sortable && handleSort(column.key)}
+            >
+              {column.header}
+              {column.sortable && sortKey === column.key && (
+                <span className="ml-1">
+                  {sortOrder === "asc" ? "↑" : "↓"}
+                </span>
+              )}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {sortedData.map((row, idx) => (
+          <TableRow
+            key={idx}
+            className={onRowClick ? "cursor-pointer hover:bg-blue-50" : ""}
+            onClick={() => onRowClick?.(row)}
+          >
+            {columns.map((column) => (
+              <TableCell
+                key={String(column.key)}
+                className={column.key === "gene" ? "font-medium" : ""}
+              >
+                {column.render
+                  ? column.render(row[column.key], row)
+                  : row[column.key]}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </ScrollArea>
+</div>
+
     </div>
   );
 };
