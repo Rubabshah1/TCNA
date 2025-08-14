@@ -588,5 +588,176 @@ def pathway_analysis():
             "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers, or check data file integrity"
         }), 500
 
+@app.route('/api/csv-upload', methods=['POST'])
+def csv_upload():
+    """
+    API endpoint to process a gene list (from GeneSelector) and/or an expression data file,
+    calculate gene noise metrics, perform pathway enrichment analysis, or compute tumor heterogeneity metrics
+    based on the selected analysis type. No differential analysis (logFC) is performed.
+    """
+    try:
+        # Parse parameters
+        analysis_type = request.form.get('analysis_type', 'Pathway')
+        top_n = int(request.form.get('top_n', 15)) if 'top_n' in request.form else 15
+        gene_set = request.form.get('gene_set', 'KEGG_2021_Human') if analysis_type == 'Pathway' else None
+        genes = request.form.get('genes', '')
+
+        print(f"[INFO] Input: analysis_type={analysis_type}, top_n={top_n}, gene_set={gene_set}, genes={genes}")
+
+        # Validate analysis type
+        valid_analysis_types = ['Gene', 'Pathway', 'Tumor']
+        if analysis_type not in valid_analysis_types:
+            return jsonify({"error": f"Invalid analysis type. Must be one of: {', '.join(valid_analysis_types)}"}), 400
+
+        # Validate inputs
+        if analysis_type == 'Tumor' and 'expression_file' not in request.files:
+            return jsonify({"error": "Tumor Analysis requires an expression data file"}), 400
+        if (analysis_type == 'Gene' or analysis_type == 'Pathway') and not genes.strip() and 'expression_file' not in request.files:
+            return jsonify({"error": "Please provide a gene list or expression data file"}), 400
+
+        # Process gene list
+        selected_genes = None
+        if genes.strip():
+            selected_genes = [g.strip().upper() for g in genes.split(',') if g.strip()]
+            if not selected_genes:
+                return jsonify({"error": "Empty gene list provided"}), 400
+            print(f"[DEBUG] Parsed genes: {selected_genes}")
+
+        # Process expression data file
+        df = None
+        if 'expression_file' in request.files:
+            expression_file = request.files['expression_file']
+            if not expression_file.filename:
+                return jsonify({"error": "No expression file selected"}), 400
+            if not (expression_file.filename.endswith('.csv') or expression_file.filename.endswith('.tsv')):
+                return jsonify({"error": "Expression file must be CSV or TSV"}), 400
+            delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
+            try:
+                df = pd.read_csv(expression_file, delimiter=delimiter)
+            except Exception as e:
+                return jsonify({"error": f"Failed to read expression file: {str(e)}"}), 400
+            if not {'gene_id', 'gene_name'}.issubset(df.columns):
+                return jsonify({"error": "Expression file must contain 'gene_id' and 'gene_name' columns"}), 400
+            df['gene_name'] = df['gene_name'].astype(str).str.upper()
+            df = df.set_index('gene_name')
+            df = df.drop(columns=['gene_id'])
+            df = df.apply(pd.to_numeric, errors='coerce')
+            df = df.fillna(df.median())
+            df = np.log2(df + 1)  # Log2 transform
+            print(f"[DEBUG] Loaded expression dataframe shape: {df.shape}")
+            print(f"[DEBUG] Expression dataframe head:\n{df.head()}")
+
+        response = {
+            "analysis_type": analysis_type,
+            "warning": "Differential noise analysis (e.g., logFC) is not possible."
+        }
+
+        if analysis_type == 'Gene':
+            if df is not None:
+                # Filter by selected genes if provided
+                if selected_genes:
+                    df = df[df.index.isin(selected_genes)]
+                    if df.empty:
+                        return jsonify({"error": "None of the provided genes found in expression data"}), 400
+                    top_genes = df.index.tolist()
+                else:
+                    # Select top N genes by CV
+                    cv_values = metric_funcs_gene['cv'](df)
+                    top_genes = cv_values.sort_values(ascending=False).head(top_n).index.tolist()
+                # Compute metrics
+                metrics = {}
+                for metric_name, func in metric_funcs_gene.items():
+                    try:
+                        metric_values = func(df)
+                        metrics[metric_name] = metric_values.to_dict()
+                    except Exception as e:
+                        print(f"[ERROR] Failed to compute {metric_name}: {e}")
+                        metrics[metric_name] = {}
+            else:
+                # No expression data; use gene list with placeholder metrics
+                if not selected_genes:
+                    return jsonify({"error": "Gene Analysis requires a gene list or expression data"}), 400
+                top_genes = selected_genes
+                metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
+                print(f"[WARNING] Gene metrics not computed; returning zeros")
+            
+            response["metrics"] = metrics
+            response["top_genes"] = top_genes
+
+        elif analysis_type == 'Pathway':
+            if df is not None:
+                # Filter by selected genes if provided
+                if selected_genes:
+                    df = df[df.index.isin(selected_genes)]
+                    if df.empty:
+                        return jsonify({"error": "None of the provided genes found in expression data"}), 400
+                    top_genes = df.index.tolist()
+                else:
+                    # Select top N genes by CV
+                    cv_values = metric_funcs_gene['cv'](df)
+                    top_genes = cv_values.sort_values(ascending=False).head(top_n).index.tolist()
+                # Compute heatmap data
+                heatmap_data = {gene: {"Tumor": float(df.loc[gene].mean()) if gene in df.index else 0.0} for gene in top_genes}
+            else:
+                # No expression data; use gene list
+                if not selected_genes:
+                    return jsonify({"error": "Pathway Analysis requires a gene list or expression data"}), 400
+                top_genes = selected_genes
+                heatmap_data = {gene: {"Tumor": 0.0} for gene in top_genes}
+                print(f"[WARNING] Heatmap data not computed; returning zeros")
+
+            # Perform pathway enrichment analysis
+            enrichment_results = []
+            try:
+                enr = enrichr(
+                    gene_list=top_genes,
+                    gene_sets=gene_set,
+                    organism="Human",
+                    outdir=None,
+                    cutoff=0.05
+                )
+                results_df = enr.results
+                if not results_df.empty:
+                    results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+                    for res in results:
+                        res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+                        res["GeneSet"] = gene_set
+                    enrichment_results.extend(results)
+                else:
+                    print(f"[WARNING] No pathways found for {gene_set} in ORA analysis")
+            except Exception as e:
+                print(f"[ERROR] Failed to run ORA with {gene_set}: {e}")
+
+            response["enrichment"] = enrichment_results
+            response["top_genes"] = top_genes
+            response["heatmap_data"] = heatmap_data
+
+        elif analysis_type == 'Tumor':
+            if df is None:
+                return jsonify({"error": "Tumor Analysis requires an expression data file"}), 400
+            # Compute tumor heterogeneity metrics per sample
+            metrics = []
+            for sample in df.columns:
+                sample_data = df[[sample]]
+                sample_metrics = {"sample": sample}
+                for metric_name, func in metric_funcs_TH.items():
+                    try:
+                        metric_value = func(sample_data)
+                        sample_metrics[metric_name] = float(metric_value.iloc[0]) if not metric_value.empty else 0.0
+                    except Exception as e:
+                        print(f"[ERROR] Failed to compute {metric_name} for sample {sample}: {e}")
+                        sample_metrics[metric_name] = 0.0
+                metrics.append(sample_metrics)
+            if not metrics:
+                return jsonify({"error": "No valid tumor heterogeneity metrics computed"}), 400
+            response["metrics"] = metrics
+
+        print(f"[INFO] {analysis_type} analysis response: {response}")
+        return jsonify(response)
+
+    except Exception as e:
+        print(f"[ERROR] CSV upload failed: {e}")
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

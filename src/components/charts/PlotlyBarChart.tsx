@@ -405,7 +405,7 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
             ref={plotRef}
             data={plotData}
             layout={{
-              title: { text: title, font: { size: 14, weight: "bold" }, x: 0.5, xanchor: "center" },
+              title: { text: title, font: { size: 14, weight: "bold" }, x: 0.6, xanchor: "center" },
               xaxis: {
                 title: { text: xLabel, font: { size: 12, weight: "bold" }, pad: 20 },
                 tickangle: -45,
@@ -419,7 +419,7 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
               },
               showlegend: showLegend,
               legend: {
-                orientation: "h",
+                orientation: "v",
                 x: 0.10,
                 xanchor: "center",
                 y: 1.08,
