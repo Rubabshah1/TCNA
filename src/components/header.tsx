@@ -99,7 +99,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors  ${
                 isActiveDashboard("/gene-analysis") || isActiveDashboard("/gene-results")
                   ? "font-extrabold"
-                  : "font-small"
+                  : "font-medium"
               }`}
             >
               Gene Analysis
@@ -110,7 +110,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors ${
                 isActiveDashboard("/pathway-analysis") || isActiveDashboard("/pathway-results")
                   ? "font-extrabold"
-                  : "font-small"
+                  : "font-medium"
               }`}
             >
               Pathway Analysis
@@ -120,7 +120,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors ${
                 isActiveDashboard("/tumour-analysis") || isActiveDashboard("/tumor-analysis-results")
                   ? "font-extrabold"
-                  : "font-small"
+                  : "font-medium"
               }`}
             >
               Tumor Analysis
@@ -130,7 +130,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors ${
                 isActiveDashboard("/upload-analysis") || isActiveDashboard("/upload-analysis")
                   ? "font-extrabold"
-                  : "font-small"
+                  : "font-medium"
               }`}
             >
               Custom Data Analysis
