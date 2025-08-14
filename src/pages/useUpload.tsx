@@ -1117,6 +1117,32 @@ const UploadAnalysis = () => {
     );
   };
 
+    const PathwayBarChart = ({ heatmapData, topGenes }: { heatmapData: any, topGenes: string[] }) => {
+    const data = topGenes.map((gene) => ({
+      gene,
+      mean: heatmapData[gene]?.mean || 0,
+      cv: heatmapData[gene]?.cv || 0,
+    }));
+
+    return (
+      <div className="mt-6">
+        <h3 className="text-xl font-bold text-blue-900 mb-4">Pathway Analysis (Mean and CV)</h3>
+        <PlotlyBarChart
+          data={data}
+          title="Mean and CV of Gene Expression"
+          xKey="gene"
+          yKey={["mean", "cv"]}
+          xLabel="Genes"
+          yLabel="Value"
+          colors={["rgba(59, 130, 246, 0.6)", "rgba(239, 68, 68, 0.6)"]}
+          legendLabels={["Mean Expression", "Coefficient of Variation"]}
+          orientation="v"
+          showLegend={true}
+        />
+      </div>
+    );
+  };
+
   // Tumor Analysis Box Plot
   const TumorAnalysisBoxPlot = ({ metrics }: { metrics: { sample: string, DEPTH2: number, tITH: number }[] }) => {
     const samples = metrics.map(item => item.sample);
@@ -1294,7 +1320,7 @@ const UploadAnalysis = () => {
                         <PathwayAnalysisTable enrichment={results.enrichment} />
                       )}
                       {results.heatmap_data && results.top_genes && (
-                        <PathwayHeatmap
+                        <PathwayBarChart
                           heatmapData={results.heatmap_data}
                           topGenes={results.top_genes}
                         />
