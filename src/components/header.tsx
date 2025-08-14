@@ -84,7 +84,7 @@ const Header = () => {
               </Link>
               {/* <Dna className="h-7 w-7 text-white" /> */}
             {/* </div> */}
-            <Link to="/" className={` transition-colors text-3xl font-extrabold ${
+            <Link to="/" className={` transition-colors text-2xl font-extrabold ${
                 isActiveDashboard("/") || isActiveDashboard("/")
                   ? "text-blue-900"
                   : "text-white hover:text-blue-100"
@@ -99,7 +99,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors  ${
                 isActiveDashboard("/gene-analysis") || isActiveDashboard("/gene-results")
                   ? "font-extrabold"
-                  : "font-medium"
+                  : "font-small"
               }`}
             >
               Gene Analysis
@@ -110,7 +110,7 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors ${
                 isActiveDashboard("/pathway-analysis") || isActiveDashboard("/pathway-results")
                   ? "font-extrabold"
-                  : "font-medium"
+                  : "font-small"
               }`}
             >
               Pathway Analysis
@@ -120,10 +120,20 @@ const Header = () => {
               className={`text-white hover:text-blue-100 transition-colors ${
                 isActiveDashboard("/tumour-analysis") || isActiveDashboard("/tumor-analysis-results")
                   ? "font-extrabold"
-                  : "font-medium"
+                  : "font-small"
               }`}
             >
               Tumor Analysis
+            </Link>
+            <Link
+              to="/upload-analysis"
+              className={`text-white hover:text-blue-100 transition-colors ${
+                isActiveDashboard("/upload-analysis") || isActiveDashboard("/upload-analysis")
+                  ? "font-extrabold"
+                  : "font-small"
+              }`}
+            >
+              Custom Data Analysis
             </Link>
           </nav>
         </div>

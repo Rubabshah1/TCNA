@@ -14,6 +14,7 @@ import PathwayResults from "./pages/PathwayResults";
 import TumourAnalysis from "./pages/TumorAnalysis";
 import TumourResults from "./pages/TumorResults";
 import NotFound from "./pages/NotFound";
+import UploadAnalysis from "./pages/useUpload";
 
 // Supabase types (you can replace `any` with your DB types if you have them generated)
 type Instrument = {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/pathway-results" element={<PathwayResults />} />
             <Route path="/tumour-analysis" element={<TumourAnalysis />} />
             <Route path="/tumor-analysis-results" element={<TumourResults />} />
+            <Route path="/upload-analysis" element={<UploadAnalysis />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
 

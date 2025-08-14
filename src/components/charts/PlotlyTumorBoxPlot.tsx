@@ -11,6 +11,7 @@ interface PlotlyBoxChartProps {
   selectedGroups: string[];
   colorMap?: { [key: string]: string };
   className?: string;
+  showLegend?: boolean;
 }
 
 const PlotlyBoxPlot: React.FC<PlotlyBoxChartProps> = ({
@@ -21,6 +22,7 @@ const PlotlyBoxPlot: React.FC<PlotlyBoxChartProps> = ({
   selectedGroups,
   colorMap = {},
   className = "",
+  showLegend = true
 }) => {
   const plotRef = useRef<HTMLDivElement>(null);
 useEffect(() => {
@@ -63,7 +65,7 @@ useEffect(() => {
     },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
-    showlegend: true,
+    showlegend: showLegend,
     legend: {
       orientation: "v",
       x: 0.05,
