@@ -897,7 +897,7 @@ const UploadAnalysis = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/csv-upload', {
+      const response = await fetch('/api/csv-upload', {
         method: 'POST',
         body: formData,
       });
