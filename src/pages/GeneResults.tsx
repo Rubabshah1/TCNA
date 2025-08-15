@@ -369,7 +369,7 @@ const useGeneResultsData = (params: {
       );
       queryParams.append("gene_ensembl_id", geneEnsemblIds.join(","));
 
-      const response = await fetch(`http://localhost:5001/api/gene_noise?${queryParams}`, {
+      const response = await fetch(`/api/gene_noise?${queryParams}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
