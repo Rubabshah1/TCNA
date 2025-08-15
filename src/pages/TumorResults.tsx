@@ -304,7 +304,7 @@ const TumourResults = () => {
       for (const { metric, sampleIds } of missingDataMetrics) {
         for (const normMethod of normalizationMethods) {
           promises.push(
-            fetch(`http://localhost:5001/api/TH-metrics?cancer=${cancerSite}&method=${normMethod}&metric=${metric}&sample_ids=${sampleIds.join(",")}`)
+            fetch(`/api/TH-metrics?cancer=${cancerSite}&method=${normMethod}&metric=${metric}&sample_ids=${sampleIds.join(",")}`)
               .then((response) => {
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 return response.json();
