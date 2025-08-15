@@ -15,7 +15,8 @@ from mean import mean_calculation
 # Initialize Flask App
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {
-    "origins": ["http://localhost:8081"],
+    # "origins": ["http://localhost:8081"],
+    "origins": ["https://tcna.lums.edu.pk/"]
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
