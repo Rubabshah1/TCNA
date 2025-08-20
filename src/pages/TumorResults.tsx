@@ -498,15 +498,26 @@ const TumourResults = () => {
                     Back to Tumor Analysis
                   </Link>
                   <div className="mb-8">
-                    <h2 className="text-4xl font-bold text-blue-900 mb-2">
-                      Results for {rawParams.cancerSite} Cancer {rawParams.cancerTypes.length > 0 && `(${rawParams.cancerTypes.join(", ")})`}
+                    <h2 className="text-4xl font-bold text-blue-900 mb-6">
+                      Results for Tumor Analysis
                     </h2>
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-blue-700 text-lg">
-                        {/* Normalization: <strong>{normalizationMethod.toUpperCase()}</strong>{" "} */}
-                        Normalization: 
-                      {" "}<strong>log2({normalizationMethod.toUpperCase()} + 1)</strong>
-                      </p>
+                    <div className="overflow-x-auto mb-6">
+                      <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <tbody>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Normalization</th>
+                            <td className="py-3 px-4 text-blue-700">
+                              log2({normalizationMethod.toUpperCase()} + 1)
+                            </td>
+                          </tr>
+                          <tr>
+                            <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Cancer Site</th>
+                            <td className="py-3 px-4 text-blue-700">
+                              {rawParams.cancerSite} {rawParams.cancerTypes.length > 0 && `(${rawParams.cancerTypes.join(", ")})`}
+                            </td>
+                            </tr>
+                           </tbody>
+                          </table>
                     </div>
                     <div className="flex justify-center items-center">
                       <Card className="border-0 shadow-lg w-full">

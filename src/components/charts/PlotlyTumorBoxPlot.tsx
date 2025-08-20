@@ -112,7 +112,7 @@ useEffect(() => {
           className="h-6 px-2 text-xs"
         >
           <Download className="h-3 w-3 mr-1" />
-          Download Image
+          Download Plot
         </Button>
       </div>
       <div ref={plotRef} className="w-full h-[400px]" />

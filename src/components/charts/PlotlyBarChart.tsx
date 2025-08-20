@@ -299,7 +299,7 @@ import { Download } from "lucide-react";
 
 interface PlotlyBarChartProps {
   data: any[];
-  title: string;
+  title?: string;
   xKey: string | string[];
   yKey?: string | string[];
   xLabel?: string;
@@ -308,6 +308,7 @@ interface PlotlyBarChartProps {
   orientation?: "h" | "v";
   legendLabels?: string | string[];
   showLegend?: boolean;  // <-- new prop
+  normalization?: string;
 }
 
 export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
@@ -364,7 +365,19 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
       window.dispatchEvent(new Event("resize"));
     }
   }, [plotData]);
-
+// <div className="relative">
+//       {showDownloadButtons && (
+//       <div className="flex justify-end mb-2 gap-2">
+//         <Button
+//           size="sm"
+//           variant="outline"
+//           className="h-6 px-2 text-xs"
+//           onClick={downloadCSV}
+//          >
+//           Download CSV
+//         </Button>
+//       </div>
+// )}
   return (
     <Card className="border-0">
       <CardHeader className="pb-2">
@@ -395,7 +408,7 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
             }}
             className="h-6 px-2 text-xs"
           >
-            <Download className="h-3 w-3" /> Download Image
+            <Download className="h-3 w-3" /> Download Plot
           </Button>
         </div>
       </CardHeader>
@@ -405,16 +418,16 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
             ref={plotRef}
             data={plotData}
             layout={{
-              title: { text: title, font: { size: 14, weight: "bold" }, x: 0.6, xanchor: "center" },
+              title: { text: title, font: { size: 14, weight: "bold" }, x: 0.5, xanchor: "center" },
               xaxis: {
-                title: { text: xLabel, font: { size: 12, weight: "bold" }, pad: 20 },
+                title: { text: xLabel, font: { size: 14, weight: "bold" }, pad: 20, standoff: 20},
                 tickangle: -45,
-                tickfont: { size: 10 },
+                tickfont: { size: 10, weight: "bold" , pad: 20},
                 automargin: true,
               },
               yaxis: {
-                title: { text: yLabel, font: { size: 12, weight: "bold" }, pad: 100 },
-                tickfont: { size: 10 },
+                title: { text: yLabel, font: { size: 14, weight: "bold" }, standoff: 20 },
+                tickfont: { size: 10, weight: "bold" },
                 automargin: true,
               },
               showlegend: showLegend,
@@ -424,7 +437,7 @@ export const PlotlyBarChart: React.FC<PlotlyBarChartProps> = ({
                 xanchor: "center",
                 y: 1.08,
                 yanchor: "bottom",
-                font: { size: 12 },
+                font: { size: 12, weight: "bold" },
               },
               margin: { t: 50, b: 30, l: 30, r: 50 },
               barmode: "group",

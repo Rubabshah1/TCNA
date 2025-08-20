@@ -15,6 +15,7 @@ import StatisticalMetrics from "@/components/statisticalMetrics";
 import AnalysisPlots from "@/components/AnalysisPlots";
 import supabase from "@/supabase-client";
 import { upsertGeneData } from "@/scripts/populateDB";
+import CollapsibleCard from "@/components/ui/collapsible-card";
 
 // Define interfaces
 export interface GeneStats {
@@ -659,14 +660,14 @@ const GeneResults: React.FC = () => {
       isMasterCheckbox: true,
       defaultOpen: false,
     },
-    {
-      title: "Analysis Plots",
-      id: "analysisPlots",
-      type: "checkbox" as const,
-      options: [{ id: "stdBox", label: "Standard Deviation Box Plot" }],
-      isMasterCheckbox: true,
-      defaultOpen: false,
-    },
+    // {
+    //   title: "Analysis Plots",
+    //   id: "analysisPlots",
+    //   type: "checkbox" as const,
+    //   options: [{ id: "stdBox", label: "Standard Deviation Box Plot" }],
+    //   isMasterCheckbox: true,
+    //   defaultOpen: false,
+    // },
   ];
 
   // Include the Genes filter only if analysisType is not cancer-specific and there are multiple genes
@@ -703,7 +704,7 @@ const GeneResults: React.FC = () => {
                 sites: filterState.selectedSites,
                 genes: filterState.selectedGenes,
                 noiseMetrics: filterState.selectedNoiseMetrics,
-                analysisPlots: Object.keys(filterState.visiblePlots).filter((key) => filterState.visiblePlots[key]),
+                // analysisPlots: Object.keys(filterState.visiblePlots).filter((key) => filterState.visiblePlots[key]),
               }}
             />
             <div className="flex-1">
@@ -719,7 +720,7 @@ const GeneResults: React.FC = () => {
                 <>
                   <Link
                     to="/gene-analysis"
-                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Gene Analysis
@@ -738,8 +739,8 @@ const GeneResults: React.FC = () => {
                         Cancer Site(s): <strong>{filterState.selectedSites.join(", ")}
                       {params.cancerTypes.length > 0 && `(${params.cancerTypes.join(", ")})`}</strong>
                       </p> */}
-                      <div className="mb-8">
-                      <h2 className="text-4xl font-bold text-blue-900 mb-2">Results For Gene Analysis</h2>
+                      {/* <div className="mb-8">
+                      <h2 className="text-4xl font-bold text-blue-900 mb-4">Results For Gene Analysis</h2>
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-blue-700 text-lg space-y-1">
                           <div>
@@ -759,10 +760,52 @@ const GeneResults: React.FC = () => {
                             {filterState.selectedSites.join(", ")}
                             {params.cancerTypes.length > 0 && ` (${params.cancerTypes.join(", ")})`}
                           </div>
-                        </div>
+                        </div> */}
+                            {/* <div className="p-6">
+                        <h2 className="text-4xl font-bold text-blue-900 mb-6">Results For Gene Analysis</h2> */}
+                         <div className="mb-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-4xl font-bold text-blue-900">Results For Gene Analysis</h2>
                       <Button onClick={() => downloadData("csv")} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" /> Download CSV
                       </Button>
+                    </div>
+                        
+                        <div className="overflow-x-auto mb-6">
+                          <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <tbody>
+                              <tr className="border-b">
+                                <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Analysis Type</th>
+                                <td className="py-3 px-4 text-blue-700">
+                                  {params.analysisType === "pan-cancer" ? "Pan-Cancer" : "Cancer-Specific"}
+                                </td>
+                              </tr>
+                              <tr className="border-b">
+                                <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Normalization</th>
+                                <td className="py-3 px-4 text-blue-700">
+                                  log2({filterState.normalizationMethod.toUpperCase()} + 1)
+                                </td>
+                              </tr>
+                              <tr className="border-b">
+                                <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Genes</th>
+                                <td className="py-3 px-4 text-blue-700">
+                                  {filterState.selectedGenes.join(", ")}
+                                </td>
+                              </tr>
+                              <tr>
+                                <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Cancer Site(s)</th>
+                                <td className="py-3 px-4 text-blue-700">
+                                  {filterState.selectedSites.join(", ")}
+                                  {params.cancerTypes.length > 0 && ` (${params.cancerTypes.join(", ")})`}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        {/* </div> */}
+                      {/* </div> */}
+                      {/* <Button onClick={() => downloadData("csv")} variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" /> Download CSV
+                      </Button> */}
                     </div>
                     {warnings.length > 0 && (
                       <Alert className="mb-4">
@@ -806,15 +849,18 @@ const GeneResults: React.FC = () => {
                       genes={params.genes}
                       selectedSites={filterState.selectedSites}
                     />
-                    <AnalysisPlots
-                      isOpen={filterState.isAnalysisPlotsOpen}
-                      toggleOpen={() => dispatch({ type: "TOGGLE_ANALYSIS_PLOTS" })}
-                      data={resultsData}
-                      selectedSites={filterState.selectedSites}
-                      selectedGroups={filterState.selectedGroups}
-                      visiblePlots={filterState.visiblePlots}
-                      analysisType={params.analysisType}
-                    />
+                    {params.analysisType === "Cancer-Specific" && (
+  <AnalysisPlots
+    isOpen={filterState.isAnalysisPlotsOpen}
+    toggleOpen={() => dispatch({ type: "TOGGLE_ANALYSIS_PLOTS" })}
+    data={resultsData}
+    selectedSites={filterState.selectedSites}
+    selectedGroups={filterState.selectedGroups}
+    visiblePlots={filterState.visiblePlots}
+    analysisType={params.analysisType}
+  />
+)}
+                   
                   </div>
                 </>
               )}

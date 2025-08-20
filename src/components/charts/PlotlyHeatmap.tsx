@@ -135,7 +135,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
           }}
           className="h-6 px-2 text-xs"
         >
-          <Download className="h-3 w-3"  /> Download Image
+          <Download className="h-3 w-3"  /> Download Plot
         </Button>
       </div>
       <div ref={plotRef} className="chart-container" />

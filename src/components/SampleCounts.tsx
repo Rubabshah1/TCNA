@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { PlotlyBarChart } from "@/components/charts";
 
+
 interface SampleCountsProps {
   isOpen: boolean;
   toggleOpen: () => void;
@@ -61,7 +62,7 @@ const SampleCounts: React.FC<SampleCountsProps> = ({
     <div className="mb-8">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-blue-900">
-          Sample Counts by Site
+          Sample Count by Site
         </h3>
         <button onClick={toggleOpen} className="text-blue-900">
           {isOpen ? (
@@ -81,7 +82,7 @@ const SampleCounts: React.FC<SampleCountsProps> = ({
               title="Sample Counts by Cancer Site"
               xLabel="Cancer Sites"
               yLabel="Number of Samples"
-              colors={selectedGroups.map((group) => group === "tumor" ? "#ef4444" : "#10b981")}
+              colors={selectedGroups.map((group) => group === "tumor" ? "#ef4444c3" : "#10b981bd")}
               legendLabels={["Normal", "Tumor"]}
               orientation="v"
             />
