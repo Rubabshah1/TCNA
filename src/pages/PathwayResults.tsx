@@ -401,7 +401,7 @@ const PathwayResults = () => {
           analysis_type: params.analysisType,
           ...(params.genes.length > 0 && params.analysisType === "ORA" && { genes: params.genes.join(",") }),
         });
-        const response = await fetch(`http://localhost:5001/api/pathway-analysis?${queryParams}`);
+        const response = await fetch(`/api/pathway-analysis?${queryParams}`);
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Failed to fetch pathway analysis data: ${errorText}`);
@@ -653,12 +653,12 @@ const PathwayResults = () => {
                   )}
                   <Link
                     to="/pathway-analysis"
-                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Pathway Analysis
                   </Link>
-                  <h2 className="text-4xl font-bold text-blue-900 mb-2">Results For Pathway Analysis</h2>
+                  {/* <h2 className="text-4xl font-bold text-blue-900 mb-4">Results For Pathway Analysis</h2>
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-blue-700 text-lg space-y-1">
                       <div>
@@ -679,26 +679,67 @@ const PathwayResults = () => {
                     >
                       <Download className="h-4 w-4 mr-2" /> Download Enrichment CSV
                     </Button>
-                  </div>
-                  <div className="mb-4">
-                       {/* <h3 className="text-2xl font-bold text-blue-900 mb-2">Sample Counts by Site</h3> */}
-                       {/* <CollapsibleCard title="Sample Counts"> */}
-                        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <Card className="border-0 shadow-lg">
-                            <CardContent className="flex flex-col items-center p-4 text-center">
-                              <Users className="h-6 w-6 text-red-600 mb-2" />
-                              <div className="text-2xl font-bold text-red-600">{totalTumorSamples}</div>
-                              <div className="text-xs text-gray-600">Total Tumor Samples</div>
-                            </CardContent>
-                          </Card>
-                          <Card className="border-0 shadow-lg">
-                            <CardContent className="flex flex-col items-center p-4 text-center">
-                              <Users className="h-6 w-6 text-green-600 mb-2" />
-                              <div className="text-2xl font-bold text-green-600">{totalNormalSamples}</div>
-                              <div className="text-xs text-gray-600">Total Normal Samples</div>
-                            </CardContent>
-                          </Card>
-                        </div>                        */}
+                  </div> */}
+                     <div className="mb-8">
+                                      <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-4xl font-bold text-blue-900">Results For Pathway Analysis</h2>
+                                        <Button
+                      onClick={() => downloadData("enrichment")}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" /> Download Enrichment CSV
+                    </Button>
+                                      </div>
+                                          
+                                          <div className="overflow-x-auto mb-6">
+                                            <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                                              <tbody>
+                                                <tr className="border-b">
+                                                  <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Analysis Type</th>
+                                                  <td className="py-3 px-4 text-blue-700">
+                                                    {/* {params.analysisType === "pan-cancer" ? "Pan-Cancer" : "Cancer-Specific"} */}
+                                                  </td>
+                                                </tr>
+                                                <tr className="border-b">
+                                                  <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Normalization</th>
+                                                  <td className="py-3 px-4 text-blue-700">
+                                                    log2({normalizationMethod.toUpperCase()} + 1)
+                                                  </td>
+                                                </tr>
+                                                <tr className="border-b">
+                                                  <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Genes</th>
+                                                  <td className="py-3 px-4 text-blue-700">
+                                                    {params.genes.join(", ")}
+                                                  </td>
+                                                </tr>
+                                                <tr>
+                                                  <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Cancer Site(s)</th>
+                                                  <td className="py-3 px-4 text-blue-700">
+                                                    {params.sites.join(", ")}
+                                                    {params.cancerTypes.length > 0 && ` (${params.cancerTypes.join(", ")})`}
+                                                  </td>
+                                                </tr>
+                                              </tbody>
+                                            </table>
+                                      </div>
+                    </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <Card className="border-0 shadow-lg">
+                        <CardContent className="flex flex-col items-center p-4 text-center">
+                          <Users className="h-6 w-6 text-green-600 mb-2" />
+                          <div className="text-2xl font-bold text-green-600">{totalNormalSamples}</div>
+                          <div className="text-xs text-gray-600">Total Normal Samples</div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-0 shadow-lg">
+                        <CardContent className="flex flex-col items-center p-4 text-center">
+                          <Users className="h-6 w-6 text-red-600 mb-2" />
+                          <div className="text-2xl font-bold text-red-600">{totalTumorSamples}</div>
+                          <div className="text-xs text-gray-600">Total Tumor Samples</div>
+                        </CardContent>
+                      </Card>
+                    </div>                     
                        <SampleCounts
                         isOpen={isOpen}
                         toggleOpen={toggleOpen}
@@ -706,8 +747,6 @@ const PathwayResults = () => {
                         selectedSites={params.sites}
                         selectedGroups={selectedGroups}
                       />
-                      {/* </CollapsibleCard> */}
-                    </div>
                   {currentResults.enrichment.length === 0 ? (
                     <Card className="shadowjg p-6 text-center text-blue-700">
                       <Activity className="w-10 h-10 mx-auto mb-3" />
@@ -872,6 +911,7 @@ const PathwayResults = () => {
                                 ];
                               }),
                             ]}
+                            // containerWidth="80%"
                           />
                         ) : (
                           <p className="text-blue-700">No mean expression data available.</p>
@@ -921,6 +961,7 @@ const PathwayResults = () => {
                                 ];
                               }),
                             ]}
+                            // containerWidth="600px"
                           />
                         ) : (
                           <p className="text-blue-700">No noise metrics data available.</p>
@@ -955,7 +996,7 @@ const PathwayResults = () => {
                                     sortable: true,
                                     render: (_: any, row: any) => {
                                       const value = row.metrics?.[lowerSite]?.logfc;
-                                      return value != null ? value.toFixed(2) : "N/A";
+                                      return value != null ? value.toFixed(3) : "N/A";
                                     },
                                   },
                                 ];
@@ -966,7 +1007,7 @@ const PathwayResults = () => {
                           <p className="text-blue-700">No noise metrics data available.</p>
                         )}
                       </CollapsibleCard>
-                      <div className="mb-4">
+                      {/* <div className="mb-4">
                         <CollapsibleCard title="LogFC Threshold Adjustment">
                           <div className="p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -991,8 +1032,8 @@ const PathwayResults = () => {
                             />
                           </div>
                         </CollapsibleCard>
-                      </div>
-                      <div className="mb-4">
+                      </div> */}
+                      {/* <div className="mb-4">
                         <CollapsibleCard title="Most Enriched Pathways by Cancer Site">
                           <DataTable
                             data={enrichedPathwaysBySite}
@@ -1016,7 +1057,7 @@ const PathwayResults = () => {
 
                           />
                         </CollapsibleCard>
-                      </div>
+                      </div> */}
                     </>
                   )}
                 </>

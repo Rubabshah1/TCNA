@@ -9,7 +9,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
       {/* Header */}
-      <Header />
+      <Header  />
       <main className="flex-grow">
       {/* Hero Section with lighter gradient background */}
       {/* <section className="py-20 bg-gradient-to-br from-blue-900/70 via-yellow-600/70 to-blue-200/70"> */}

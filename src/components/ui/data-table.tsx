@@ -258,14 +258,6 @@ export const DataTable = <T extends Record<string, any>>({
          >
           Download CSV
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-6 px-2 text-xs"
-          onClick={downloadJSON}
-         >
-          Download JSON
-        </Button>
       </div>
 )}
       {/* <ScrollArea
@@ -317,7 +309,7 @@ export const DataTable = <T extends Record<string, any>>({
   <ScrollArea
     className={`max-h-[500px] overflow-x-auto overflow-y-auto ${className}`}
   >
-    <Table className="min-w-[1200px]"> {/* Force table to be wider */}
+    <Table className="min-w-[500px]"> 
       <TableHeader className={stickyHeader ? "sticky top-0 bg-white z-10" : ""}>
         <TableRow>
           {columns.map((column) => (

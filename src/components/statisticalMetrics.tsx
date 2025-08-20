@@ -53,11 +53,11 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
       }, {} as Record<string, GeneStats[]>);
   }, [data, selectedSites]);
 
-  const logfcColors = useMemo(() => data.map((gene) => gene.logfc < 0 ? "#ef4444" : "#3b82f6"), [data]);
+  const logfcColors = useMemo(() => data.map((gene) => gene.logfc < 0 ? "#ef4444c3" : "#3b83f6af"), [data]);
 
   return (
     <div className="mb-8">
-      <div className="flex gap-4 mb-6">
+      {/* <div className="flex gap-4 mb-6">
         {["normal", "tumor"].map((group) => (
           <Button
             key={group}
@@ -72,7 +72,7 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
             {group.charAt(0).toUpperCase() + group.slice(1)}
           </Button>
         ))}
-      </div>
+      </div> */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-blue-900">Statistical Metrics</h3>
         <button onClick={toggleOpen} className="text-blue-900">
@@ -87,7 +87,7 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
               selectedNoiseMetrics.includes(displayMetric) && visiblePlots[metric] && (
                 <div key={`global-${metric}`} className="mb-4">
                   <CollapsibleCard
-                    title={`${displayMetric} (${analysisType === "pan-cancer" ? genes[0] : "Multiple Genes"})`}
+                    title={`${displayMetric}`}
                     defaultOpen={metricOpenState[metric]}
                     onToggle={() => toggleMetricSection(metric)}
                   >
@@ -98,16 +98,16 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                             data={data}
                             xKey={analysisType === "cancer-specific" ? "gene_symbol" : "site"}
                             yKey="logfc"
-                            title={`Differential Noise - logfc (Tumor / Normal) - ${analysisType === "pan-cancer" ? genes[0] : selectedSites[0] || "Multiple Sites"}`}
+                            title={`Log2fc (Tumor / Normal)`}
                             xLabel={analysisType === "cancer-specific" ? "Genes" : "Cancer Sites"}
-                            yLabel="log2 Fold Change"
+                            yLabel={normalizationMethod.toUpperCase()}
                             colors={logfcColors}
                             orientation="v"
                             showLegend={false}
                           />
                         ) : (
                           <div className="text-center text-red-600">
-                            {data[0]?.logfcMessage || "Differential Noise analysis requires more than one normal sample."}
+                            {data[0]?.logfcMessage || "Not enough normal samples for Differential Noise analysis."}
                           </div>
                         )
                       ) : (
@@ -123,14 +123,15 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                           ...(selectedGroups.includes("normal") ? [`${metric}_normal`] : []),
                           ...(selectedGroups.includes("tumor") ? [`${metric}_tumor`] : []),
                         ]}
-                        title={
-                          analysisType === "pan-cancer"
-                            ? `${displayMetric} (${normalizationMethod.toUpperCase()}) - ${genes[0]}`
-                            : `${displayMetric} (${normalizationMethod.toUpperCase()}) - ${Object.keys(groupedData)[0] || ""}`
-                        }
+                        title={displayMetric}
+                        // {
+                        //   analysisType === "pan-cancer"
+                        //     ? `${displayMetric} (${normalizationMethod.toUpperCase()})`
+                        //     : `${displayMetric} (${normalizationMethod.toUpperCase()})`
+                        // }
                         xLabel={analysisType === "pan-cancer" ? "Cancer Sites" : "Genes"}
-                        yLabel={displayMetric}
-                        colors={selectedGroups.map((group) => group === "tumor" ? "#ef4444" : "#10b981")}
+                        yLabel={normalizationMethod.toUpperCase()}
+                        colors={selectedGroups.map((group) => group === "tumor" ? "#ef4444c3" : "#10b981bd")}
                         orientation="v"
                         legendLabels={["Normal", "Tumor"]}
                       />

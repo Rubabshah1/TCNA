@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { PlotlyBoxChart } from "@/components/charts";
 import { GeneStats } from "@/components/types/genes";
+import CollapsibleCard from "@/components/ui/collapsible-card";
 
 interface AnalysisPlotsProps {
   isOpen: boolean;
@@ -34,15 +35,20 @@ const AnalysisPlots: React.FC<AnalysisPlotsProps> = ({ isOpen, toggleOpen, data,
         <div className="flex flex-col space-y-4">
           {Object.keys(groupedData).map((site) => (
             <div key={site} className="mb-4">
-              <h4 className="text-xl font-semibold text-blue-800 mb-4">{site}</h4>
+              <CollapsibleCard
+              title={site}
+                        className="mb-4 p-2 text-sm"
+              >
+              {/* <h4 className="text-xl font-semibold text-blue-800 mb-4">{site}</h4> */}
               <PlotlyBoxChart
                 data={groupedData[site]}
-                title={`Standard Deviation Box Plot - ${site}`}
+                title={`Standard Deviation Box Plot`}
                 xKey={analysisType === "pan-cancer" ? "site" : "gene_symbol"}
                 selectedGroups={selectedGroups}
                 xLabel={analysisType === "pan-cancer" ? "Cancer Sites" : "Genes"}
                 yLabel="Expression Value"
               />
+              </CollapsibleCard>
             </div>
           ))}
         </div>

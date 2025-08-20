@@ -74,7 +74,9 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-blue-950 shadow-md border-b border-blue-900">
+    // className="fixed top-0 left-0 w-full z-10 bg-blue-900/90"
+    // className="sticky top-0 z-50 bg-blue-950 shadow-md border-b border-blue-900"
+    <header className="sticky w-full top-0 z-50 bg-blue-950 shadow-md border-b border-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -93,16 +95,16 @@ const Header = () => {
               TCNA - The Cancer Noise Atlas
             </Link>
           </div>
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-12">
             <Link
               to="/gene-analysis"
-              className={`text-white hover:text-blue-100 transition-colors  ${
+              className={`text-white hover:text-blue-100 transition-colors   ${
                 isActiveDashboard("/gene-analysis") || isActiveDashboard("/gene-results")
                   ? "font-extrabold"
-                  : "font-medium"
+                  : "font-xl"
               }`}
             >
-              Gene Analysis
+              Gene      
             </Link>
 
             <Link
@@ -113,7 +115,7 @@ const Header = () => {
                   : "font-medium"
               }`}
             >
-              Pathway Analysis
+              Pathway       
             </Link>
             <Link
               to="/tumour-analysis"
@@ -123,7 +125,7 @@ const Header = () => {
                   : "font-medium"
               }`}
             >
-              Tumor Analysis
+              Tumor    
             </Link>
             <Link
               to="/upload-analysis"
@@ -133,7 +135,7 @@ const Header = () => {
                   : "font-medium"
               }`}
             >
-              Custom Data Analysis
+              Custom Data
             </Link>
           </nav>
         </div>
