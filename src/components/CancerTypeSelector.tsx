@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import supabase from "@/supabase-client";
-import { Button } from "@/components/ui/button";
 
 interface CancerTypeSelectorProps {
   selectedCancerTypes: string[];

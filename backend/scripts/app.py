@@ -101,7 +101,7 @@
 #                     tumor_df = tumor_df.drop(columns=['Hugo_Symbol'])
 #             tumor_df = tumor_df.apply(pd.to_numeric, errors='coerce')
 #             tumor_df = tumor_df.fillna(tumor_df.median())
-#             tumor_df = np.log2(tumor_df + 1)
+#             # tumor_df = np.log2(tumor_df + 1)
 #         else:
 #             print(f"[DEBUG] Tumor file not found: {tumor_filepath}")
 
@@ -122,7 +122,7 @@
 #                     normal_df = normal_df.drop(columns=['Hugo_Symbol'])
 #             normal_df = normal_df.apply(pd.to_numeric, errors='coerce')
 #             normal_df = normal_df.fillna(normal_df.median())
-#             normal_df = np.log2(normal_df + 1)
+#             # normal_df = np.log2(normal_df + 1)
 #         else:
 #             print(f"[DEBUG] Normal file not found: {normal_filepath}")
 
@@ -783,6 +783,1363 @@
 
 # if __name__ == '__main__':
 #     app.run(debug=True, host='0.0.0.0', port=5001)
+# # import os
+# # import pandas as pd
+# # import numpy as np
+# # from flask import Flask, request, jsonify
+# # from flask_cors import CORS
+# # from cv import cv_calculation
+# # from std import std_calculation
+# # from MAD import mad_calculation
+# # from DEPTH2 import depth2_calculation
+# # from DEPTH_ITH import depth_ith_calculation
+# # from cv_2 import cv2_calculation
+# # from mean import mean_calculation
+# # from gseapy import enrichr
+# # from functools import lru_cache
+# # from concurrent.futures import ThreadPoolExecutor
+# # import logging
+
+# # # Configure logging
+# # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# # logger = logging.getLogger(__name__)
+
+# # # Initialize Flask App
+# # app = Flask(__name__)
+# # CORS(app, resources={r"/api/*": {
+# #     "origins": ["http://localhost:8081"],
+# #     "methods": ["GET", "POST", "OPTIONS"],
+# #     "allow_headers": ["Content-Type", "Authorization"],
+# #     "supports_credentials": True
+# # }})
+
+# # # Configuration
+# # base_raw_dir = "../data/raw"
+# # data_types = ["tpm", "fpkm", "fpkm_uq"]
+# # max_workers = 5  # Adjust based on server capabilities
+
+# # # Metric functions
+# # metric_funcs_TH = {
+# #     "DEPTH2": depth2_calculation,
+# #     "tITH": depth_ith_calculation,
+# # }
+# # metric_funcs_gene = {
+# #     "cv": cv_calculation,
+# #     "cv_squared": cv2_calculation,
+# #     "std": std_calculation,
+# #     "mad": mad_calculation,
+# #     "mean": mean_calculation
+# # }
+
+# # # Cancer mapping
+# # cancer_mapping = {
+# #     "liver and bile duct": "liver",
+# #     "breast": "breast",
+# #     "bladder": "bladder",
+# #     "colorectal": "colon",
+# #     "uterus": "uterus",
+# #     "lung": "lung",
+# #     "kidney": "kidney",
+# #     "rectum": "rectum",
+# #     "stomach": "stomach",
+# #     "brain and nervous system": "brain",
+# #     "thymus": "thymus",
+# #     "cervix": "cervix",
+# #     "adrenal gland": "adrenal",
+# #     "head and neck": "headandneck",
+# #     "esophagus": "esophagus",
+# #     "prostate": "prostate",
+# #     "thyroid": "thyroid",
+# #     "pancreas": "pancreas",
+# #     "testis": "testis",
+# #     "lymph nodes": "lymph",
+# #     "heart and pleura": "heart",
+# #     "ovary": "ovary",
+# #     "skin": "skin",
+# #     "eye and adnexa": "eye",
+# #     "bone marrow and blood": "blood",
+# #     "soft tissue": "soft tissue"
+# # }
+# # reverse_cancer_mapping = {v: k for k, v in cancer_mapping.items()}
+
+# # # Cache for loaded dataframes
+# # @lru_cache(maxsize=100)
+# # def load_expression_file(cancer_name, dtype, input_dir, cond):
+# #     """
+# #     Load and preprocess expression files with caching.
+# #     """
+# #     try:
+# #         tumor_filename = f"tumor_{dtype}.csv.gz"
+# #         normal_filename = f"normal_{dtype}.csv.gz"
+# #         tumor_filepath = os.path.join(input_dir, cancer_name, tumor_filename)
+# #         normal_filepath = os.path.join(input_dir, cancer_name, normal_filename)
+        
+# #         tumor_df = None
+# #         normal_df = None
+        
+# #         if os.path.exists(tumor_filepath):
+# #             tumor_df = pd.read_csv(tumor_filepath, index_col=0)
+# #             logger.info(f"Loaded tumor file: {tumor_filepath}, shape: {tumor_df.shape}")
+# #             if cond == 'pathway':
+# #                 if 'gene_name' in tumor_df.columns:
+# #                     tumor_df['gene_name'] = tumor_df['gene_name'].astype(str)
+# #                     tumor_df = tumor_df.set_index('gene_name')
+# #                 if 'gene_id' in tumor_df.columns:
+# #                     tumor_df = tumor_df.drop(columns=['gene_id'])
+# #             else:
+# #                 if 'gene_name' in tumor_df.columns:
+# #                     tumor_df = tumor_df.drop(columns=['gene_name'])
+# #                 if 'Hugo_Symbol' in tumor_df.columns:
+# #                     tumor_df = tumor_df.drop(columns=['Hugo_Symbol'])
+# #             tumor_df = tumor_df.apply(pd.to_numeric, errors='coerce')
+# #             tumor_df = tumor_df.fillna(tumor_df.median(numeric_only=True))
+# #             # tumor_df = np.log2(tumor_df + 1)
+        
+# #         if os.path.exists(normal_filepath):
+# #             normal_df = pd.read_csv(normal_filepath, index_col=0)
+# #             logger.info(f"Loaded normal file: {normal_filepath}, shape: {normal_df.shape}")
+# #             if cond == 'pathway':
+# #                 if 'gene_name' in normal_df.columns:
+# #                     normal_df['gene_name'] = normal_df['gene_name'].astype(str)
+# #                     normal_df = normal_df.set_index('gene_name')
+# #                 if 'gene_id' in normal_df.columns:
+# #                     normal_df = normal_df.drop(columns=['gene_id'])
+# #             else:
+# #                 if 'gene_name' in normal_df.columns:
+# #                     normal_df = normal_df.drop(columns=['gene_name'])
+# #                 if 'Hugo_Symbol' in normal_df.columns:
+# #                     normal_df = normal_df.drop(columns=['Hugo_Symbol'])
+# #             normal_df = normal_df.apply(pd.to_numeric, errors='coerce')
+# #             normal_df = normal_df.fillna(normal_df.median(numeric_only=True))
+# #             # normal_df = np.log2(normal_df + 1)
+        
+# #         return tumor_df, normal_df
+    
+# #     except Exception as e:
+# #         logger.error(f"Failed to load files for {cancer_name}, {dtype}: {e}")
+# #         return None, None
+
+# # def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, condition, genes=None):
+# #     """
+# #     Compute metrics in parallel for given cancer names and condition.
+# #     """
+# #     if not isinstance(cancer_names, list):
+# #         cancer_names = [cancer_names]
+
+# #     def process_cancer(cancer_name):
+# #         expr_dfs = {}
+# #         for dtype in data_types:
+# #             tumor_df, normal_df = load_expression_file(cancer_name, dtype, input_dir, condition)
+# #             if tumor_df is not None or normal_df is not None:
+# #                 expr_dfs[dtype] = (tumor_df, normal_df)
+        
+# #         if not expr_dfs:
+# #             logger.warning(f"No expression data loaded for {cancer_name}")
+# #             return cancer_name, None
+
+# #         result = {}
+# #         if condition == "gene" and genes:
+# #             genes_upper = [g.upper() for g in genes]
+# #             for dtype, (tumor_df, normal_df) in expr_dfs.items():
+# #                 dtype_result = {}
+# #                 valid_genes = [g for g in genes_upper if (tumor_df is not None and g in tumor_df.index) or (normal_df is not None and g in normal_df.index)]
+# #                 if not valid_genes:
+# #                     result[dtype] = {}
+# #                     continue
+                
+# #                 tumor_df = tumor_df.loc[valid_genes] if tumor_df is not None else pd.DataFrame(index=valid_genes)
+# #                 normal_df = normal_df.loc[valid_genes] if normal_df is not None else pd.DataFrame(index=valid_genes)
+                
+# #                 for gene in valid_genes:
+# #                     dtype_result[gene] = {}
+# #                     for metric_name, func in metric_funcs.items():
+# #                         try:
+# #                             tumor_metric = func(tumor_df) if tumor_df is not None and not tumor_df.empty else pd.Series(0, index=valid_genes)
+# #                             normal_metric = func(normal_df) if normal_df is not None and not normal_df.empty else pd.Series(0, index=valid_genes)
+# #                             dtype_result[gene][f"{metric_name}_tumor"] = float(tumor_metric.get(gene, 0))
+# #                             dtype_result[gene][f"{metric_name}_normal"] = float(normal_metric.get(gene, 0))
+# #                             if metric_name == "cv" and normal_df is not None and not normal_df.empty:
+# #                                 cv_t = float(tumor_metric.get(gene, 0))
+# #                                 cv_n = float(normal_metric.get(gene, 0))
+# #                                 logfc = cv_t - cv_n if cv_n != 0 else 0.0
+# #                                 dtype_result[gene]["logfc"] = float(logfc)
+# #                             elif metric_name == "cv":
+# #                                 dtype_result[gene]["logfc"] = 0.0
+# #                         except Exception as e:
+# #                             logger.error(f"Error computing {metric_name} for {cancer_name}, {dtype}, gene {gene}: {e}")
+# #                             dtype_result[gene][f"{metric_name}_tumor"] = 0.0
+# #                             dtype_result[gene][f"{metric_name}_normal"] = 0.0
+# #                             if metric_name == "cv":
+# #                                 dtype_result[gene]["logfc"] = 0.0
+# #                 result[dtype] = dtype_result
+# #         return cancer_name, result if result else None
+
+# #     all_results = {}
+# #     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+# #         future_to_cancer = {executor.submit(process_cancer, cancer): cancer for cancer in cancer_names}
+# #         for future in future_to_cancer:
+# #             cancer_name, result = future.result()
+# #             all_results[cancer_name] = result
+# #     return all_results if all_results else None
+
+# # @app.route('/api/gene_noise', methods=['GET'])
+# # def gene_noise():
+# #     cancers = request.args.getlist('cancer')
+# #     metrics = request.args.getlist('metric')
+# #     gene_ensembl_ids = request.args.get('gene_ensembl_id', '').split(',')
+
+# #     gene_ensembl_ids = [g.strip().upper() for g in gene_ensembl_ids if g.strip()]
+# #     logger.info(f"Request: cancers={cancers}, metrics={metrics}, gene_ensembl_ids={gene_ensembl_ids}")
+
+# #     if not all([cancers, gene_ensembl_ids]):
+# #         return jsonify({"error": "Missing parameters (cancer or gene_ensembl_id)"}), 400
+
+# #     metric_mapping = {
+# #         "CV": "cv", "Mean": "mean", "Standard Deviation": "std",
+# #         "MAD": "mad", "CV²": "cv_squared", "Differential Noise": "logfc"
+# #     }
+# #     api_metrics = [metric_mapping.get(m, m) for m in metrics if metric_mapping.get(m, m)]
+# #     if not api_metrics or api_metrics == ["logfc"]:
+# #         api_metrics = list(metric_funcs_gene.keys()) + ["logfc"]
+# #     elif "logfc" in api_metrics and "cv" not in api_metrics:
+# #         api_metrics.append("cv")
+# #     api_metrics = list(set(api_metrics))
+
+# #     invalid_metrics = [m for m in api_metrics if m not in metric_funcs_gene and m != "logfc"]
+# #     if invalid_metrics:
+# #         return jsonify({"error": f"Unsupported metric: {','.join(invalid_metrics)}"}), 400
+
+# #     cancer_names = [cancer_mapping.get(c.lower(), c.lower()) for c in cancers]
+# #     invalid_cancers = [c for c in cancers if c.lower() not in cancer_mapping and c.lower() not in cancer_names]
+# #     if invalid_cancers:
+# #         return jsonify({"error": f"Unsupported cancer names: {','.join(invalid_cancers)}"}), 400
+
+# #     try:
+# #         requested_metrics = {m: metric_funcs_gene[m] for m in api_metrics if m in metric_funcs_gene}
+# #         results = compute_metrics_for_condition(
+# #             cancer_names=cancer_names,
+# #             input_dir=base_raw_dir,
+# #             metric_funcs=requested_metrics,
+# #             condition="gene",
+# #             genes=gene_ensembl_ids
+# #         )
+
+# #         if not results:
+# #             return jsonify({"error": "Metric computation failed or no data"}), 500
+
+# #         transformed_results = {}
+# #         for dtype in data_types:
+# #             transformed_results[dtype] = {}
+# #             for cancer_name in cancer_names:
+# #                 if cancer_name in results and results[cancer_name] and dtype in results[cancer_name]:
+# #                     for gene, metrics in results[cancer_name][dtype].items():
+# #                         transformed_results[dtype].setdefault(gene, {})[cancer_name] = metrics
+
+# #         logger.info(f"Gene noise results computed for {len(cancer_names)} cancers")
+# #         return jsonify(transformed_results)
+# #     except Exception as e:
+# #         logger.error(f"Error in gene_noise: {str(e)}")
+# #         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+# # @app.route('/api/TH-metrics', methods=['GET'])
+# # def TH_metrics():
+# #     cancer = request.args.get('cancer')
+# #     method = request.args.get('method')
+# #     metric = request.args.get('metric')
+
+# #     logger.info(f"Received request: cancer={cancer}, method={method}, metric={metric}")
+
+# #     if not all([cancer, method, metric]):
+# #         return jsonify({"error": "Missing parameters"}), 400
+
+# #     cancer_name = cancer_mapping.get(cancer.lower(), cancer.lower())
+# #     if not cancer_name:
+# #         return jsonify({"error": f"Unsupported cancer name: {cancer}"}), 400
+
+# #     try:
+# #         results = compute_metrics_for_condition(
+# #             cancer_names=[cancer_name],
+# #             input_dir=base_raw_dir,
+# #             metric_funcs={metric: metric_funcs_TH[metric]},
+# #             condition="tumor"
+# #         )
+
+# #         if not results or not results.get(cancer_name) or metric not in results[cancer_name]:
+# #             return jsonify({"error": "Metric computation failed or no data"}), 500
+
+# #         return jsonify(results[cancer_name][metric])
+# #     except FileNotFoundError as e:
+# #         return jsonify({"error": f"Missing data file: {str(e)}"}), 404
+# #     except Exception as e:
+# #         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+# # @app.route('/api/pathway-analysis', methods=['GET'])
+# # def pathway_analysis():
+# #     try:
+# #         cancer_param = request.args.get('cancer', '')
+# #         cancer = [c.strip() for c in cancer_param.split(',') if c.strip()]
+# #         genes = [g.strip().upper() for g in request.args.get("genes", "").split(',') if g.strip()]
+# #         top_n = int(request.args.get("top_n", 15))
+# #         analysis_type = request.args.get("analysis_type", "ORA")
+
+# #         logger.info(f"Request: cancer={cancer}, genes={genes}, top_n={top_n}, analysis_type={analysis_type}")
+
+# #         if not cancer:
+# #             return jsonify({"error": "Missing required parameter: cancer"}), 400
+
+# #         cancer_names = [cancer_mapping.get(c.lower(), c.lower()) for c in cancer]
+# #         invalid_cancers = [c for c in cancer if cancer_mapping.get(c.lower(), c.lower()) not in cancer_names]
+# #         if invalid_cancers:
+# #             return jsonify({"error": f"Unsupported cancer names: {','.join(invalid_cancers)}"}), 400
+
+# #         response = {}
+# #         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+# #             futures = []
+# #             for method in data_types:
+# #                 future = executor.submit(process_pathway_method, method, cancer_names, genes, top_n, analysis_type, base_raw_dir)
+# #                 futures.append(future)
+            
+# #             for future in futures:
+# #                 method, method_response = future.result()
+# #                 response[method] = method_response
+
+# #         if not any(response[method]["enrichment"] or response[method]["top_genes"] for method in data_types):
+# #             return jsonify({
+# #                 "error": "No valid data or pathways found for any normalization method",
+# #                 "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
+# #             }), 500
+
+# #         return jsonify(response)
+
+# #     except Exception as e:
+# #         logger.error(f"Pathway analysis failed: {e}")
+# #         return jsonify({
+# #             "error": f"Internal server error: {str(e)}",
+# #             "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
+# #         }), 500
+
+# # def process_pathway_method(method, cancer_names, genes, top_n, analysis_type, input_dir):
+# #     """
+# #     Process pathway analysis for a single normalization method.
+# #     """
+# #     response = {
+# #         "enrichment": [],
+# #         "top_genes": [],
+# #         "gene_stats": {},
+# #         "noise_metrics": {},
+# #         "heatmap_data": {},
+# #         "warning": None
+# #     }
+
+# #     all_tumor_dfs = {}
+# #     all_normal_dfs = {}
+# #     for cancer_name in cancer_names:
+# #         tumor_df, normal_df = load_expression_file(cancer_name, method, input_dir, "pathway")
+# #         if tumor_df is not None:
+# #             all_tumor_dfs[cancer_name] = tumor_df
+# #         if normal_df is not None:
+# #             all_normal_dfs[cancer_name] = normal_df
+
+# #     if not all_tumor_dfs:
+# #         response["warning"] = f"No tumor expression data found for any cancer type with {method} normalization"
+# #         return method, response
+
+# #     library_genes = set().union(*[df.index for df in all_tumor_dfs.values()])
+# #     if all_normal_dfs:
+# #         library_genes = library_genes.intersection(*[df.index for df in all_normal_dfs.values()])
+
+# #     selected_genes = []
+# #     if genes:
+# #         selected_genes = [g for g in genes if g in library_genes]
+# #         if not selected_genes:
+# #             response["warning"] = f"No valid gene IDs found for {method} normalization"
+# #             return method, response
+# #     else:
+# #         cv_tumors = [metric_funcs_gene['cv'](df) for df in all_tumor_dfs.values() if df is not None and not df.empty]
+# #         if not cv_tumors:
+# #             response["warning"] = f"No valid tumor data for CV computation with {method} normalization"
+# #             return method, response
+# #         avg_cv_tumor = pd.concat(cv_tumors, axis=1).mean(axis=1)
+
+# #         cv_normals = [metric_funcs_gene['cv'](df) for df in all_normal_dfs.values() if df is not None and not df.empty]
+# #         avg_cv_normal = pd.concat(cv_normals, axis=1).mean(axis=1) if cv_normals else pd.Series(0, index=avg_cv_tumor.index)
+
+# #         eps = 1e-8
+# #         score = np.log2((avg_cv_tumor + eps) / (avg_cv_normal + eps)) if cv_normals else avg_cv_tumor
+# #         ranked_list = pd.DataFrame({'gene': avg_cv_tumor.index, 'score': score}).sort_values(by='score', ascending=False)
+# #         selected_genes = ranked_list['gene'].head(top_n).tolist()
+# #         selected_genes = [g for g in selected_genes if g in library_genes]
+
+# #     # Compute heatmap and gene stats
+# #     heatmap_data = {}
+# #     gene_stats = {}
+# #     for gene in selected_genes:
+# #         gene_stats[gene] = {}
+# #         for cancer_name in cancer_names:
+# #             display_cancer_name = reverse_cancer_mapping.get(cancer_name, cancer_name)
+# #             tumor_df = all_tumor_dfs.get(cancer_name)
+# #             normal_df = all_normal_dfs.get(cancer_name)
+# #             tumor_mean = tumor_df.loc[gene].mean() if tumor_df is not None and gene in tumor_df.index else 0.0
+# #             normal_mean = normal_df.loc[gene].mean() if normal_df is not None and gene in normal_df.index else 0.0
+# #             tumor_cv = metric_funcs_gene['cv'](tumor_df)[gene] if tumor_df is not None and gene in tumor_df.index else 0.0
+# #             normal_cv = metric_funcs_gene['cv'](normal_df)[gene] if normal_df is not None and gene in normal_df.index else 0.0
+# #             logfc = tumor_cv - normal_cv
+# #             heatmap_data.setdefault(gene, {})[f"{cancer_name} Tumor"] = float(tumor_mean)
+# #             heatmap_data[gene][f"{cancer_name} Normal"] = float(normal_mean)
+# #             gene_stats[gene][display_cancer_name] = {
+# #                 "mean_tumor": float(tumor_mean),
+# #                 "mean_normal": float(normal_mean),
+# #                 "cv_tumor": float(tumor_cv),
+# #                 "cv_normal": float(normal_cv),
+# #                 "logfc": float(logfc)
+# #             }
+
+# #     # Enrichment analysis
+# #     gene_sets = ["KEGG_2021_Human", "GO_Biological_Process_2021"]
+# #     enrichment_results = []
+# #     for gene_set in gene_sets:
+# #         try:
+# #             enr = enrichr(
+# #                 gene_list=selected_genes,
+# #                 gene_sets=gene_set,
+# #                 organism="Human",
+# #                 outdir=None,
+# #                 cutoff=0.05
+# #             )
+# #             results_df = enr.results
+# #             if not results_df.empty:
+# #                 results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+# #                 for res in results:
+# #                     res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+# #                     res["GeneSet"] = gene_set
+# #                 enrichment_results.extend(results)
+# #         except Exception as e:
+# #             logger.warning(f"Failed to run ORA with {gene_set} for {method}: {e}")
+
+# #     response.update({
+# #         "enrichment": enrichment_results,
+# #         "top_genes": selected_genes,
+# #         "gene_stats": gene_stats,
+# #         "heatmap_data": heatmap_data
+# #     })
+# #     if not enrichment_results:
+# #         response["warning"] = f"No pathways found for {method} normalization"
+# #     if any(df is None for df in all_normal_dfs.values()):
+# #         response["warning"] = (response["warning"] or "") + f" Normal data missing for some cancer types with {method} normalization"
+
+# #     return method, response
+
+# @app.route('/api/csv-upload', methods=['POST'])
+# def csv_upload():
+#     try:
+#         analysis_type = request.form.get('analysis_type', 'Pathway')
+#         top_n = int(request.form.get('top_n', 15))
+#         gene_set = request.form.get('gene_set', 'KEGG_2021_Human') if analysis_type == 'Pathway' else None
+#         genes = request.form.get('genes', '')
+
+#         logger.info(f"Input: analysis_type={analysis_type}, top_n={top_n}, gene_set={gene_set}, genes={genes}")
+
+#         valid_analysis_types = ['Gene', 'Pathway', 'Tumor']
+#         if analysis_type not in valid_analysis_types:
+#             return jsonify({"error": f"Invalid analysis type: {analysis_type}"}), 400
+
+#         selected_genes = [g.strip().upper() for g in genes.split(',') if g.strip()] if genes.strip() else None
+#         if analysis_type in ['Gene', 'Pathway'] and not selected_genes and 'expression_file' not in request.files:
+#             return jsonify({"error": "Gene or Pathway Analysis requires a gene list or expression data"}), 400
+
+#         df = None
+#         if 'expression_file' in request.files:
+#             expression_file = request.files['expression_file']
+#             if not expression_file.filename:
+#                 return jsonify({"error": "No expression file selected"}), 400
+#             if not expression_file.filename.endswith(('.csv', '.tsv')):
+#                 return jsonify({"error": "Expression file must be CSV or TSV"}), 400
+#             delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
+#             df = pd.read_csv(expression_file, delimiter=delimiter)
+#             if not {'Hugo_Symbol', 'gene_name'}.intersection(df.columns):
+#                 return jsonify({"error": "Expression file must contain 'Hugo_Symbol' or 'gene_name' column"}), 400
+#             gene_column = 'gene_name' if 'gene_name' in df.columns else 'Hugo_Symbol'
+#             df[gene_column] = df[gene_column].astype(str).str.upper()
+#             df = df.set_index(gene_column)
+#             if 'gene_id' in df.columns:
+#                 df = df.drop(columns=['gene_id'])
+#             if 'Entrez_Id' in df.columns:
+#                 df = df.drop(columns=['Entrez_Id'])
+#             df = df.apply(pd.to_numeric, errors='coerce')
+#             df = df.fillna(df.median(numeric_only=True))
+#             df = np.log2(df + 1)
+
+#         response = {"analysis_type": analysis_type, "warning": "Differential noise analysis (e.g., logFC) is not possible"}
+
+#         if analysis_type == 'Gene':
+#             if df is not None:
+#                 top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+#                 if not top_genes:
+#                     return jsonify({"error": "None of the provided genes found in expression data"}), 400
+#                 df = df.loc[top_genes]
+#                 metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
+#             else:
+#                 if not selected_genes:
+#                     return jsonify({"error": "Gene Analysis requires a gene list or expression data"}), 400
+#                 top_genes = selected_genes
+#                 metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
+#             response.update({"metrics": metrics, "top_genes": top_genes})
+
+#         elif analysis_type == 'Pathway':
+#             if df is not None:
+#                 top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+#                 if not top_genes:
+#                     return jsonify({"error": "None of the provided genes found in expression data"}), 400
+#                 df = df.loc[top_genes]
+#                 cv_values = metric_funcs_gene['cv'](df)
+#                 heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
+#             else:
+#                 if not selected_genes:
+#                     return jsonify({"error": "Pathway Analysis requires a gene list or expression data"}), 400
+#                 top_genes = selected_genes
+#                 heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
+
+#             enrichment_results = []
+#             try:
+#                 enr = enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
+#                 results_df = enr.results
+#                 if not results_df.empty:
+#                     results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+#                     for res in results:
+#                         res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+#                         res["GeneSet"] = gene_set
+#                     enrichment_results.extend(results)
+#             except Exception as e:
+#                 logger.error(f"Failed to run ORA with {gene_set}: {e}")
+
+#             response.update({"enrichment": enrichment_results, "top_genes": top_genes, "heatmap_data": heatmap_data})
+
+#         elif analysis_type == 'Tumor':
+#             if df is None:
+#                 return jsonify({"error": "Tumor Analysis requires an expression data file"}), 400
+#             metrics = []
+#             for sample in df.columns:
+#                 sample_metrics = {"sample": sample}
+#                 for metric_name, func in metric_funcs_TH.items():
+#                     try:
+#                         metric_value = func(df[[sample]])
+#                         sample_metrics[metric_name] = float(metric_value.iloc[0]) if not metric_value.empty else 0.0
+#                     except Exception as e:
+#                         logger.error(f"Failed to compute {metric_name} for sample {sample}: {e}")
+#                         sample_metrics[metric_name] = 0.0
+#                 metrics.append(sample_metrics)
+#             response["metrics"] = metrics
+
+#         return jsonify(response)
+
+#     except Exception as e:
+#         logger.error(f"CSV upload failed: {e}")
+#         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+# # if __name__ == '__main__':
+# #     app.run(debug=False, host='0.0.0.0', port=5001, threaded=True)
+# import os
+# import pandas as pd
+# import numpy as np
+# from flask import Flask, request, jsonify
+# from flask_cors import CORS
+# from cv import cv_calculation
+# from std import std_calculation
+# from MAD import mad_calculation
+# from DEPTH2 import depth2_calculation
+# from DEPTH_ITH import depth_calculation
+# from cv_2 import cv2_calculation
+# from mean import mean_calculation
+# from gseapy import enrichr
+# from functools import lru_cache
+# from concurrent.futures import ThreadPoolExecutor
+# import logging
+
+# # Configure logging
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# logger = logging.getLogger(__name__)
+
+# # Initialize Flask App
+# app = Flask(__name__)
+# CORS(app, resources={r"/api/*": {
+#     "origins": ["http://localhost:8081"],
+#     "methods": ["GET", "POST", "OPTIONS"],
+#     "allow_headers": ["Content-Type", "Authorization"],
+#     "supports_credentials": True
+# }})
+
+# # Configuration
+# base_raw_dir = "../data/raw"
+# data_types = ["tpm", "fpkm", "fpkm_uq"]
+# max_workers = 7  # Adjust based on server capabilities
+
+# # Metric functions
+# metric_funcs_TH = {
+#     "DEPTH2": depth2_calculation,
+#     "tITH": depth_calculation,
+# }
+# metric_funcs_gene = {
+#     "cv": cv_calculation,
+#     "cv_squared": cv2_calculation,
+#     "std": std_calculation,
+#     "mad": mad_calculation,
+#     "mean": mean_calculation
+# }
+
+# # Cancer mapping
+# cancer_mapping = {
+#     "liver and bile duct": "liver",
+#     "breast": "breast",
+#     "bladder": "bladder",
+#     "colorectal": "colon",
+#     "uterus": "uterus",
+#     "lung": "lung",
+#     "kidney": "kidney",
+#     "rectum": "rectum",
+#     "stomach": "stomach",
+#     "brain and nervous system": "brain",
+#     "thymus": "thymus",
+#     "cervix": "cervix",
+#     "adrenal gland": "adrenal",
+#     "head and neck": "headandneck",
+#     "esophagus": "esophagus",
+#     "prostate": "prostate",
+#     "thyroid": "thyroid",
+#     "pancreas": "pancreas",
+#     "testis": "testis",
+#     "lymph nodes": "lymph",
+#     "heart and pleura": "heart",
+#     "ovary": "ovary",
+#     "skin": "skin",
+#     "eye and adnexa": "eye",
+#     "bone marrow and blood": "blood",
+#     "soft tissue": "soft tissue"
+# }
+# reverse_cancer_mapping = {v: k for k, v in cancer_mapping.items()}
+
+# # Cache for loaded dataframes
+# @lru_cache(maxsize=100)
+# def load_expression_file(cancer_name, dtype, input_dir, cond):
+#     """
+#     Load and preprocess expression files with caching, returning both raw and log2-transformed data.
+#     """
+#     try:
+#         tumor_filename = f"tumor_{dtype}.csv.gz"
+#         normal_filename = f"normal_{dtype}.csv.gz"
+#         tumor_filepath = os.path.join(input_dir, cancer_name, tumor_filename)
+#         normal_filepath = os.path.join(input_dir, cancer_name, normal_filename)
+        
+#         tumor_df_raw = None
+#         normal_df_raw = None
+#         tumor_df_log2 = None
+#         normal_df_log2 = None
+        
+#         if os.path.exists(tumor_filepath):
+#             tumor_df_raw = pd.read_csv(tumor_filepath, index_col=0)
+#             logger.info(f"Loaded tumor file: {tumor_filepath}, shape: {tumor_df_raw.shape}")
+#             if cond == 'pathway':
+#                 if 'gene_name' in tumor_df_raw.columns:
+#                     tumor_df_raw['gene_name'] = tumor_df_raw['gene_name'].astype(str)
+#                     tumor_df_raw = tumor_df_raw.set_index('gene_name')
+#                 if 'gene_id' in tumor_df_raw.columns:
+#                     tumor_df_raw = tumor_df_raw.drop(columns=['gene_id'])
+#             else:
+#                 if 'gene_name' in tumor_df_raw.columns:
+#                     tumor_df_raw = tumor_df_raw.drop(columns=['gene_name'])
+#                 if 'Hugo_Symbol' in tumor_df_raw.columns:
+#                     tumor_df_raw = tumor_df_raw.drop(columns=['Hugo_Symbol'])
+#             tumor_df_raw = tumor_df_raw.apply(pd.to_numeric, errors='coerce')
+#             tumor_df_raw = tumor_df_raw.fillna(tumor_df_raw.median(numeric_only=True))
+#             tumor_df_log2 = np.log2(tumor_df_raw + 1)
+        
+#         if os.path.exists(normal_filepath):
+#             normal_df_raw = pd.read_csv(normal_filepath, index_col=0)
+#             logger.info(f"Loaded normal file: {normal_filepath}, shape: {normal_df_raw.shape}")
+#             if cond == 'pathway':
+#                 if 'gene_name' in normal_df_raw.columns:
+#                     normal_df_raw['gene_name'] = normal_df_raw['gene_name'].astype(str)
+#                     normal_df_raw = normal_df_raw.set_index('gene_name')
+#                 if 'gene_id' in normal_df_raw.columns:
+#                     normal_df_raw = normal_df_raw.drop(columns=['gene_id'])
+#             else:
+#                 if 'gene_name' in normal_df_raw.columns:
+#                     normal_df_raw = normal_df_raw.drop(columns=['gene_name'])
+#                 if 'Hugo_Symbol' in normal_df_raw.columns:
+#                     normal_df_raw = normal_df_raw.drop(columns=['Hugo_Symbol'])
+#             normal_df_raw = normal_df_raw.apply(pd.to_numeric, errors='coerce')
+#             normal_df_raw = normal_df_raw.fillna(normal_df_raw.median(numeric_only=True))
+#             normal_df_log2 = np.log2(normal_df_raw + 1)
+        
+#         return {
+#             'raw': (tumor_df_raw, normal_df_raw),
+#             'log2': (tumor_df_log2, normal_df_log2)
+#         }
+    
+#     except Exception as e:
+#         logger.error(f"Failed to load files for {cancer_name}, {dtype}: {e}")
+#         return {'raw': (None, None), 'log2': (None, None)}
+
+# def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, condition, genes=None, sample_ids=None):
+#     """
+#     Compute metrics in parallel for given cancer names and condition for both raw and log2 data.
+#     """
+#     if not isinstance(cancer_names, list):
+#         cancer_names = [cancer_names]
+
+#     def process_cancer(cancer_name):
+#         expr_dfs = {}
+#         for dtype in data_types:
+#             data = load_expression_file(cancer_name, dtype, input_dir, condition)
+#             if data['raw'][0] is not None or data['raw'][1] is not None or data['log2'][0] is not None or data['log2'][1] is not None:
+#                 expr_dfs[dtype] = data
+        
+#         if not expr_dfs:
+#             logger.warning(f"No expression data loaded for {cancer_name}")
+#             return cancer_name, None
+
+#         result = {}
+#         if condition == "gene" and genes:
+#             genes_upper = [g.upper() for g in genes]
+#             for dtype, data in expr_dfs.items():
+#                 result[dtype] = {'raw': {}, 'log2': {}}
+#                 for transform, (tumor_df, normal_df) in data.items():
+#                     dtype_result = {}
+#                     valid_genes = [g for g in genes_upper if (tumor_df is not None and g in tumor_df.index) or (normal_df is not None and g in normal_df.index)]
+#                     if not valid_genes:
+#                         result[dtype][transform] = {}
+#                         continue
+                    
+#                     tumor_df = tumor_df.loc[valid_genes] if tumor_df is not None else pd.DataFrame(index=valid_genes)
+#                     normal_df = normal_df.loc[valid_genes] if normal_df is not None else pd.DataFrame(index=valid_genes)
+                    
+#                     for gene in valid_genes:
+#                         dtype_result[gene] = {}
+#                         for metric_name, func in metric_funcs.items():
+#                             try:
+#                                 tumor_metric = func(tumor_df) if tumor_df is not None and not tumor_df.empty else pd.Series(0, index=valid_genes)
+#                                 normal_metric = func(normal_df) if normal_df is not None and not normal_df.empty else pd.Series(0, index=valid_genes)
+#                                 dtype_result[gene][f"{metric_name}_tumor"] = float(tumor_metric.get(gene, 0))
+#                                 dtype_result[gene][f"{metric_name}_normal"] = float(normal_metric.get(gene, 0))
+#                                 if metric_name == "cv" and normal_df is not None and not normal_df.empty:
+#                                     cv_t = float(tumor_metric.get(gene, 0))
+#                                     cv_n = float(normal_metric.get(gene, 0))
+#                                     logfc = cv_t - cv_n if cv_n != 0 else 0.0
+#                                     dtype_result[gene]["logfc"] = float(logfc)
+#                                 elif metric_name == "cv":
+#                                     dtype_result[gene]["logfc"] = 0.0
+#                             except Exception as e:
+#                                 logger.error(f"Error computing {metric_name} for {cancer_name}, {dtype}, gene {gene}: {e}")
+#                                 dtype_result[gene][f"{metric_name}_tumor"] = 0.0
+#                                 dtype_result[gene][f"{metric_name}_normal"] = 0.0
+#                                 if metric_name == "cv":
+#                                     dtype_result[gene]["logfc"] = 0.0
+#                     result[dtype][transform] = dtype_result
+#         if condition == "tumor":
+#             # Get all sample IDs from tumor data
+#             sample_ids_set = set()
+#             for dtype, data in expr_dfs.items():
+#                 if data['log2'][0] is not None:
+#                     sample_ids_set.update(data['log2'][0].columns)
+#             sample_ids_set = sorted(list(sample_ids_set))
+#             # Filter by provided sample_ids if specified
+#             if sample_ids:
+#                 sample_ids_set = [sid for sid in sample_ids_set if sid in sample_ids]
+#             if not sample_ids_set:
+#                 logger.warning(f"No valid sample IDs for {cancer_name}")
+#                 return cancer_name, None
+#             # sample_ids_set = set()
+#             # for df in expr_dfs.values():
+#             #     sample_ids_set.update(df.columns)
+#             # sample_ids_set = sorted(list(sample_ids_set))
+
+#             metric_results = {}
+#             for metric_name, func in metric_funcs.items():
+#                 metric_data = {}
+#                 for dtype in data_types:
+#                     tumor_df = expr_dfs.get(dtype, {}).get('log2', (None, None))[0]
+#                     normal_df = expr_dfs.get(dtype, {}).get('log2', (None, None))[1]
+#                     if tumor_df is None:
+#                         metric_data[dtype] = [0] * len(sample_ids_set)
+#                         continue
+#                     try:
+#                         # Filter tumor_df to requested sample_ids
+#                         tumor_df = tumor_df[sample_ids_set] if sample_ids_set else tumor_df
+#                         # Pass both tumor_df and normal_df to depth_calculation
+#                         if metric_name == "tITH":
+#                             metric_series = func(tumor_df, normal_df)
+#                         else:
+#                             metric_series = func(tumor_df)
+#                         if not isinstance(metric_series, pd.Series):
+#                             raise ValueError(f"{metric_name} did not return a Series")
+#                         metric_data[dtype] = metric_series.reindex(sample_ids_set, fill_value=0).tolist()
+#                     except Exception as e:
+#                         logger.error(f"Error computing {metric_name} for {dtype}: {e}")
+#                         metric_data[dtype] = [0] * len(sample_ids_set)
+
+#                 result_list = []
+#                 for i, sid in enumerate(sample_ids_set):
+#                     record = {"sample_id": sid}
+#                     for dtype in data_types:
+#                         record[dtype] = metric_data[dtype][i]
+#                     result_list.append(record)
+#                 metric_results[metric_name] = result_list
+#             return cancer_name, metric_results if metric_results else None
+#         # Other conditions (gene, pathway) remain unchanged
+#         return cancer_name, result if result else None
+
+#     all_results = {}
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         future_to_cancer = {executor.submit(process_cancer, cancer): cancer for cancer in cancer_names}
+#         for future in future_to_cancer:
+#             cancer_name, result = future.result()
+#             all_results[cancer_name] = result
+#     return all_results if all_results else None
+
+# @app.route('/api/gene_noise', methods=['GET'])
+# def gene_noise():
+#     cancers = request.args.getlist('cancer')
+#     metrics = request.args.getlist('metric')
+#     gene_ensembl_ids = request.args.get('gene_ensembl_id', '').split(',')
+
+#     gene_ensembl_ids = [g.strip().upper() for g in gene_ensembl_ids if g.strip()]
+#     logger.info(f"Request: cancers={cancers}, metrics={metrics}, gene_ensembl_ids={gene_ensembl_ids}")
+
+#     if not all([cancers, gene_ensembl_ids]):
+#         return jsonify({"error": "Missing parameters (cancer or gene_ensembl_id)"}), 400
+
+#     metric_mapping = {
+#         "CV": "cv", "Mean": "mean", "Standard Deviation": "std",
+#         "MAD": "mad", "CV²": "cv_squared", "Differential Noise": "logfc"
+#     }
+#     api_metrics = [metric_mapping.get(m, m) for m in metrics if metric_mapping.get(m, m)]
+#     if not api_metrics or api_metrics == ["logfc"]:
+#         api_metrics = list(metric_funcs_gene.keys()) + ["logfc"]
+#     elif "logfc" in api_metrics and "cv" not in api_metrics:
+#         api_metrics.append("cv")
+#     api_metrics = list(set(api_metrics))
+
+#     invalid_metrics = [m for m in api_metrics if m not in metric_funcs_gene and m != "logfc"]
+#     if invalid_metrics:
+#         return jsonify({"error": f"Unsupported metric: {','.join(invalid_metrics)}"}), 400
+
+#     cancer_names = [cancer_mapping.get(c.lower(), c.lower()) for c in cancers]
+#     invalid_cancers = [c for c in cancers if c.lower() not in cancer_mapping and c.lower() not in cancer_names]
+#     if invalid_cancers:
+#         return jsonify({"error": f"Unsupported cancer names: {','.join(invalid_cancers)}"}), 400
+
+#     try:
+#         requested_metrics = {m: metric_funcs_gene[m] for m in api_metrics if m in metric_funcs_gene}
+#         results = compute_metrics_for_condition(
+#             cancer_names=cancer_names,
+#             input_dir=base_raw_dir,
+#             metric_funcs=requested_metrics,
+#             condition="gene",
+#             genes=gene_ensembl_ids
+#         )
+
+#         if not results:
+#             return jsonify({"error": "Metric computation failed or no data"}), 500
+
+#         transformed_results = {'raw': {}, 'log2': {}}
+#         for dtype in data_types:
+#             transformed_results['raw'][dtype] = {}
+#             transformed_results['log2'][dtype] = {}
+#             for cancer_name in cancer_names:
+#                 if cancer_name in results and results[cancer_name]:
+#                     for transform in ['raw', 'log2']:
+#                         if dtype in results[cancer_name] and results[cancer_name][dtype][transform]:
+#                             for gene, metrics in results[cancer_name][dtype][transform].items():
+#                                 transformed_results[transform][dtype].setdefault(gene, {})[cancer_name] = metrics
+
+#         logger.info(f"Gene noise results computed for {len(cancer_names)} cancers")
+#         print(transformed_results)
+#         return jsonify(transformed_results)
+#     except Exception as e:
+#         logger.error(f"Error in gene_noise: {str(e)}")
+#         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+# # @app.route('/api/TH-metrics', methods=['GET'])
+# # def TH_metrics():
+# #     cancer = request.args.get('cancer')
+# #     method = request.args.get('method')
+# #     metric = request.args.get('metric')
+# #     sample_ids = request.args.get('sample_ids')
+
+# #     logger.info(f"Received request: cancer={cancer}, method={method}, metric={metric}")
+
+# #     if not all([cancer, method, metric]):
+# #         return jsonify({"error": "Missing parameters"}), 400
+
+# #     cancer_name = cancer_mapping.get(cancer.lower(), cancer.lower())
+# #     if not cancer_name:
+# #         return jsonify({"error": f"Unsupported cancer name: {cancer}"}), 400
+
+# #     try:
+# #         results = compute_metrics_for_condition(
+# #             cancer_names=[cancer_name],
+# #             input_dir=base_raw_dir,
+# #             metric_funcs={metric: metric_funcs_TH[metric]},
+# #             condition="tumor",
+# #             sample_ids
+# #         )
+
+# #         if not results or not results.get(cancer_name) or metric not in results[cancer_name]:
+# #             return jsonify({"error": "Metric computation failed or no data"}), 500
+
+# #         transformed_results = {'raw': {}, 'log2': {}}
+# #         for dtype in data_types:
+# #             if dtype in results[cancer_name]:
+# #                 for transform in ['raw', 'log2']:
+# #                     transformed_results[transform][dtype] = results[cancer_name][dtype][transform]
+
+# #         return jsonify(transformed_results)
+# #     except FileNotFoundError as e:
+# #         return jsonify({"error": f"Missing data file: {str(e)}"}), 404
+# #     except Exception as e:
+# #         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+# @app.route('/api/TH-metrics', methods=['GET'])
+# def TH_metrics():
+#     cancer = request.args.get('cancer')
+#     method = request.args.get('method')
+#     metric = request.args.get('metric')
+#     sample_ids = request.args.get('sample_ids', '').split(',') if request.args.get('sample_ids') else []
+
+#     logger.info(f"Received request: cancer={cancer}, method={method}, metric={metric}, sample_ids={sample_ids}")
+
+#     if not all([cancer, method, metric]):
+#         return jsonify({"error": "Missing parameters"}), 400
+
+#     cancer_name = cancer_mapping.get(cancer.lower(), cancer.lower())
+#     if not cancer_name:
+#         return jsonify({"error": f"Unsupported cancer name: {cancer}"}), 400
+
+#     if metric not in metric_funcs_TH:
+#         return jsonify({"error": f"Unsupported metric: {metric}"}), 400
+
+#     try:
+#         results = compute_metrics_for_condition(
+#             cancer_names=[cancer_name],
+#             input_dir=base_raw_dir,
+#             metric_funcs={metric: metric_funcs_TH[metric]},
+#             condition="tumor",
+#             sample_ids=sample_ids
+#         )
+
+#         if not results or not results.get(cancer_name) or metric not in results[cancer_name]:
+#             return jsonify({"error": "Metric computation failed or no data"}), 500
+
+#         # Simplify response to include only log2-transformed data for the requested method
+#         transformed_results = []
+#         for sample in results[cancer_name][metric]:
+#             if not sample_ids or sample['sample_id'] in sample_ids:
+#                 transformed_results.append({
+#                     'sample_id': sample['sample_id'],
+#                     method: sample[method]
+#                 })
+
+#         return jsonify({'log2': {method: transformed_results}})
+#     except FileNotFoundError as e:
+#         return jsonify({"error": f"Missing data file: {str(e)}"}), 404
+#     except Exception as e:
+#         logger.error(f"Error in TH-metrics: {str(e)}")
+#         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+# @app.route('/api/pathway-analysis', methods=['GET'])
+# def pathway_analysis():
+#     try:
+#         cancer_param = request.args.get('cancer', '')
+#         cancer = [c.strip() for c in cancer_param.split(',') if c.strip()]
+#         genes = [g.strip().upper() for g in request.args.get("genes", "").split(',') if g.strip()]
+#         top_n = int(request.args.get("top_n", 15))
+#         analysis_type = request.args.get("analysis_type", "ORA")
+
+#         logger.info(f"Request: cancer={cancer}, genes={genes}, top_n={top_n}, analysis_type={analysis_type}")
+
+#         if not cancer:
+#             return jsonify({"error": "Missing required parameter: cancer"}), 400
+
+#         cancer_names = [cancer_mapping.get(c.lower(), c.lower()) for c in cancer]
+#         invalid_cancers = [c for c in cancer if cancer_mapping.get(c.lower(), c.lower()) not in cancer_names]
+#         if invalid_cancers:
+#             return jsonify({"error": f"Unsupported cancer names: {','.join(invalid_cancers)}"}), 400
+
+#         response = {'raw': {}, 'log2': {}}
+#         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#             futures = []
+#             for method in data_types:
+#                 future = executor.submit(process_pathway_method, method, cancer_names, genes, top_n, analysis_type, base_raw_dir)
+#                 futures.append(future)
+            
+#             for future in futures:
+#                 method, transform, method_response = future.result()
+#                 response[transform][method] = method_response
+
+#         if not any(response[transform][method]["enrichment"] or response[transform][method]["top_genes"] for transform in response for method in data_types):
+#             return jsonify({
+#                 "error": "No valid data or pathways found for any normalization method",
+#                 "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
+#             }), 500
+
+#         return jsonify(response)
+
+#     except Exception as e:
+#         logger.error(f"Pathway analysis failed: {e}")
+#         return jsonify({
+#             "error": f"Internal server error: {str(e)}",
+#             "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
+#         }), 500
+
+# def process_pathway_method(method, cancer_names, genes, top_n, analysis_type, input_dir):
+#     """
+#     Process pathway analysis for a single normalization method for both raw and log2 data.
+#     """
+#     response = {
+#         'raw': {
+#             "enrichment": [],
+#             "top_genes": [],
+#             "gene_stats": {},
+#             "noise_metrics": {},
+#             "heatmap_data": {},
+#             "warning": None
+#         },
+#         'log2': {
+#             "enrichment": [],
+#             "top_genes": [],
+#             "gene_stats": {},
+#             "noise_metrics": {},
+#             "heatmap_data": {},
+#             "warning": None
+#         }
+#     }
+
+#     all_dfs = {'raw': {'tumor': {}, 'normal': {}}, 'log2': {'tumor': {}, 'normal': {}}}
+#     for cancer_name in cancer_names:
+#         data = load_expression_file(cancer_name, method, input_dir, "pathway")
+#         for transform in ['raw', 'log2']:
+#             if data[transform][0] is not None:
+#                 all_dfs[transform]['tumor'][cancer_name] = data[transform][0]
+#             if data[transform][1] is not None:
+#                 all_dfs[transform]['normal'][cancer_name] = data[transform][1]
+
+#     for transform in ['raw', 'log2']:
+#         if not all_dfs[transform]['tumor']:
+#             response[transform]["warning"] = f"No tumor expression data found for any cancer type with {method} normalization"
+#             continue
+
+#         library_genes = set().union(*[df.index for df in all_dfs[transform]['tumor'].values()])
+#         if all_dfs[transform]['normal']:
+#             library_genes = library_genes.intersection(*[df.index for df in all_dfs[transform]['normal'].values()])
+
+#         selected_genes = []
+#         if genes:
+#             selected_genes = [g for g in genes if g in library_genes]
+#             if not selected_genes:
+#                 response[transform]["warning"] = f"No valid gene IDs found for {method} normalization ({transform})"
+#                 continue
+#         else:
+#             cv_tumors = [metric_funcs_gene['cv'](df) for df in all_dfs[transform]['tumor'].values() if df is not None and not df.empty]
+#             if not cv_tumors:
+#                 response[transform]["warning"] = f"No valid tumor data for CV computation with {method} normalization ({transform})"
+#                 continue
+#             avg_cv_tumor = pd.concat(cv_tumors, axis=1).mean(axis=1)
+
+#             cv_normals = [metric_funcs_gene['cv'](df) for df in all_dfs[transform]['normal'].values() if df is not None and not df.empty]
+#             avg_cv_normal = pd.concat(cv_normals, axis=1).mean(axis=1) if cv_normals else pd.Series(0, index=avg_cv_tumor.index)
+
+#             eps = 1e-8
+#             score = np.log2((avg_cv_tumor + eps) / (avg_cv_normal + eps)) if cv_normals else avg_cv_tumor
+#             ranked_list = pd.DataFrame({'gene': avg_cv_tumor.index, 'score': score}).sort_values(by='score', ascending=False)
+#             selected_genes = ranked_list['gene'].head(top_n).tolist()
+#             selected_genes = [g for g in selected_genes if g in library_genes]
+
+#         # Compute heatmap and gene stats
+#         heatmap_data = {}
+#         gene_stats = {}
+#         for gene in selected_genes:
+#             gene_stats[gene] = {}
+#             for cancer_name in cancer_names:
+#                 display_cancer_name = reverse_cancer_mapping.get(cancer_name, cancer_name)
+#                 tumor_df = all_dfs[transform]['tumor'].get(cancer_name)
+#                 normal_df = all_dfs[transform]['normal'].get(cancer_name)
+#                 tumor_mean = tumor_df.loc[gene].mean() if tumor_df is not None and gene in tumor_df.index else 0.0
+#                 normal_mean = normal_df.loc[gene].mean() if normal_df is not None and gene in normal_df.index else 0.0
+#                 tumor_cv = metric_funcs_gene['cv'](tumor_df)[gene] if tumor_df is not None and gene in tumor_df.index else 0.0
+#                 normal_cv = metric_funcs_gene['cv'](normal_df)[gene] if normal_df is not None and gene in normal_df.index else 0.0
+#                 logfc = tumor_cv - normal_cv
+#                 heatmap_data.setdefault(gene, {})[f"{cancer_name} Tumor"] = float(tumor_mean)
+#                 heatmap_data[gene][f"{cancer_name} Normal"] = float(normal_mean)
+#                 gene_stats[gene][display_cancer_name] = {
+#                     "mean_tumor": float(tumor_mean),
+#                     "mean_normal": float(normal_mean),
+#                     "cv_tumor": float(tumor_cv),
+#                     "cv_normal": float(normal_cv),
+#                     "logfc": float(logfc)
+#                 }
+
+#         # Enrichment analysis
+#         gene_sets = ["KEGG_2021_Human", "GO_Biological_Process_2021"]
+#         enrichment_results = []
+#         for gene_set in gene_sets:
+#             try:
+#                 enr = enrichr(
+#                     gene_list=selected_genes,
+#                     gene_sets=gene_set,
+#                     organism="Human",
+#                     outdir=None,
+#                     cutoff=0.05
+#                 )
+#                 results_df = enr.results
+#                 if not results_df.empty:
+#                     results = results_df[["Term", "P-value", "Overlap", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+#                     for res in results:
+#                         res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+#                         res["GeneSet"] = gene_set
+#                     enrichment_results.extend(results)
+#             except Exception as e:
+#                 logger.warning(f"Failed to run ORA with {gene_set} for {method} ({transform}): {e}")
+
+#         response[transform].update({
+#             "enrichment": enrichment_results,
+#             "top_genes": selected_genes,
+#             "gene_stats": gene_stats,
+#             "heatmap_data": heatmap_data
+#         })
+#         if not enrichment_results:
+#             response[transform]["warning"] = f"No pathways found for {method} normalization ({transform})"
+#         if any(df is None for df in all_dfs[transform]['normal'].values()):
+#             response[transform]["warning"] = (response[transform]["warning"] or "") + f" Normal data missing for some cancer types with {method} normalization ({transform})"
+
+#     return method, 'raw', response['raw'], 'log2', response['log2']
+
+# # @app.route('/api/csv-upload', methods=['POST'])
+# # def csv_upload():
+# #     try:
+# #         analysis_type = request.form.get('analysis_type', 'Pathway')
+# #         top_n = int(request.form.get('top_n', 15))
+# #         gene_set = request.form.get('gene_set', 'KEGG_2021_Human') if analysis_type == 'Pathway' else None
+# #         genes = request.form.get('genes', '')
+
+# #         logger.info(f"Input: analysis_type={analysis_type}, top_n={top_n}, gene_set={gene_set}, genes={genes}")
+
+# #         valid_analysis_types = ['Gene', 'Pathway', 'Tumor']
+# #         if analysis_type not in valid_analysis_types:
+# #             return jsonify({"error": f"Invalid analysis type: {analysis_type}"}), 400
+
+# #         selected_genes = [g.strip().upper() for g in genes.split(',') if g.strip()] if genes.strip() else None
+# #         if analysis_type in ['Gene', 'Pathway'] and not selected_genes and 'expression_file' not in request.files:
+# #             return jsonify({"error": "Gene or Pathway Analysis requires a gene list or expression data"}), 400
+
+# #         df_raw = None
+# #         df_log2 = None
+# #         if 'expression_file' in request.files:
+# #             expression_file = request.files['expression_file']
+# #             if not expression_file.filename:
+# #                 return jsonify({"error": "No expression file selected"}), 400
+# #             if not expression_file.filename.endswith(('.csv', '.tsv')):
+# #                 return jsonify({"error": "Expression file must be CSV or TSV"}), 400
+# #             delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
+# #             df_raw = pd.read_csv(expression_file, delimiter=delimiter)
+# #             if not {'Hugo_Symbol', 'gene_name'}.intersection(df_raw.columns):
+# #                 return jsonify({"error": "Expression file must contain 'Hugo_Symbol' or 'gene_name' column"}), 400
+# #             gene_column = 'gene_name' if 'gene_name' in df_raw.columns else 'Hugo_Symbol'
+# #             df_raw[gene_column] = df_raw[gene_column].astype(str).str.upper()
+# #             df_raw = df_raw.set_index(gene_column)
+# #             if 'gene_id' in df_raw.columns:
+# #                 df_raw = df_raw.drop(columns=['gene_id'])
+# #             if 'Entrez_Id' in df_raw.columns:
+# #                 df_raw = df_raw.drop(columns=['Entrez_Id'])
+# #             df_raw = df_raw.apply(pd.to_numeric, errors='coerce')
+# #             df_raw = df_raw.fillna(df_raw.median(numeric_only=True))
+# #             df_log2 = np.log2(df_raw + 1)
+
+# #         response = {
+# #             "analysis_type": analysis_type,
+# #             "raw": {"warning": "Differential noise analysis (e.g., logFC) is not possible"},
+# #             "log2": {"warning": "Differential noise analysis (e.g., logFC) is not possible"}
+# #         }
+
+# #         for transform, df in [('raw', df_raw), ('log2', df_log2)]:
+# #             if analysis_type == 'Gene':
+# #                 if df is not None:
+# #                     top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+# #                     if not top_genes:
+# #                         response[transform]["error"] = "None of the provided genes found in expression data"
+# #                         continue
+# #                     df = df.loc[top_genes]
+# #                     metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
+# #                 else:
+# #                     if not selected_genes:
+# #                         response[transform]["error"] = "Gene Analysis requires a gene list or expression data"
+# #                         continue
+# #                     top_genes = selected_genes
+# #                     metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
+# #                 response[transform].update({"metrics": metrics, "top_genes": top_genes})
+
+# #             elif analysis_type == 'Pathway':
+# #                 if df is not None:
+# #                     top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+# #                     if not top_genes:
+# #                         response[transform]["error"] = "None of the provided genes found in expression data"
+# #                         continue
+# #                     df = df.loc[top_genes]
+# #                     cv_values = metric_funcs_gene['cv'](df)
+# #                     heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
+# #                 else:
+# #                     if not selected_genes:
+# #                         response[transform]["error"] = "Pathway Analysis requires a gene list or expression data"
+# #                         continue
+# #                     top_genes = selected_genes
+# #                     heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
+
+# #                 enrichment_results = []
+# #                 try:
+# #                     enr = enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
+# #                     results_df = enr.results
+# #                     if not results_df.empty:
+# #                         results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+# #                         for res in results:
+# #                             res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+# #                             res["GeneSet"] = gene_set
+# #                         enrichment_results.extend(results)
+# #                 except Exception as e:
+# #                     logger.error(f"Failed to run ORA with {gene_set} ({transform}): {e}")
+
+# #                 response[transform].update({"enrichment": enrichment_results, "top_genes": top_genes, "heatmap_data": heatmap_data})
+
+# #             elif analysis_type == 'Tumor':
+# #                 if df is None:
+# #                     response[transform]["error"] = "Tumor Analysis requires an expression data file"
+# #                     continue
+# #                 metrics = []
+# #                 for sample in df.columns:
+# #                     sample_metrics = {"sample": sample}
+# #                     for metric_name, func in metric_funcs_TH.items():
+# #                         try:
+# #                             metric_value = func(df[[sample]])
+# #                             sample_metrics[metric_name] = float(metric_value.iloc[0]) if not metric_value.empty else 0.0
+# #                         except Exception as e:
+# #                             logger.error(f"Failed to compute {metric_name} for sample {sample} ({transform}): {e}")
+# #                             sample_metrics[metric_name] = 0.0
+# #                     metrics.append(sample_metrics)
+# #                 response[transform]["metrics"] = metrics
+
+# #         if response['raw'].get('error') and response['log2'].get('error'):
+# #             return jsonify({"error": response['raw']['error']}), 400
+
+# #         return jsonify(response)
+
+# #     except Exception as e:
+# #         logger.error(f"CSV upload failed: {e}")
+# #         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+# @app.route('/api/csv-upload', methods=['POST'])
+# def csv_upload():
+#     try:
+#         analysis_type = request.form.get('analysis_type', 'Pathway')
+#         top_n = int(request.form.get('top_n', 15))
+#         gene_set = request.form.get('gene_set', 'KEGG_2021_Human') if analysis_type == 'Pathway' else None
+#         genes = request.form.get('genes', '')
+
+#         logger.info(f"Input: analysis_type={analysis_type}, top_n={top_n}, gene_set={gene_set}, genes={genes}")
+
+#         valid_analysis_types = ['Gene', 'Pathway', 'Tumor']
+#         if analysis_type not in valid_analysis_types:
+#             return jsonify({"error": f"Invalid analysis type: {analysis_type}"}), 400
+
+#         selected_genes = [g.strip().upper() for g in genes.split(',') if g.strip()] if genes.strip() else None
+#         if analysis_type in ['Gene', 'Pathway'] and not selected_genes and 'expression_file' not in request.files:
+#             return jsonify({"error": "Gene or Pathway Analysis requires a gene list or expression data"}), 400
+
+#         df = None
+#         if 'expression_file' in request.files:
+#             expression_file = request.files['expression_file']
+#             if not expression_file.filename:
+#                 return jsonify({"error": "No expression file selected"}), 400
+#             if not expression_file.filename.endswith(('.csv', '.tsv')):
+#                 return jsonify({"error": "Expression file must be CSV or TSV"}), 400
+#             delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
+#             df = pd.read_csv(expression_file, delimiter=delimiter)
+#             if not {'Hugo_Symbol', 'gene_name'}.intersection(df.columns):
+#                 return jsonify({"error": "Expression file must contain 'Hugo_Symbol' or 'gene_name' column"}), 400
+#             gene_column = 'gene_name' if 'gene_name' in df.columns else 'Hugo_Symbol'
+#             df[gene_column] = df[gene_column].astype(str).str.upper()
+#             df = df.set_index(gene_column)
+#             if 'gene_id' in df.columns:
+#                 df = df.drop(columns=['gene_id'])
+#             if 'Entrez_Id' in df.columns:
+#                 df = df.drop(columns=['Entrez_Id'])
+#             df = df.apply(pd.to_numeric, errors='coerce')
+#             df = df.fillna(df.median(numeric_only=True))
+#             df = np.log2(df + 1)
+
+#         response = {"analysis_type": analysis_type, "warning": "Differential noise analysis (e.g., logFC) is not possible"}
+
+#         if analysis_type == 'Gene':
+#             if df is not None:
+#                 top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+#                 if not top_genes:
+#                     return jsonify({"error": "None of the provided genes found in expression data"}), 400
+#                 df = df.loc[top_genes]
+#                 metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
+#             else:
+#                 if not selected_genes:
+#                     return jsonify({"error": "Gene Analysis requires a gene list or expression data"}), 400
+#                 top_genes = selected_genes
+#                 metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
+#             response.update({"metrics": metrics, "top_genes": top_genes})
+
+#         elif analysis_type == 'Pathway':
+#             if df is not None:
+#                 top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+#                 if not top_genes:
+#                     return jsonify({"error": "None of the provided genes found in expression data"}), 400
+#                 df = df.loc[top_genes]
+#                 cv_values = metric_funcs_gene['cv'](df)
+#                 heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
+#             else:
+#                 if not selected_genes:
+#                     return jsonify({"error": "Pathway Analysis requires a gene list or expression data"}), 400
+#                 top_genes = selected_genes
+#                 heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
+
+#             enrichment_results = []
+#             try:
+#                 enr = enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
+#                 results_df = enr.results
+#                 if not results_df.empty:
+#                     results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+#                     for res in results:
+#                         res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+#                         res["GeneSet"] = gene_set
+#                     enrichment_results.extend(results)
+#             except Exception as e:
+#                 logger.error(f"Failed to run ORA with {gene_set}: {e}")
+
+#             response.update({"enrichment": enrichment_results, "top_genes": top_genes, "heatmap_data": heatmap_data})
+
+#         elif analysis_type == 'Tumor':
+#             if df is None:
+#                 return jsonify({"error": "Tumor Analysis requires an expression data file"}), 400
+#             metrics = []
+#             for sample in df.columns:
+#                 sample_metrics = {"sample": sample}
+#                 for metric_name, func in metric_funcs_TH.items():
+#                     try:
+#                         metric_value = func(df[[sample]])
+#                         sample_metrics[metric_name] = float(metric_value.iloc[0]) if not metric_value.empty else 0.0
+#                     except Exception as e:
+#                         logger.error(f"Failed to compute {metric_name} for sample {sample}: {e}")
+#                         sample_metrics[metric_name] = 0.0
+#                 metrics.append(sample_metrics)
+#             response["metrics"] = metrics
+
+#         return jsonify(response)
+
+#     except Exception as e:
+#         logger.error(f"CSV upload failed: {e}")
+#         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+# if __name__ == '__main__':
+#     app.run(debug=False, host='0.0.0.0', port=5001, threaded=True)
 import os
 import pandas as pd
 import numpy as np
@@ -792,7 +2149,7 @@ from cv import cv_calculation
 from std import std_calculation
 from MAD import mad_calculation
 from DEPTH2 import depth2_calculation
-from DEPTH_ITH import depth_ith_calculation
+from DEPTH_ITH import depth_calculation
 from cv_2 import cv2_calculation
 from mean import mean_calculation
 from gseapy import enrichr
@@ -816,12 +2173,12 @@ CORS(app, resources={r"/api/*": {
 # Configuration
 base_raw_dir = "../data/raw"
 data_types = ["tpm", "fpkm", "fpkm_uq"]
-max_workers = 5  # Adjust based on server capabilities
+max_workers = 7  # Adjust based on server capabilities
 
 # Metric functions
 metric_funcs_TH = {
     "DEPTH2": depth2_calculation,
-    "tITH": depth_ith_calculation,
+    "tITH": depth_calculation,
 }
 metric_funcs_gene = {
     "cv": cv_calculation,
@@ -866,7 +2223,7 @@ reverse_cancer_mapping = {v: k for k, v in cancer_mapping.items()}
 @lru_cache(maxsize=100)
 def load_expression_file(cancer_name, dtype, input_dir, cond):
     """
-    Load and preprocess expression files with caching.
+    Load and preprocess expression files with caching, returning both raw and log2-transformed data.
     """
     try:
         tumor_filename = f"tumor_{dtype}.csv.gz"
@@ -874,54 +2231,59 @@ def load_expression_file(cancer_name, dtype, input_dir, cond):
         tumor_filepath = os.path.join(input_dir, cancer_name, tumor_filename)
         normal_filepath = os.path.join(input_dir, cancer_name, normal_filename)
         
-        tumor_df = None
-        normal_df = None
+        tumor_df_raw = None
+        normal_df_raw = None
+        tumor_df_log2 = None
+        normal_df_log2 = None
         
         if os.path.exists(tumor_filepath):
-            tumor_df = pd.read_csv(tumor_filepath, index_col=0)
-            logger.info(f"Loaded tumor file: {tumor_filepath}, shape: {tumor_df.shape}")
+            tumor_df_raw = pd.read_csv(tumor_filepath, index_col=0)
+            logger.info(f"Loaded tumor file: {tumor_filepath}, shape: {tumor_df_raw.shape}")
             if cond == 'pathway':
-                if 'gene_name' in tumor_df.columns:
-                    tumor_df['gene_name'] = tumor_df['gene_name'].astype(str)
-                    tumor_df = tumor_df.set_index('gene_name')
-                if 'gene_id' in tumor_df.columns:
-                    tumor_df = tumor_df.drop(columns=['gene_id'])
+                if 'gene_name' in tumor_df_raw.columns:
+                    tumor_df_raw['gene_name'] = tumor_df_raw['gene_name'].astype(str)
+                    tumor_df_raw = tumor_df_raw.set_index('gene_name')
+                if 'gene_id' in tumor_df_raw.columns:
+                    tumor_df_raw = tumor_df_raw.drop(columns=['gene_id'])
             else:
-                if 'gene_name' in tumor_df.columns:
-                    tumor_df = tumor_df.drop(columns=['gene_name'])
-                if 'Hugo_Symbol' in tumor_df.columns:
-                    tumor_df = tumor_df.drop(columns=['Hugo_Symbol'])
-            tumor_df = tumor_df.apply(pd.to_numeric, errors='coerce')
-            tumor_df = tumor_df.fillna(tumor_df.median(numeric_only=True))
-            tumor_df = np.log2(tumor_df + 1)
+                if 'gene_name' in tumor_df_raw.columns:
+                    tumor_df_raw = tumor_df_raw.drop(columns=['gene_name'])
+                if 'Hugo_Symbol' in tumor_df_raw.columns:
+                    tumor_df_raw = tumor_df_raw.drop(columns=['Hugo_Symbol'])
+            tumor_df_raw = tumor_df_raw.apply(pd.to_numeric, errors='coerce')
+            tumor_df_raw = tumor_df_raw.fillna(tumor_df_raw.median(numeric_only=True))
+            tumor_df_log2 = np.log2(tumor_df_raw + 1)
         
         if os.path.exists(normal_filepath):
-            normal_df = pd.read_csv(normal_filepath, index_col=0)
-            logger.info(f"Loaded normal file: {normal_filepath}, shape: {normal_df.shape}")
+            normal_df_raw = pd.read_csv(normal_filepath, index_col=0)
+            logger.info(f"Loaded normal file: {normal_filepath}, shape: {normal_df_raw.shape}")
             if cond == 'pathway':
-                if 'gene_name' in normal_df.columns:
-                    normal_df['gene_name'] = normal_df['gene_name'].astype(str)
-                    normal_df = normal_df.set_index('gene_name')
-                if 'gene_id' in normal_df.columns:
-                    normal_df = normal_df.drop(columns=['gene_id'])
+                if 'gene_name' in normal_df_raw.columns:
+                    normal_df_raw['gene_name'] = normal_df_raw['gene_name'].astype(str)
+                    normal_df_raw = normal_df_raw.set_index('gene_name')
+                if 'gene_id' in normal_df_raw.columns:
+                    normal_df_raw = normal_df_raw.drop(columns=['gene_id'])
             else:
-                if 'gene_name' in normal_df.columns:
-                    normal_df = normal_df.drop(columns=['gene_name'])
-                if 'Hugo_Symbol' in normal_df.columns:
-                    normal_df = normal_df.drop(columns=['Hugo_Symbol'])
-            normal_df = normal_df.apply(pd.to_numeric, errors='coerce')
-            normal_df = normal_df.fillna(normal_df.median(numeric_only=True))
-            normal_df = np.log2(normal_df + 1)
+                if 'gene_name' in normal_df_raw.columns:
+                    normal_df_raw = normal_df_raw.drop(columns=['gene_name'])
+                if 'Hugo_Symbol' in normal_df_raw.columns:
+                    normal_df_raw = normal_df_raw.drop(columns=['Hugo_Symbol'])
+            normal_df_raw = normal_df_raw.apply(pd.to_numeric, errors='coerce')
+            normal_df_raw = normal_df_raw.fillna(normal_df_raw.median(numeric_only=True))
+            normal_df_log2 = np.log2(normal_df_raw + 1)
         
-        return tumor_df, normal_df
+        return {
+            'raw': (tumor_df_raw, normal_df_raw),
+            'log2': (tumor_df_log2, normal_df_log2)
+        }
     
     except Exception as e:
         logger.error(f"Failed to load files for {cancer_name}, {dtype}: {e}")
-        return None, None
+        return {'raw': (None, None), 'log2': (None, None)}
 
-def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, condition, genes=None):
+def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, condition, genes=None, sample_ids=None):
     """
-    Compute metrics in parallel for given cancer names and condition.
+    Compute metrics in parallel for given cancer names and condition for both raw and log2 data.
     """
     if not isinstance(cancer_names, list):
         cancer_names = [cancer_names]
@@ -929,9 +2291,9 @@ def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, conditi
     def process_cancer(cancer_name):
         expr_dfs = {}
         for dtype in data_types:
-            tumor_df, normal_df = load_expression_file(cancer_name, dtype, input_dir, condition)
-            if tumor_df is not None or normal_df is not None:
-                expr_dfs[dtype] = (tumor_df, normal_df)
+            data = load_expression_file(cancer_name, dtype, input_dir, condition)
+            if data['raw'][0] is not None or data['raw'][1] is not None or data['log2'][0] is not None or data['log2'][1] is not None:
+                expr_dfs[dtype] = data
         
         if not expr_dfs:
             logger.warning(f"No expression data loaded for {cancer_name}")
@@ -940,38 +2302,84 @@ def compute_metrics_for_condition(cancer_names, input_dir, metric_funcs, conditi
         result = {}
         if condition == "gene" and genes:
             genes_upper = [g.upper() for g in genes]
-            for dtype, (tumor_df, normal_df) in expr_dfs.items():
-                dtype_result = {}
-                valid_genes = [g for g in genes_upper if (tumor_df is not None and g in tumor_df.index) or (normal_df is not None and g in normal_df.index)]
-                if not valid_genes:
-                    result[dtype] = {}
-                    continue
-                
-                tumor_df = tumor_df.loc[valid_genes] if tumor_df is not None else pd.DataFrame(index=valid_genes)
-                normal_df = normal_df.loc[valid_genes] if normal_df is not None else pd.DataFrame(index=valid_genes)
-                
-                for gene in valid_genes:
-                    dtype_result[gene] = {}
-                    for metric_name, func in metric_funcs.items():
-                        try:
-                            tumor_metric = func(tumor_df) if tumor_df is not None and not tumor_df.empty else pd.Series(0, index=valid_genes)
-                            normal_metric = func(normal_df) if normal_df is not None and not normal_df.empty else pd.Series(0, index=valid_genes)
-                            dtype_result[gene][f"{metric_name}_tumor"] = float(tumor_metric.get(gene, 0))
-                            dtype_result[gene][f"{metric_name}_normal"] = float(normal_metric.get(gene, 0))
-                            if metric_name == "cv" and normal_df is not None and not normal_df.empty:
-                                cv_t = float(tumor_metric.get(gene, 0))
-                                cv_n = float(normal_metric.get(gene, 0))
-                                logfc = cv_t - cv_n if cv_n != 0 else 0.0
-                                dtype_result[gene]["logfc"] = float(logfc)
-                            elif metric_name == "cv":
-                                dtype_result[gene]["logfc"] = 0.0
-                        except Exception as e:
-                            logger.error(f"Error computing {metric_name} for {cancer_name}, {dtype}, gene {gene}: {e}")
-                            dtype_result[gene][f"{metric_name}_tumor"] = 0.0
-                            dtype_result[gene][f"{metric_name}_normal"] = 0.0
-                            if metric_name == "cv":
-                                dtype_result[gene]["logfc"] = 0.0
-                result[dtype] = dtype_result
+            for dtype, data in expr_dfs.items():
+                result[dtype] = {'raw': {}, 'log2': {}}
+                for transform, (tumor_df, normal_df) in data.items():
+                    dtype_result = {}
+                    valid_genes = [g for g in genes_upper if (tumor_df is not None and g in tumor_df.index) or (normal_df is not None and g in normal_df.index)]
+                    if not valid_genes:
+                        result[dtype][transform] = {}
+                        continue
+                    
+                    tumor_df = tumor_df.loc[valid_genes] if tumor_df is not None else pd.DataFrame(index=valid_genes)
+                    normal_df = normal_df.loc[valid_genes] if normal_df is not None else pd.DataFrame(index=valid_genes)
+                    
+                    for gene in valid_genes:
+                        dtype_result[gene] = {}
+                        for metric_name, func in metric_funcs.items():
+                            try:
+                                tumor_metric = func(tumor_df) if tumor_df is not None and not tumor_df.empty else pd.Series(0, index=valid_genes)
+                                normal_metric = func(normal_df) if normal_df is not None and not normal_df.empty else pd.Series(0, index=valid_genes)
+                                dtype_result[gene][f"{metric_name}_tumor"] = float(tumor_metric.get(gene, 0))
+                                dtype_result[gene][f"{metric_name}_normal"] = float(normal_metric.get(gene, 0))
+                                if metric_name == "cv" and normal_df is not None and not normal_df.empty:
+                                    cv_t = float(tumor_metric.get(gene, 0))
+                                    cv_n = float(normal_metric.get(gene, 0))
+                                    logfc = cv_t - cv_n if cv_n != 0 else 0.0
+                                    dtype_result[gene]["logfc"] = float(logfc)
+                                elif metric_name == "cv":
+                                    dtype_result[gene]["logfc"] = 0.0
+                            except Exception as e:
+                                logger.error(f"Error computing {metric_name} for {cancer_name}, {dtype}, gene {gene}: {e}")
+                                dtype_result[gene][f"{metric_name}_tumor"] = 0.0
+                                dtype_result[gene][f"{metric_name}_normal"] = 0.0
+                                if metric_name == "cv":
+                                    dtype_result[gene]["logfc"] = 0.0
+                    result[dtype][transform] = dtype_result
+        if condition == "tumor":
+            # Get all sample IDs from tumor data
+            sample_ids_set = set()
+            for dtype, data in expr_dfs.items():
+                if data['log2'][0] is not None:
+                    sample_ids_set.update(data['log2'][0].columns)
+            sample_ids_set = sorted(list(sample_ids_set))
+            # Filter by provided sample_ids if specified
+            # if sample_ids:
+            #     sample_ids_set = [sid for sid in sample_ids_set if sid in sample_ids]
+            if not sample_ids_set:
+                logger.warning(f"No valid sample IDs for {cancer_name}")
+                return cancer_name, None
+
+            metric_results = {}
+            for metric_name, func in metric_funcs.items():
+                metric_data = {}
+                for dtype in data_types:
+                    tumor_df = expr_dfs.get(dtype, {}).get('log2', (None, None))[0]
+                    normal_df = expr_dfs.get(dtype, {}).get('log2', (None, None))[1]
+                    if tumor_df is None:
+                        metric_data[dtype] = [0] * len(sample_ids_set)
+                        continue
+                    try:
+                        # Filter tumor_df to requested sample_ids
+                        tumor_df = tumor_df[sample_ids_set] if sample_ids_set else tumor_df
+                        # Pass both tumor_df and normal_df to depth_calculation for tITH
+                        metric_series = func(tumor_df, normal_df) if metric_name == "tITH" else func(tumor_df)
+                        if not isinstance(metric_series, pd.Series):
+                            raise ValueError(f"{metric_name} did not return a Series")
+                        metric_data[dtype] = metric_series.reindex(sample_ids_set, fill_value=0).tolist()
+                    except Exception as e:
+                        logger.error(f"Error computing {metric_name} for {dtype}: {e}")
+                        metric_data[dtype] = [0] * len(sample_ids_set)
+
+                result_list = []
+                for i, sid in enumerate(sample_ids_set):
+                    record = {"sample_id": sid}
+                    for dtype in data_types:
+                        record[dtype] = metric_data[dtype][i]
+                    result_list.append(record)
+                metric_results[metric_name] = result_list
+            return cancer_name, metric_results if metric_results else None
+        # Other conditions (gene, pathway) remain unchanged
         return cancer_name, result if result else None
 
     all_results = {}
@@ -1027,15 +2435,19 @@ def gene_noise():
         if not results:
             return jsonify({"error": "Metric computation failed or no data"}), 500
 
-        transformed_results = {}
+        transformed_results = {'raw': {}, 'log2': {}}
         for dtype in data_types:
-            transformed_results[dtype] = {}
+            transformed_results['raw'][dtype] = {}
+            transformed_results['log2'][dtype] = {}
             for cancer_name in cancer_names:
-                if cancer_name in results and results[cancer_name] and dtype in results[cancer_name]:
-                    for gene, metrics in results[cancer_name][dtype].items():
-                        transformed_results[dtype].setdefault(gene, {})[cancer_name] = metrics
+                if cancer_name in results and results[cancer_name]:
+                    for transform in ['raw', 'log2']:
+                        if dtype in results[cancer_name] and results[cancer_name][dtype][transform]:
+                            for gene, metrics in results[cancer_name][dtype][transform].items():
+                                transformed_results[transform][dtype].setdefault(gene, {})[cancer_name] = metrics
 
         logger.info(f"Gene noise results computed for {len(cancer_names)} cancers")
+        print(transformed_results)
         return jsonify(transformed_results)
     except Exception as e:
         logger.error(f"Error in gene_noise: {str(e)}")
@@ -1056,6 +2468,9 @@ def TH_metrics():
     if not cancer_name:
         return jsonify({"error": f"Unsupported cancer name: {cancer}"}), 400
 
+    if metric not in metric_funcs_TH:
+        return jsonify({"error": f"Unsupported metric: {metric}"}), 400
+
     try:
         results = compute_metrics_for_condition(
             cancer_names=[cancer_name],
@@ -1067,11 +2482,22 @@ def TH_metrics():
         if not results or not results.get(cancer_name) or metric not in results[cancer_name]:
             return jsonify({"error": "Metric computation failed or no data"}), 500
 
-        return jsonify(results[cancer_name][metric])
+        # Simplify response to include only log2-transformed data for the requested method
+        transformed_results = [
+            {
+                'sample_id': sample['sample_id'],
+                method: sample[method]
+            }
+            for sample in results[cancer_name][metric]
+        ]
+        # print(transformed_results)
+        return jsonify({'log2': {method: transformed_results}})
     except FileNotFoundError as e:
         return jsonify({"error": f"Missing data file: {str(e)}"}), 404
     except Exception as e:
+        logger.error(f"Error in TH-metrics: {str(e)}")
         return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
 
 @app.route('/api/pathway-analysis', methods=['GET'])
 def pathway_analysis():
@@ -1079,10 +2505,11 @@ def pathway_analysis():
         cancer_param = request.args.get('cancer', '')
         cancer = [c.strip() for c in cancer_param.split(',') if c.strip()]
         genes = [g.strip().upper() for g in request.args.get("genes", "").split(',') if g.strip()]
-        top_n = int(request.args.get("top_n", 15))
-        analysis_type = request.args.get("analysis_type", "ORA")
+        # top_n = int(request.args.get("top_n", 15))
+        # analysis_type = request.args.get("analysis_type", "ORA")
 
-        logger.info(f"Request: cancer={cancer}, genes={genes}, top_n={top_n}, analysis_type={analysis_type}")
+        # logger.info(f"Request: cancer={cancer}, genes={genes}, top_n={top_n}, analysis_type={analysis_type}")
+        logger.info(f"Request: cancer={cancer}, genes={genes}")
 
         if not cancer:
             return jsonify({"error": "Missing required parameter: cancer"}), 400
@@ -1092,23 +2519,43 @@ def pathway_analysis():
         if invalid_cancers:
             return jsonify({"error": f"Unsupported cancer names: {','.join(invalid_cancers)}"}), 400
 
-        response = {}
+        response = {'raw': {}, 'log2': {}}
+        # with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        #     futures = []
+        #     for method in data_types:
+        #         future = executor.submit(process_pathway_method, method, cancer_names, genes, base_raw_dir)
+        #         futures.append(future)
+            
+        #     for future in futures:
+        #         method, transform, method_response = future.result()
+        #         response[transform][method] = method_response
+        # with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        #     futures = []
+        #     for method in data_types:
+        #         future = executor.submit(process_pathway_method, method, cancer_names, genes, base_raw_dir)
+        #         futures.append(future)
+            
+        #     for future in futures:
+        #         method, _, raw_response, _, log2_response = future.result()  # Unpack five values
+        #         response['raw'][method] = raw_response
+        #         response['log2'][method] = log2_response
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for method in data_types:
-                future = executor.submit(process_pathway_method, method, cancer_names, genes, top_n, analysis_type, base_raw_dir)
+                future = executor.submit(process_pathway_method, method, cancer_names, genes, base_raw_dir)
                 futures.append(future)
             
             for future in futures:
-                method, method_response = future.result()
-                response[method] = method_response
+                method, _, raw_response, _, log2_response = future.result()  # Unpack five values
+                response['raw'][method] = raw_response
+                response['log2'][method] = log2_response
 
-        if not any(response[method]["enrichment"] or response[method]["top_genes"] for method in data_types):
+        if not any(response[transform][method]["enrichment"] or response[transform][method]["top_genes"] for transform in response for method in data_types):
             return jsonify({
                 "error": "No valid data or pathways found for any normalization method",
                 "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
             }), 500
-
+        print(response)
         return jsonify(response)
 
     except Exception as e:
@@ -1118,116 +2565,130 @@ def pathway_analysis():
             "hint": "Ensure gene symbols are uppercase and match KEGG_2021_Human or GO_Biological_Process_2021 identifiers"
         }), 500
 
-def process_pathway_method(method, cancer_names, genes, top_n, analysis_type, input_dir):
+
+def process_pathway_method(method, cancer_names, genes, input_dir):
     """
-    Process pathway analysis for a single normalization method.
+    Process pathway analysis for a single normalization method for both raw and log2 data.
     """
     response = {
-        "enrichment": [],
-        "top_genes": [],
-        "gene_stats": {},
-        "noise_metrics": {},
-        "heatmap_data": {},
-        "warning": None
+        'raw': {
+            "enrichment": [],
+            "top_genes": [],
+            "gene_stats": {},
+            "noise_metrics": {},
+            "heatmap_data": {},
+            "warning": None
+        },
+        'log2': {
+            "enrichment": [],
+            "top_genes": [],
+            "gene_stats": {},
+            "noise_metrics": {},
+            "heatmap_data": {},
+            "warning": None
+        }
     }
 
-    all_tumor_dfs = {}
-    all_normal_dfs = {}
+    all_dfs = {'raw': {'tumor': {}, 'normal': {}}, 'log2': {'tumor': {}, 'normal': {}}}
     for cancer_name in cancer_names:
-        tumor_df, normal_df = load_expression_file(cancer_name, method, input_dir, "pathway")
-        if tumor_df is not None:
-            all_tumor_dfs[cancer_name] = tumor_df
-        if normal_df is not None:
-            all_normal_dfs[cancer_name] = normal_df
+        data = load_expression_file(cancer_name, method, input_dir, "pathway")
+        logger.info(f"Loaded data for {method}, {cancer_name}: tumor={data['raw'][0] is not None}, normal={data['raw'][1] is not None}")
+        for transform in ['raw', 'log2']:
+            if data[transform][0] is not None:
+                all_dfs[transform]['tumor'][cancer_name] = data[transform][0]
+            if data[transform][1] is not None:
+                all_dfs[transform]['normal'][cancer_name] = data[transform][1]
+    logger.info(f"Selected genes for {method}: {genes}")
 
-    if not all_tumor_dfs:
-        response["warning"] = f"No tumor expression data found for any cancer type with {method} normalization"
-        return method, response
+    for transform in ['raw', 'log2']:
+        if not all_dfs[transform]['tumor']:
+            response[transform]["warning"] = f"No tumor expression data found for any cancer type with {method} normalization"
+            continue
 
-    library_genes = set().union(*[df.index for df in all_tumor_dfs.values()])
-    if all_normal_dfs:
-        library_genes = library_genes.intersection(*[df.index for df in all_normal_dfs.values()])
+        library_genes = set().union(*[df.index for df in all_dfs[transform]['tumor'].values()])
+        if all_dfs[transform]['normal']:
+            library_genes = library_genes.intersection(*[df.index for df in all_dfs[transform]['normal'].values()])
 
-    selected_genes = []
-    if genes:
-        selected_genes = [g for g in genes if g in library_genes]
-        if not selected_genes:
-            response["warning"] = f"No valid gene IDs found for {method} normalization"
-            return method, response
-    else:
-        cv_tumors = [metric_funcs_gene['cv'](df) for df in all_tumor_dfs.values() if df is not None and not df.empty]
-        if not cv_tumors:
-            response["warning"] = f"No valid tumor data for CV computation with {method} normalization"
-            return method, response
-        avg_cv_tumor = pd.concat(cv_tumors, axis=1).mean(axis=1)
+        selected_genes = []
+        if genes:
+            selected_genes = [g for g in genes if g in library_genes]
+            if not selected_genes:
+                response[transform]["warning"] = f"No valid gene IDs found for {method} normalization ({transform})"
+                continue
+        else:
+            cv_tumors = [metric_funcs_gene['cv'](df) for df in all_dfs[transform]['tumor'].values() if df is not None and not df.empty]
+            if not cv_tumors:
+                response[transform]["warning"] = f"No valid tumor data for CV computation with {method} normalization ({transform})"
+                continue
+            avg_cv_tumor = pd.concat(cv_tumors, axis=1).mean(axis=1)
 
-        cv_normals = [metric_funcs_gene['cv'](df) for df in all_normal_dfs.values() if df is not None and not df.empty]
-        avg_cv_normal = pd.concat(cv_normals, axis=1).mean(axis=1) if cv_normals else pd.Series(0, index=avg_cv_tumor.index)
+            cv_normals = [metric_funcs_gene['cv'](df) for df in all_dfs[transform]['normal'].values() if df is not None and not df.empty]
+            avg_cv_normal = pd.concat(cv_normals, axis=1).mean(axis=1) if cv_normals else pd.Series(0, index=avg_cv_tumor.index)
 
-        eps = 1e-8
-        score = np.log2((avg_cv_tumor + eps) / (avg_cv_normal + eps)) if cv_normals else avg_cv_tumor
-        ranked_list = pd.DataFrame({'gene': avg_cv_tumor.index, 'score': score}).sort_values(by='score', ascending=False)
-        selected_genes = ranked_list['gene'].head(top_n).tolist()
-        selected_genes = [g for g in selected_genes if g in library_genes]
+            eps = 1e-8
+            score = np.log2((avg_cv_tumor + eps) / (avg_cv_normal + eps)) if cv_normals else avg_cv_tumor
+            ranked_list = pd.DataFrame({'gene': avg_cv_tumor.index, 'score': score}).sort_values(by='score', ascending=False)
+            # selected_genes = ranked_list['gene'].head(top_n).tolist()
+            # selected_genes = [g for g in selected_genes if g in library_genes]
 
-    # Compute heatmap and gene stats
-    heatmap_data = {}
-    gene_stats = {}
-    for gene in selected_genes:
-        gene_stats[gene] = {}
-        for cancer_name in cancer_names:
-            display_cancer_name = reverse_cancer_mapping.get(cancer_name, cancer_name)
-            tumor_df = all_tumor_dfs.get(cancer_name)
-            normal_df = all_normal_dfs.get(cancer_name)
-            tumor_mean = tumor_df.loc[gene].mean() if tumor_df is not None and gene in tumor_df.index else 0.0
-            normal_mean = normal_df.loc[gene].mean() if normal_df is not None and gene in normal_df.index else 0.0
-            tumor_cv = metric_funcs_gene['cv'](tumor_df)[gene] if tumor_df is not None and gene in tumor_df.index else 0.0
-            normal_cv = metric_funcs_gene['cv'](normal_df)[gene] if normal_df is not None and gene in normal_df.index else 0.0
-            logfc = tumor_cv - normal_cv
-            heatmap_data.setdefault(gene, {})[f"{cancer_name} Tumor"] = float(tumor_mean)
-            heatmap_data[gene][f"{cancer_name} Normal"] = float(normal_mean)
-            gene_stats[gene][display_cancer_name] = {
-                "mean_tumor": float(tumor_mean),
-                "mean_normal": float(normal_mean),
-                "cv_tumor": float(tumor_cv),
-                "cv_normal": float(normal_cv),
-                "logfc": float(logfc)
-            }
+        # Compute heatmap and gene stats
+        heatmap_data = {}
+        gene_stats = {}
+        for gene in selected_genes:
+            gene_stats[gene] = {}
+            for cancer_name in cancer_names:
+                display_cancer_name = reverse_cancer_mapping.get(cancer_name, cancer_name)
+                tumor_df = all_dfs[transform]['tumor'].get(cancer_name)
+                normal_df = all_dfs[transform]['normal'].get(cancer_name)
+                tumor_mean = tumor_df.loc[gene].mean() if tumor_df is not None and gene in tumor_df.index else 0.0
+                normal_mean = normal_df.loc[gene].mean() if normal_df is not None and gene in normal_df.index else 0.0
+                tumor_cv = metric_funcs_gene['cv'](tumor_df)[gene] if tumor_df is not None and gene in tumor_df.index else 0.0
+                normal_cv = metric_funcs_gene['cv'](normal_df)[gene] if normal_df is not None and gene in normal_df.index else 0.0
+                logfc = tumor_cv - normal_cv
+                heatmap_data.setdefault(gene, {})[f"{cancer_name} Tumor"] = float(tumor_mean)
+                heatmap_data[gene][f"{cancer_name} Normal"] = float(normal_mean)
+                gene_stats[gene][display_cancer_name] = {
+                    "mean_tumor": float(tumor_mean),
+                    "mean_normal": float(normal_mean),
+                    "cv_tumor": float(tumor_cv),
+                    "cv_normal": float(normal_cv),
+                    "logfc": float(logfc)
+                }
 
-    # Enrichment analysis
-    gene_sets = ["KEGG_2021_Human", "GO_Biological_Process_2021"]
-    enrichment_results = []
-    for gene_set in gene_sets:
-        try:
-            enr = enrichr(
-                gene_list=selected_genes,
-                gene_sets=gene_set,
-                organism="Human",
-                outdir=None,
-                cutoff=0.05
-            )
-            results_df = enr.results
-            if not results_df.empty:
-                results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
-                for res in results:
-                    res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
-                    res["GeneSet"] = gene_set
-                enrichment_results.extend(results)
-        except Exception as e:
-            logger.warning(f"Failed to run ORA with {gene_set} for {method}: {e}")
+        # Enrichment analysis
+        gene_sets = ["KEGG_2021_Human", "GO_Biological_Process_2021"]
+        enrichment_results = []
+        for gene_set in gene_sets:
+            try:
+                enr = enrichr(
+                    gene_list=selected_genes,
+                    gene_sets=gene_set,
+                    organism="Human",
+                    outdir=None,
+                    cutoff=0.05
+                )
+                results_df = enr.results
+                if not results_df.empty:
+                    results = results_df[["Term", "P-value", "Overlap", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
+                    for res in results:
+                        res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+                        res["GeneSet"] = gene_set
+                    enrichment_results.extend(results)
+            except Exception as e:
+                logger.warning(f"Failed to run ORA with {gene_set} for {method} ({transform}): {e}")
 
-    response.update({
-        "enrichment": enrichment_results,
-        "top_genes": selected_genes,
-        "gene_stats": gene_stats,
-        "heatmap_data": heatmap_data
-    })
-    if not enrichment_results:
-        response["warning"] = f"No pathways found for {method} normalization"
-    if any(df is None for df in all_normal_dfs.values()):
-        response["warning"] = (response["warning"] or "") + f" Normal data missing for some cancer types with {method} normalization"
+        response[transform].update({
+            "enrichment": enrichment_results,
+            "top_genes": selected_genes,
+            "gene_stats": gene_stats,
+            "heatmap_data": heatmap_data
+        })
+        if not enrichment_results:
+            response[transform]["warning"] = f"No pathways found for {method} normalization ({transform})"
+        if any(df is None for df in all_dfs[transform]['normal'].values()):
+            response[transform]["warning"] = (response[transform]["warning"] or "") + f" Normal data missing for some cancer types with {method} normalization ({transform})"
 
-    return method, response
+    return method, 'raw', response['raw'], 'log2', response['log2']
 
 @app.route('/api/csv-upload', methods=['POST'])
 def csv_upload():
@@ -1247,7 +2708,19 @@ def csv_upload():
         if analysis_type in ['Gene', 'Pathway'] and not selected_genes and 'expression_file' not in request.files:
             return jsonify({"error": "Gene or Pathway Analysis requires a gene list or expression data"}), 400
 
-        df = None
+        # Initialize response
+        response = {
+            "analysis_type": analysis_type,
+            "raw": {"warning": "Differential noise analysis (e.g., logFC) is not possible"},
+            "log2": {"warning": "Differential noise analysis (e.g., logFC) is not possible"}
+        } if analysis_type != 'Tumor' else {
+            "analysis_type": analysis_type,
+            "log2": {"warning": ""}
+        }
+
+        # Process uploaded expression file
+        df_raw = None
+        df_log2 = None
         if 'expression_file' in request.files:
             expression_file = request.files['expression_file']
             if not expression_file.filename:
@@ -1255,86 +2728,119 @@ def csv_upload():
             if not expression_file.filename.endswith(('.csv', '.tsv')):
                 return jsonify({"error": "Expression file must be CSV or TSV"}), 400
             delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
-            df = pd.read_csv(expression_file, delimiter=delimiter)
-            if not {'Hugo_Symbol', 'gene_name'}.intersection(df.columns):
+
+            # Read the CSV/TSV file
+            df_raw = pd.read_csv(expression_file, delimiter=delimiter)
+            if not {'Hugo_Symbol', 'gene_name'}.intersection(df_raw.columns):
                 return jsonify({"error": "Expression file must contain 'Hugo_Symbol' or 'gene_name' column"}), 400
-            gene_column = 'gene_name' if 'gene_name' in df.columns else 'Hugo_Symbol'
-            df[gene_column] = df[gene_column].astype(str).str.upper()
-            df = df.set_index(gene_column)
-            if 'gene_id' in df.columns:
-                df = df.drop(columns=['gene_id'])
-            if 'Entrez_Id' in df.columns:
-                df = df.drop(columns=['Entrez_Id'])
-            df = df.apply(pd.to_numeric, errors='coerce')
-            df = df.fillna(df.median(numeric_only=True))
-            df = np.log2(df + 1)
 
-        response = {"analysis_type": analysis_type, "warning": "Differential noise analysis (e.g., logFC) is not possible"}
+            gene_column = 'gene_name' if 'gene_name' in df_raw.columns else 'Hugo_Symbol'
+            gene_id = 'gene_id' if 'gene_id' in df_raw.columns else 'Entrez_Gene_Id' if 'Entrez_Gene_Id' in df_raw.columns else None
+            df_raw[gene_column] = df_raw[gene_column].astype(str).str.upper()
 
+            # Prepare raw and log2 data
+            # if analysis_type != 'Tumor':
+                # For Gene and Pathway analysis: Set index to gene_name or Hugo_Symbol
+            df_raw = df_raw.set_index(gene_column)
+            if gene_id in df_raw.columns:
+                df_raw = df_raw.drop(columns=[gene_id])
+            df_raw = df_raw.apply(pd.to_numeric, errors='coerce')
+            df_raw = df_raw.fillna(df_raw.median(numeric_only=True))
+            df_log2 = np.log2(df_raw + 1)
+            # else:
+            #     # For Tumor analysis: Set index to gene_id or Entrez_Id
+            #     if gene_id is None:
+            #         return jsonify({"error": "Tumor analysis requires 'gene_id' or 'Entrez_Id' column"}), 400
+            #     df_raw = df_raw.set_index(gene_id)
+            #     if 'gene_name' in df_raw.columns:
+            #         df_raw = df_raw.drop(columns=['gene_name'])
+            #     if 'Hugo_Symbol' in df_raw.columns:
+            #         df_raw = df_raw.drop(columns=['Hugo_Symbol'])
+            #     df_raw = df_raw.apply(pd.to_numeric, errors='coerce')
+            #     df_raw = df_raw.fillna(df_raw.median(numeric_only=True))
+            #     df_log2 = np.log2(df_raw + 1)
+
+        # Handle Gene Analysis
         if analysis_type == 'Gene':
-            if df is not None:
-                top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
-                if not top_genes:
-                    return jsonify({"error": "None of the provided genes found in expression data"}), 400
-                df = df.loc[top_genes]
-                metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
-            else:
-                if not selected_genes:
-                    return jsonify({"error": "Gene Analysis requires a gene list or expression data"}), 400
-                top_genes = selected_genes
-                metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
-            response.update({"metrics": metrics, "top_genes": top_genes})
+            for transform, df in [('raw', df_raw), ('log2', df_log2)]:
+                if df is not None:
+                    top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+                    if not top_genes:
+                        return jsonify({"error": f"None of the provided genes found in {transform} expression data"}), 400
+                    df = df.loc[top_genes]
+                    metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
+                else:
+                    if not selected_genes:
+                        return jsonify({"error": "Gene Analysis requires a gene list or expression data"}), 400
+                    top_genes = selected_genes
+                    metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
+                response[transform].update({"metrics": metrics, "top_genes": top_genes})
 
+        # Handle Pathway Analysis
         elif analysis_type == 'Pathway':
-            if df is not None:
-                top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
-                if not top_genes:
-                    return jsonify({"error": "None of the provided genes found in expression data"}), 400
-                df = df.loc[top_genes]
-                cv_values = metric_funcs_gene['cv'](df)
-                heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
-            else:
-                if not selected_genes:
-                    return jsonify({"error": "Pathway Analysis requires a gene list or expression data"}), 400
-                top_genes = selected_genes
-                heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
+            for transform, df in [('raw', df_raw), ('log2', df_log2)]:
+                if df is not None:
+                    top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+                    if not top_genes:
+                        return jsonify({"error": f"None of the provided genes found in {transform} expression data"}), 400
+                    df = df.loc[top_genes]
+                    cv_values = metric_funcs_gene['cv'](df)
+                    heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
+                else:
+                    if not selected_genes:
+                        return jsonify({"error": "Pathway Analysis requires a gene list or expression data"}), 400
+                    top_genes = selected_genes
+                    heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
 
-            enrichment_results = []
-            try:
-                enr = enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
-                results_df = enr.results
-                if not results_df.empty:
-                    results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(10).to_dict(orient="records")
-                    for res in results:
-                        res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
-                        res["GeneSet"] = gene_set
-                    enrichment_results.extend(results)
-            except Exception as e:
-                logger.error(f"Failed to run ORA with {gene_set}: {e}")
+                enrichment_results = []
+                try:
+                    enr = enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
+                    results_df = enr.results
+                    if not results_df.empty:
+                        results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(top_n).to_dict(orient="records")
+                        for res in results:
+                            res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+                            res["GeneSet"] = gene_set
+                        enrichment_results.extend(results)
+                except Exception as e:
+                    logger.error(f"Failed to run ORA with {gene_set} for {transform}: {e}")
 
-            response.update({"enrichment": enrichment_results, "top_genes": top_genes, "heatmap_data": heatmap_data})
+                response[transform].update({
+                    "enrichment": enrichment_results,
+                    "top_genes": top_genes,
+                    "heatmap_data": heatmap_data
+                })
 
+        # Handle Tumor Analysis
         elif analysis_type == 'Tumor':
-            if df is None:
+            if df_log2 is None:
                 return jsonify({"error": "Tumor Analysis requires an expression data file"}), 400
-            metrics = []
-            for sample in df.columns:
-                sample_metrics = {"sample": sample}
-                for metric_name, func in metric_funcs_TH.items():
-                    try:
-                        metric_value = func(df[[sample]])
-                        sample_metrics[metric_name] = float(metric_value.iloc[0]) if not metric_value.empty else 0.0
-                    except Exception as e:
-                        logger.error(f"Failed to compute {metric_name} for sample {sample}: {e}")
-                        sample_metrics[metric_name] = 0.0
-                metrics.append(sample_metrics)
-            response["metrics"] = metrics
+            all_metrics = {}
+            for metric_name, func in metric_funcs_TH.items():
+                try:
+                    metric_series = func(df_log2)  # Compute across all samples
+                    all_metrics[metric_name] = metric_series
+                except Exception as e:
+                    logger.error(f"Failed to compute {metric_name}: {e}")
+                    all_metrics[metric_name] = pd.Series(0.0, index=df_log2.columns)
 
+            metrics = []
+            for sample in df_log2.columns:
+                sample_metrics = {"sample": sample}
+                for metric_name, metric_series in all_metrics.items():
+                    val = metric_series.get(sample, 0.0)
+                    sample_metrics[metric_name] = float(val) if pd.notna(val) else 0.0
+                metrics.append(sample_metrics)
+            response["log2"]["metrics"] = metrics
+
+        logger.info(f"CSV upload response generated for {analysis_type} analysis")
+        print(response)
         return jsonify(response)
 
     except Exception as e:
         logger.error(f"CSV upload failed: {e}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5001, threaded=True)
