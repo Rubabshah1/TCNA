@@ -57,20 +57,23 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
           text: title,
           x: 0.5,
           xanchor: "center",
-          font: { size: 16, color: "#1e3a8a" },
+          font: { size: 16, color: "#000000ff", weight: "bold" },
         },
         xaxis: {
           title: xLabel,
-          tickangle: -45,
-          titlefont: { size: 12 },
-          tickfont: { size: 10 },
+          
+          tickangle: -30,
+          titlefont: { size: 12, weight: "bold" },
+          tickfont: { size: 10, weight: "bold" },
           automargin: true,
+          linecolor: "black",  // make y-axis line black  
         },
         yaxis: {
           title: yLabel,
           titlefont: { size: 12 },
-          tickfont: { size: 10 },
+          tickfont: { size: 10, weight: "bold" },
           automargin: true,
+          linecolor: "black",  // make y-axis line black  
         },
         annotations: annotation
           ? [

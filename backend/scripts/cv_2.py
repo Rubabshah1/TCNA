@@ -9,7 +9,7 @@ def cv2_calculation(df):
         std = df.std(axis=1, ddof=1)  # ddof=1 for sample standard deviation
         cv = std / mean
         cv = cv.fillna(0).replace([np.inf, -np.inf], 0)  # Replace NaN, inf with 0
-        return cv**2
+        return (cv*100)**2
     except Exception as e:
         print(f"[ERROR] cv2_calculation failed: {e}")
         return pd.Series(0, index=df.index)
