@@ -1108,7 +1108,7 @@ const PathwayResults: React.FC = () => {
                           }
                         >
                           <PlotlyHeatmap
-                            title="MEan Expression"
+                            title="Mean Expression"
                             data={Object.entries(resultsData[filterState.dataFormats.mean][filterState.normalizationMethod]?.gene_stats || {})
                               .filter(([gene]) => filterState.selectedGenes.includes(gene))
                               .map(([, stats]) => stats)}
