@@ -55,7 +55,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
       const layout: Partial<Plotly.Layout> = {
         title: {
           text: title,
-          x: 0.5,
+          x: 0.55,
           xanchor: "center",
           font: { size: 16, color: "#000000ff", weight: "bold" },
         },
@@ -95,7 +95,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
         // margin: { t: 60, b: annotation ? 80 : 60, l: 100, r: 20 },
         // height,
         margin: { t: 50, b: 80, l: 30, r: 50 },
-        width: 800,
+        width: 850,
         height: 400,
       };
 

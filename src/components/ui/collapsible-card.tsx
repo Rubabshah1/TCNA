@@ -98,7 +98,7 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
     <Card className={`border-0 shadow-lg ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className={className}>{title}</CardTitle>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-">
           {extra} {/* Render extra content (e.g., switches) */}
           {downloadButton}
           <Button

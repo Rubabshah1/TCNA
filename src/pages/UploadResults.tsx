@@ -3280,7 +3280,7 @@ const GeneAnalysisTable = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLog2 
     { key: 'gene', header: 'Gene', sortable: true },
     { key: 'cv', header: 'CV', sortable: true, render: (value: number) => value.toFixed(4) },
     { key: 'cv_squared', header: 'CV²', sortable: true, render: (value: number) => value.toFixed(4) },
-    { key: 'std', header: 'STD', sortable: true, render: (value: number) => value.toFixed(4) },
+    { key: 'std', header: 'S.D', sortable: true, render: (value: number) => value.toFixed(4) },
     { key: 'mad', header: 'MAD', sortable: true, render: (value: number) => value.toFixed(4) },
     { key: 'mean', header: 'Mean', sortable: true, render: (value: number) => value.toFixed(4) },
   ];
@@ -3319,7 +3319,8 @@ const GeneAnalysisTable = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLog2 
         </Button>
       }
     >
-      <div className="flex items-center space-x-2 mb-4 justify-center">
+      {/* <div className="flex items-center space-x-2 mb-4 justify-center"> */}
+      <div className="flex items-center space-x-2 mb-4 justify-end">
         <Switch
           id="gene-table-data-format-switch"
           checked={dataFormat === 'log2'}
@@ -3396,10 +3397,11 @@ const GeneAnalysisBarChart = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLo
   return (
     <>
       <CollapsibleCard
-        title={`Mean with STD and MAD`}
+        title={`Mean with S.D and MAD`}
         className="mb-4"
       >
-        <div className="flex items-center space-x-2 mb-4 justify-center">
+        {/* <div className="flex items-center space-x-2 mb-4 justify-center"> */}
+        <div className="flex items-center space-x-2 mb-4 justify-end">
           <Switch
             id="gene-chart-data-format-switch"
             checked={dataFormatMean === 'log2'}
@@ -3417,8 +3419,8 @@ const GeneAnalysisBarChart = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLo
           data={dataMean}
           title={
             dataFormatMean.toLowerCase() === "log2"
-              ? "Mean with STD and MAD Error Bars (Log\u2082)"
-              : `Mean with STD and MAD Error Bars (Raw)`
+              ? "Mean with S.D and MAD Error Bars (Log\u2082)"
+              : `Mean with S.D and MAD Error Bars (Raw)`
           }
           xKey="gene"
           yKey={['mean_std', 'mean_mad']}
@@ -3426,7 +3428,7 @@ const GeneAnalysisBarChart = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLo
           xLabel="Genes"
           yLabel="Mean Expression"
           colors={['rgba(59, 130, 246, 0.8)', 'rgba(239, 68, 68, 0.8)']}
-          legendLabels={['Mean (STD Error)', 'Mean (MAD Error)']}
+          legendLabels={['Mean (S.D Error)', 'Mean (MAD Error)']}
           orientation="v"
           showLegend={true}
         />
@@ -3435,7 +3437,8 @@ const GeneAnalysisBarChart = ({ metricsRaw, metricsLog2, topGenesRaw, topGenesLo
         title={`Coefficient of Variation`}
         className="mb-4"
       >
-        <div className="flex items-center space-x-2 mb-4 justify-center">
+        {/* <div className="flex items-center space-x-2 mb-4 justify-center"> */}
+        <div className="flex items-center space-x-2 mb-4 justify-end">
           <Switch
             id="gene-chart-cv-data-format-switch"
             checked={dataFormatCV === 'log2'}
@@ -3501,7 +3504,8 @@ const PathwayBarChart = ({ heatmapDataRaw, heatmapDataLog2, topGenesRaw, topGene
 
   return (
     <CollapsibleCard title={`Pathway Analysis (Mean and CV)`} className="mb-4">
-      <div className="flex items-center space-x-2 mb-4 justify-center">
+      {/* <div className="flex items-center space-x-2 mb-4 justify-center"> */}
+      <div className="flex items-center space-x-2 mb-4 justify-end">
         <Switch
           id="pathway-chart-data-format-switch"
           checked={dataFormat === 'log2'}
@@ -3681,8 +3685,8 @@ const GeneSelectionSidebar = ({ topGenes, selectedGenes, setSelectedGenes }: Gen
 const TumorAnalysisTable = ({ metrics }) => {
   const columns = [
     { key: 'sample', header: 'Sample', sortable: true },
-    { key: 'DEPTH2', header: 'DEPTH2', sortable: true, render: (value: number) => value.toFixed(4) },
-    { key: 'tITH', header: 'tITH', sortable: true, render: (value: number) => value.toFixed(4) },
+    { key: 'DEPTH2', header: 'DEPTH2', sortable: true, render: (value: number) => value.toFixed(6) },
+    { key: 'tITH', header: 'tITH', sortable: true, render: (value: number) => value.toFixed(6) },
   ];
 
   const downloadCSV = () => {
