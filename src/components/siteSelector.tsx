@@ -224,7 +224,7 @@ const CancerTypeSelector = ({
             Clear Sites
           </Button>
         )}
-        {analysisType === "pan-cancer" && (
+        {/* {analysisType === "pan-cancer" && (
             <Button
               onClick={handleSelectAllSites}
               variant="outline"
@@ -232,6 +232,20 @@ const CancerTypeSelector = ({
             >
               Select All Sites
             </Button>
+          )} */}
+          {analysisType === "pan-cancer" && (
+            <>
+              <Button
+                onClick={handleSelectAllSites}
+                variant="outline"
+                disabled={loadingSites || selectedSites.length === cancerSites.length}
+              >
+                Select All Sites
+              </Button>
+              <p className="mt-2 text-sm text-gray-600">
+                Note: For better performance, choose no more than <span className="font-semibold">10 sites</span> at a time.
+              </p>
+            </>
           )}
       </div>
 

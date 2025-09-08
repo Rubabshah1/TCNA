@@ -2299,6 +2299,7 @@ const useGeneResultsData = (params: {
         queryParams.append("metric", metric.toLowerCase().replace("²", "_squared").replace("differential noise", "logfc").replace("standard deviation", "std"))
       );
       queryParams.append("gene_ensembl_id", geneEnsemblIds.join(","));
+      
 
       const response = await fetch(`/api/gene_noise?${queryParams}`, {
         method: "GET",
