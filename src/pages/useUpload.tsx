@@ -16,7 +16,7 @@ const UploadAnalysis = () => {
   const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
   const [expressionFile, setExpressionFile] = useState<File | null>(null);
   const [topN, setTopN] = useState<string>("15");
-  const [analysisType, setAnalysisType] = useState<string>("Pathway");
+  const [analysisType, setAnalysisType] = useState<string>("Gene");
   const [geneSet, setGeneSet] = useState<string>("KEGG_2021_Human");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
