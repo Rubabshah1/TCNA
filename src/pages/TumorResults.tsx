@@ -3650,6 +3650,9 @@ const TumourResults: React.FC = () => {
     }),
     [searchParams]
   );
+  useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   const [filterState, dispatch] = useReducer(filterReducer, initialFilterState);
   const { resultsData, isLoading, error, totalTumorSamples, sampleToCancerType, fetchData } = useTumorResultsData(

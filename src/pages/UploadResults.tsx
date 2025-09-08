@@ -3242,7 +3242,7 @@
 // };
 
 // export default UploadResults;
-import React, { useState, useMemo, Dispatch, SetStateAction, useEffect } from 'react';
+// import React, { useState, useMemo, Dispatch, SetStateAction, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, ArrowLeft, Download } from "lucide-react";
@@ -3253,10 +3253,12 @@ import CollapsibleCard from '@/components/ui/collapsible-card';
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {Card, CardHeader, CardTitle, CardContent  } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import React, { useState, useMemo, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Define interface for GeneAnalysisTable props
 interface GeneAnalysisTableProps {
@@ -3576,50 +3578,118 @@ interface GeneSelectionSidebarProps {
 //     </div>
 //   );
 // };
-const TumorSidebar = () => {
-  return (
-    // <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md sticky top-5 max-h-[calc(100vh-2rem)] overflow-y-auto">
-    <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md h-auto sticky top-5 self-start">
-      <CollapsibleCard title="ITH Metrics" className="text-medium">
-        <div className="space-y-4 text-sm text-blue-900">
-          <div>
-            <h4 className="text-large font-bold">DEPTH2</h4>
-            <p className="mb-2">
-              DEPTH2 calculates a tumor’s ITH level based on the standard deviations of absolute z-scored expression values of a set of genes in the tumor.
-            </p>
-            <a
-              href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8974098/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600"
-            >
-              Learn more here
-            </a>
-          </div>
+// const TumorSidebar = () => {
+//   return (
+//     // <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md sticky top-5 max-h-[calc(100vh-2rem)] overflow-y-auto">
+//     <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md h-auto sticky top-5 self-start">
+//       <CollapsibleCard title="ITH Metrics" className="text-medium">
+//         <div className="space-y-4 text-sm text-blue-900">
+//           <div>
+//             <h4 className="text-large font-bold">DEPTH2</h4>
+//             <p className="mb-2">
+//               DEPTH2 calculates a tumor’s ITH level based on the standard deviations of absolute z-scored expression values of a set of genes in the tumor.
+//             </p>
+//             <a
+//               href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8974098/"
+//               target="_blank"
+//               rel="noopener noreferrer"
+//               className="text-blue-600"
+//             >
+//               Learn more here
+//             </a>
+//           </div>
 
-          <div>
-            <h4 className="font-semibold">tITH</h4>
-            <p className="mb-2">
-              Calculated using the DEPTH algorithm, evaluating the ITH level of each tumor sample based on its gene expression profiles with reference to normal controls.
-            </p>
-            <a
-              href="https://www.nature.com/articles/s42003-020-01230-7"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 "
-            >
-              Learn more here
-            </a>
-          </div>
-        </div>
-      </CollapsibleCard>
-    </div>
-  );
-};
+//           <div>
+//             <h4 className="font-semibold">tITH</h4>
+//             <p className="mb-2">
+//               Calculated using the DEPTH algorithm, evaluating the ITH level of each tumor sample based on its gene expression profiles with reference to normal controls.
+//             </p>
+//             <a
+//               href="https://www.nature.com/articles/s42003-020-01230-7"
+//               target="_blank"
+//               rel="noopener noreferrer"
+//               className="text-blue-600 "
+//             >
+//               Learn more here
+//             </a>
+//           </div>
+//         </div>
+//       </CollapsibleCard>
+//     </div>
+//   );
+// };
 
 
+
+// const GeneSelectionSidebar = ({ topGenes, selectedGenes, setSelectedGenes }: GeneSelectionSidebarProps) => {
+//   const handleGeneSelection = (gene: string, checked: boolean) => {
+//     setSelectedGenes(prev => 
+//       checked ? [...prev, gene] : prev.filter(g => g !== gene)
+//     );
+//   };
+
+//   const allSelected = selectedGenes.length === topGenes.length;
+//   const someSelected = selectedGenes.length > 0 && !allSelected;
+
+//   const handleSelectAll = (checked: boolean) => {
+//     if (checked) {
+//       setSelectedGenes(topGenes); // select all
+//     } else {
+//       setSelectedGenes([]); // clear all
+//     }
+//   };
+
+//   return (
+//     // <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+//     <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md h-auto sticky top-5 self-start">
+//       <CollapsibleCard title="Genes" className="text-blue-900">
+//       {/* <h3 className="text-lg font-semibold text-blue-900 mb-4">Select Genes</h3> */}
+
+//       <div className="flex items-center space-x-2 mb-2">
+//         <Checkbox
+//           id="gene-select-all"
+//           checked={allSelected}
+//           onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+//           className={someSelected ? "data-[state=indeterminate]:bg-blue-400" : ""}
+//         />
+//         <Label
+//           htmlFor="gene-select-all"
+//           className="text-large text-blue-900 font-bold"
+//         >
+//           Select All
+//         </Label>
+//       </div>
+
+//       {/* Individual genes */}
+//       <div className="space-y-2">
+//         {topGenes.map((gene: string) => (
+//           <div key={gene} className="flex items-center space-x-2">
+//             <Checkbox
+//               id={`gene-select-${gene}`}
+//               checked={selectedGenes.includes(gene)}
+//               onCheckedChange={(checked) => handleGeneSelection(gene, checked as boolean)}
+//             />
+//             <Label
+//               htmlFor={`gene-select-${gene}`}
+//               className="text-sm text-blue-900"
+//             >
+//               {gene}
+//             </Label>
+//           </div>
+//         ))}
+//       </div>
+//       </CollapsibleCard>
+//     </div>
+//   );
+// };
 
 const GeneSelectionSidebar = ({ topGenes, selectedGenes, setSelectedGenes }: GeneSelectionSidebarProps) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  const toggleSection = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
+
   const handleGeneSelection = (gene: string, checked: boolean) => {
     setSelectedGenes(prev => 
       checked ? [...prev, gene] : prev.filter(g => g !== gene)
@@ -3638,49 +3708,111 @@ const GeneSelectionSidebar = ({ topGenes, selectedGenes, setSelectedGenes }: Gen
   };
 
   return (
-    // <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-    <div className="w-72 bg-blue-100 shadow-lg p-4 rounded-md h-auto sticky top-5 self-start">
-      <CollapsibleCard title="Genes" className="text-blue-900">
-      {/* <h3 className="text-lg font-semibold text-blue-900 mb-4">Select Genes</h3> */}
-
-      <div className="flex items-center space-x-2 mb-2">
-        <Checkbox
-          id="gene-select-all"
-          checked={allSelected}
-          onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-          className={someSelected ? "data-[state=indeterminate]:bg-blue-400" : ""}
-        />
-        <Label
-          htmlFor="gene-select-all"
-          className="text-large text-blue-900 font-bold"
-        >
-          Select All
-        </Label>
-      </div>
-
-      {/* Individual genes */}
-      <div className="space-y-2">
-        {topGenes.map((gene: string) => (
-          <div key={gene} className="flex items-center space-x-2">
-            <Checkbox
-              id={`gene-select-${gene}`}
-              checked={selectedGenes.includes(gene)}
-              onCheckedChange={(checked) => handleGeneSelection(gene, checked as boolean)}
-            />
-            <Label
-              htmlFor={`gene-select-${gene}`}
-              className="text-sm text-blue-900"
-            >
-              {gene}
-            </Label>
+    <div className="w-72 bg-blue-100 shadow-lg rounded-lg sticky top-24 self-start">
+      <Card className="border-0 shadow-lg bg-blue-100">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg font-bold text-blue-900">Gene Selection</CardTitle>
+            <button onClick={toggleSection} className="text-blue-900">
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
           </div>
-        ))}
-      </div>
-      </CollapsibleCard>
+        </CardHeader>
+        {isOpen && (
+          <CardContent className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="gene-select-all"
+                checked={allSelected}
+                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                className={someSelected ? "data-[state=indeterminate]:bg-blue-400" : ""}
+              />
+              <Label
+                htmlFor="gene-select-all"
+                className="text-sm font-bold text-blue-900"
+              >
+                Select All
+              </Label>
+            </div>
+            <div className="space-y-2">
+              {topGenes.map((gene: string) => (
+                <div key={gene} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`gene-select-${gene}`}
+                    checked={selectedGenes.includes(gene)}
+                    onCheckedChange={(checked) => handleGeneSelection(gene, checked as boolean)}
+                  />
+                  <Label
+                    htmlFor={`gene-select-${gene}`}
+                    className="text-sm text-blue-900"
+                  >
+                    {gene}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 };
 
+const TumorSidebar = () => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  const toggleSection = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
+
+  return (
+    <div className="w-72 bg-white-100 shadow-lg rounded-lg sticky top-24 self-start">
+      <Card className="border-0 shadow-lg bg-blue-100">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg font-bold text-blue-900">ITH Metrics</CardTitle>
+            <button onClick={toggleSection} className="text-blue-900">
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          </div>
+        </CardHeader>
+        {isOpen && (
+          <CardContent className="space-y-4 text-sm text-blue-900">
+            <div>
+              
+              <h4 className="text-sm font-bold text-blue-900">DEPTH2</h4>
+              <p className="mb-2">
+                DEPTH2 calculates a tumor’s ITH level based on the standard deviations of absolute z-scored expression values of a set of genes in the tumor.
+              </p>
+              <a
+                href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8974098/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Learn more here
+              </a>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-blue-900">tITH</h4>
+              <p className="mb-2">
+                Calculated using the DEPTH algorithm, evaluating the ITH level of each tumor sample based on its gene expression profiles with reference to normal controls.
+              </p>
+              <a
+                href="https://www.nature.com/articles/s42003-020-01230-7"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Learn more here
+              </a>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    </div>
+  );
+};
 
 const TumorAnalysisTable = ({ metrics }) => {
   const columns = [
@@ -3835,6 +3967,9 @@ const UploadResults = () => {
       setSelectedGenes(results.log2.top_genes);
     }
   }, [analysisType, results]);
+  useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   if (!results || !analysisType) {
     return (

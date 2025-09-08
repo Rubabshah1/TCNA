@@ -603,6 +603,9 @@ const PathwayResults: React.FC = () => {
     }),
     [searchParams]
   );
+  useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   const [filterState, dispatch] = useReducer(filterReducer, {
     ...initialFilterState,

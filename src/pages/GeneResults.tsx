@@ -2496,6 +2496,10 @@ const GeneResults: React.FC = () => {
     genes: searchParams.get("genes")?.split(",").filter(Boolean) || [],
     analysisType: searchParams.get("analysisType") || "cancer-specific",
   }), [searchParams]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
 
   const [filterState, dispatch] = useReducer(filterReducer, {
     ...initialFilterState,
