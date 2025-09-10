@@ -1,9 +1,33 @@
-#root {
+/* #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+} */
+ #root {
+  max-width: 100%;       /* fills the screen */
+  margin: 0 auto;
+  padding: 1rem;         /* smaller padding on phones */
+  text-align: center;
 }
+
+@media (min-width: 768px) {
+  #root {
+    padding: 2rem;       /* bigger padding on tablets/desktops */
+    max-width: 1280px;   /* but limit content width */
+  }
+}
+
+.card {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: 2em;
+  }
+}
+
 
 .logo {
   height: 6em;
