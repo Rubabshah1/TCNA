@@ -256,8 +256,8 @@ const usePathwayResultsData = (
         setState((prev) => ({
           ...prev,
           siteSampleCounts: siteCounts,
-          totalTumorSamples: siteCounts.reduce((sum, c) => c.tumor, 0),
-          totalNormalSamples: siteCounts.reduce((sum, c) =>  c.normal, 0),
+          totalTumorSamples: siteCounts.reduce((sum, c) => sum + c.tumor, 0),
+          totalNormalSamples: siteCounts.reduce((sum, c) =>  sum + c.normal, 0),
         }));
       } catch (error: any) {
         console.error("Error fetching sample counts:", error);
@@ -538,8 +538,8 @@ const usePathwayResultsData = (
             ...prev,
             resultsData: newResultsData,
             fetchedSites: [...new Set([...prev.fetchedSites, ...sitesToFetchFromAPI])],
-            totalTumorSamples: prev.totalTumorSamples + tumorSamples.length,
-            totalNormalSamples: prev.totalNormalSamples + normalSamples.length,
+            // totalTumorSamples: prev.totalTumorSamples + tumorSamples.length,
+            // totalNormalSamples: prev.totalNormalSamples + normalSamples.length,
             error: null,
             isLoading: false,
           };

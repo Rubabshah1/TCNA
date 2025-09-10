@@ -4,20 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Microscope, Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import CancerTypeSelector from "@/components/CancerTypeSelector"; // your updated component
+import CancerTypeSelector from "@/components/siteSelector"; // your updated component
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
 const TumourAnalysis = () => {
   const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]);
-  const [selectedCancerSite, setSelectedCancerSite] = useState<string>("");
+  const [selectedCancerSite, setSelectedCancerSite] = useState<string[]>([]);
   const navigate = useNavigate();
 
   const handleAnalyze = () => {
     const params = new URLSearchParams();
 
     if (selectedCancerSite) {
-      params.set("cancerSite", selectedCancerSite);
+      params.set("cancerSite", selectedCancerSite.join(","));
     }
 
     if (selectedCancerTypes.length > 0) {
@@ -52,9 +52,13 @@ const TumourAnalysis = () => {
           </CardHeader>
           <CardContent>
             <CancerTypeSelector
+              // selectedCancerTypes={selectedCancerTypes}
+              // onCancerTypesChange={setSelectedCancerTypes}
+              // onSiteChange={setSelectedCancerSite}
               selectedCancerTypes={selectedCancerTypes}
               onCancerTypesChange={setSelectedCancerTypes}
-              onSiteChange={setSelectedCancerSite}
+              onSitesChange={setSelectedCancerSite}
+              analysisType={"cancer-specific"}
             />
           </CardContent>
         </Card>
