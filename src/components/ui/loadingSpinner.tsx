@@ -21,7 +21,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 // };
 }) => {
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen ${className}`}>
+    <div className={`fixed inset-0 flex flex-col items-center justify-center min-h-screen ${className}`}>
+      {/* // <div className={`flex flex-col items-center justify-center w-full h-full ${className}`}> */}
       <Hourglass className="animate-spin text-blue-600" size={size} />
       {message && <p className="mt-2 text-blue-900 text-sm">{message}</p>}
     </div>
