@@ -11,3 +11,4 @@ def mean_calculation(df):
     except Exception as e:
         print(f"[ERROR] mean_calculation failed: {e}")
         return pd.Series(0, index=df.index)
+    # return df.mean()

@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 venv/
+.env
 backend/data/raw/
 backend/data/scripts/__pycache__
 

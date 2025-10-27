@@ -13,3 +13,6 @@ def cv_calculation(df):
     except Exception as e:
         print(f"[ERROR] cv_calculation failed: {e}")
         return pd.Series(0, index=df.index)
+    # std = df.std(ddof1=1)
+    # mean = df.mean()
+    # return (std / mean) * 100 if mean != 0 else np.nan

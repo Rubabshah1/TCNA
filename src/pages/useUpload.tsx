@@ -274,6 +274,9 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
                       <SelectContent>
                         <SelectItem value="KEGG_2021_Human">KEGG 2021 Human</SelectItem>
                         <SelectItem value="GO_Biological_Process_2021">GO Biological Process 2021</SelectItem>
+                        <SelectItem value="Reactome_2022">Reactome 2022</SelectItem>
+                        <SelectItem value="GO_Molecular_Function_2023">GO Molecular Function 2023</SelectItem>
+                        <SelectItem value="GO_Cellular_Component_2023">GO Molecular Cellular Component 2023</SelectItem> 
                       </SelectContent>
                     </Select>
                   </div>

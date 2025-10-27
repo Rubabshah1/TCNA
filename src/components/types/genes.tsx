@@ -39,12 +39,12 @@ export interface GeneStats {
   mean_tumor?: number;
   std_tumor?: number;
   mad_tumor?: number;
-  cv_squared_tumor?: number;
+  cv2_tumor?: number;
   cv_normal?: number; // Optional to handle cases where normal data is not selected
   mean_normal?: number;
   std_normal?: number;
   mad_normal?: number;
-  cv_squared_normal?: number;
+  cv2_normal?: number;
   tumorSamples: number;
   normalSamples: number;
   logfc?: number; // Optional as it requires both tumor and normal groups
@@ -62,4 +62,6 @@ export interface ResultsData {
   resultsData: GeneStats[];
   totalTumorSamples: number;
   totalNormalSamples: number;
+  // siteSampleCounts: { site: string; tumor: number; normal: number }[];
+  // availableSites: { id: number; name: string }[];
 }

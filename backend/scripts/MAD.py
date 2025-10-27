@@ -17,3 +17,5 @@ def mad_calculation(df):
     except Exception as e:
         print(f"[ERROR] mad_calculation failed: {e}")
         return pd.Series(0, index=df.index)
+    # mean = values.mean()
+    # return (values - mean).abs().mean()

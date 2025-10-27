@@ -10,6 +10,11 @@
   padding: 1rem;         /* smaller padding on phones */
   text-align: center;
 }
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 
 @media (min-width: 768px) {
   #root {
