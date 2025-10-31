@@ -28,7 +28,7 @@ const TumourAnalysis = () => {
   };
   const canShowAnalysis = selectedCancerSite;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
      < Header/>
       <main className="flex-grow">
       {/* Main content */}

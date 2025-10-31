@@ -279,7 +279,8 @@ export const DataTable = <T extends Record<string, any>>({
     overflowX: "auto",
   }}
 >
-  <table className="w-full border-collapse">
+  {/* <table className="w-full border-collapse"> */}
+  <table className="min-w-full border-collapse table-auto">
     <thead
     //   className={`${stickyHeader ? "sticky top-0 z-30 bg-white" : ""}`}
     // >

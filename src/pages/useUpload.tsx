@@ -170,7 +170,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-grow py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-0 lg:pl-0 lg:pr-8">

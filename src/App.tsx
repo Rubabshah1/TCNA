@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+// import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 import Index from "./pages/Index";
 import GeneAnalysis from "./pages/GeneAnalysis";
@@ -23,10 +23,10 @@ type Instrument = {
   name: string;
 };
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 const queryClient = new QueryClient();
 
