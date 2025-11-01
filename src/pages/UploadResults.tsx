@@ -403,7 +403,7 @@ const TumorSidebar = () => {
               
               <h4 className="text-sm font-bold text-blue-900">DEPTH2</h4>
               <p className="mb-2">
-                DEPTH2 calculates a tumor’s ITH level based on the standard deviations of absolute z-scored expression values of a set of genes in the tumor.
+                DEPTH2 calculates a tumor’s ITH level based on the standard deviations of absolute z-scored expression values.
               </p>
               <a
                 href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8974098/"
@@ -417,7 +417,7 @@ const TumorSidebar = () => {
             <div>
               <h4 className="text-sm font-bold text-blue-900">tITH</h4>
               <p className="mb-2">
-                Calculated using the DEPTH algorithm, evaluating the ITH level of each tumor sample based on its gene expression profiles with reference to normal controls.
+                Calculated using the DEPTH algorithm with reference to normal controls.
               </p>
               <a
                 href="https://www.nature.com/articles/s42003-020-01230-7"

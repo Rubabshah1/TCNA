@@ -291,6 +291,7 @@ const useGeneNoise = (
   return { ...state, refetchNoise: debounced };
 };
 
+
 // ====================== MAIN COMPONENT ======================
 const PathwayResults: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -437,6 +438,26 @@ const PathwayResults: React.FC = () => {
     }, [currentEnrichment]);
 
   const formatFDR = (fdr: number) => fdr.toExponential(2);
+  const pathwayCustomFilters = [
+  {
+    title: "Sites",
+    id: "sites",
+    type: "checkbox" as const,
+    options: availableSites.map(s => ({ id: s.name, label: s.name })),
+    isMasterCheckbox: true,
+    defaultOpen: true,
+  },
+  {
+    title: "Genes",
+    id: "genes",
+    type: "checkbox" as const,
+    options: filterState.selectedPathway
+      ? filterState.selectedPathway.MatchingGenes.map(g => ({ id: g, label: g }))
+      : filterState.selectedGenes.map(g => ({ id: g, label: g })),
+    isMasterCheckbox: true,
+    defaultOpen: true,
+  },
+];
 
   // === RENDER HELPERS ===
   // const renderValue = (val: number | null) => val === null ? "—" : val.toFixed(3);
@@ -707,8 +728,8 @@ const PathwayResults: React.FC = () => {
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-[320px_1fr] gap-6">
-            <div>
-              <FilterPanel
+            <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+              {/* <FilterPanel
                 normalizationMethod={filterState.normalizationMethod}
                 setNormalizationMethod={(v) => updateFilters({ normalizationMethod: v })}
                 customFilters={[
@@ -730,7 +751,20 @@ const PathwayResults: React.FC = () => {
                   if (id === "genes") updateFilters({ selectedGenes: value });
                 }}
                 selectedValues={{ sites: filterState.selectedSites, genes: filterState.selectedGenes }}
-              />
+              /> */}
+              <FilterPanel
+  normalizationMethod={filterState.normalizationMethod}
+  setNormalizationMethod={v => updateFilters({ normalizationMethod: v })}
+  customFilters={pathwayCustomFilters}
+  onFilterChange={(id, value) => {
+    if (id === "sites") updateFilters({ selectedSites: value });
+    if (id === "genes") updateFilters({ selectedGenes: value });
+  }}
+  selectedValues={{
+    sites: filterState.selectedSites,
+    genes: filterState.selectedGenes,
+  }}
+/>
               </div>
 
             <div className="flex-1">
@@ -925,6 +959,58 @@ const PathwayResults: React.FC = () => {
 
                   {filterState.selectedPathway && (
                     <>
+                    <CollapsibleCard title="Mean Expression" className="mb-4">
+                        <PlotlyHeatmap
+                              title="Mean Expression (Z-scores)"
+                              data={Object.entries(resultsData[filterState.dataFormats.mean][filterState.normalizationMethod]?.gene_stats || {})
+                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
+                                .map(([, stats]) => stats)}
+                              xValues={filterState.selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
+                              yValues={Object.keys(resultsData[filterState.dataFormats.mean][filterState.normalizationMethod]?.gene_stats || {})
+                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
+                              zValues={getZValues("mean")}
+                              zLabel={`Mean Expression (${filterState.dataFormats.mean.toUpperCase()} ${filterState.normalizationMethod.toUpperCase()})`}
+                              chartKey="expression-heatmap"
+                              xLabel="Sample Types"
+                              yLabel="Genes"
+                              // colorscale="Pastel1"
+                            />
+                          </CollapsibleCard>
+                          <CollapsibleCard title="Coefficient of Variation (CV)" className="mb-4">
+
+                      <PlotlyHeatmap
+                              title="Coefficient of Variation (Z-scores)"
+                              data={Object.entries(resultsData[filterState.dataFormats.cv][filterState.normalizationMethod]?.gene_stats || {})
+                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
+                                .map(([, stats]) => stats)}
+                              xValues={filterState.selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
+                              yValues={Object.keys(resultsData[filterState.dataFormats.cv][filterState.normalizationMethod]?.gene_stats || {})
+                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
+                              zValues={getZValues("cv")}
+                              zLabel={`Noise (${filterState.dataFormats.cv.toUpperCase()} ${filterState.normalizationMethod.toUpperCase()})`}
+                              chartKey="cv-heatmap"
+                              xLabel="Sample Types"
+                              yLabel="Genes"
+                              // colorscale="Mint"
+                            />
+                          </CollapsibleCard>
+                          <CollapsibleCard title="Differential Noise" className="mb-4">
+                            <PlotlyHeatmap
+                              title={`Log₂(CV<sub>tumor</sub> / CV<sub>normal</sub>)`}
+                              data={Object.entries(resultsData.log2[filterState.normalizationMethod]?.gene_stats || {})
+                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
+                                .map(([, stats]) => stats)}
+                              xValues={filterState.selectedSites}
+                              yValues={Object.keys(resultsData.log2[filterState.normalizationMethod]?.gene_stats || {})
+                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
+                              zValues={getZValues("logfc")}
+                              zLabel="Log₂FC"
+                              chartKey="logfc-heatmap"
+                              xLabel="Cancer Sites"
+                              yLabel="Genes"
+                              // colorscale="Mint"
+                            />
+                          </CollapsibleCard>
                       <CollapsibleCard
                             title="Mean Expression"
                             className="mb-4"
@@ -1011,6 +1097,11 @@ const PathwayResults: React.FC = () => {
 
                       <CollapsibleCard title="Differential Noise (LogFC)"
                       className="mb-4"
+                      downloadButton={
+                              <Button onClick={() => downloadData("noise_metrics")} variant="outline" size="sm" className="h-6 px-2 text-xs">
+                                <Download className="h-4 w-4 mr-2" /> Download CSV
+                              </Button>
+                            }
                       >
                         <DataTable
                           data={logfcTableData}
@@ -1028,58 +1119,7 @@ const PathwayResults: React.FC = () => {
                         />
                       </CollapsibleCard>
 
-                      <CollapsibleCard title="Mean Expression" className="mb-4">
-                        <PlotlyHeatmap
-                              title="Mean Expression (Z-scores)"
-                              data={Object.entries(resultsData[filterState.dataFormats.mean][filterState.normalizationMethod]?.gene_stats || {})
-                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
-                                .map(([, stats]) => stats)}
-                              xValues={filterState.selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
-                              yValues={Object.keys(resultsData[filterState.dataFormats.mean][filterState.normalizationMethod]?.gene_stats || {})
-                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
-                              zValues={getZValues("mean")}
-                              zLabel={`Mean Expression (${filterState.dataFormats.mean.toUpperCase()} ${filterState.normalizationMethod.toUpperCase()})`}
-                              chartKey="expression-heatmap"
-                              xLabel="Sample Types"
-                              yLabel="Genes"
-                              // colorscale="Pastel1"
-                            />
-                          </CollapsibleCard>
-                          <CollapsibleCard title="Coefficient of Variation (CV)" className="mb-4">
-
-                      <PlotlyHeatmap
-                              title="Coefficient of Variation (Z-scores)"
-                              data={Object.entries(resultsData[filterState.dataFormats.cv][filterState.normalizationMethod]?.gene_stats || {})
-                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
-                                .map(([, stats]) => stats)}
-                              xValues={filterState.selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])}
-                              yValues={Object.keys(resultsData[filterState.dataFormats.cv][filterState.normalizationMethod]?.gene_stats || {})
-                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
-                              zValues={getZValues("cv")}
-                              zLabel={`Noise (${filterState.dataFormats.cv.toUpperCase()} ${filterState.normalizationMethod.toUpperCase()})`}
-                              chartKey="cv-heatmap"
-                              xLabel="Sample Types"
-                              yLabel="Genes"
-                              // colorscale="Mint"
-                            />
-                          </CollapsibleCard>
-                          <CollapsibleCard title="Differential Noise" className="mb-4">
-                            <PlotlyHeatmap
-                              title={`Log₂(CV<sub>tumor</sub> / CV<sub>normal</sub>)`}
-                              data={Object.entries(resultsData.log2[filterState.normalizationMethod]?.gene_stats || {})
-                                .filter(([gene]) => filterState.selectedPathway?.MatchingGenes.includes(gene))
-                                .map(([, stats]) => stats)}
-                              xValues={filterState.selectedSites}
-                              yValues={Object.keys(resultsData.log2[filterState.normalizationMethod]?.gene_stats || {})
-                                .filter((gene) => filterState.selectedPathway?.MatchingGenes.includes(gene))}
-                              zValues={getZValues("logfc")}
-                              zLabel="Log₂FC"
-                              chartKey="logfc-heatmap"
-                              xLabel="Cancer Sites"
-                              yLabel="Genes"
-                              // colorscale="Mint"
-                            />
-                          </CollapsibleCard>
+                      
                     </>
                   )}
                 </>

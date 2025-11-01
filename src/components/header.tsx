@@ -20,13 +20,13 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-blue-950 shadow-md border-b border-blue-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           {/* Left: Logo + Title */}
           <div className="flex items-center space-x-3">
-            <Link to="/">
+            {/* <Link to="/">
               <img src={logo} alt="TCNA logo" className="h-12 w-12" />
-            </Link>
+            </Link> */}
             <Link
               to="/"
               className={`text-2xl font-extrabold transition-colors ${

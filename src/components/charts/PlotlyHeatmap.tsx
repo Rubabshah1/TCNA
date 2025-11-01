@@ -184,14 +184,13 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
   const plotRef = useRef<HTMLDivElement>(null);
 
   // ✅ Only affects the heatmap colors, not layout
-  const blueGreenScale: Array<[number, string]> = [
-    [0.0, "#e0f7fa"], // light cyan
-    [0.2, "#b2ebf2"], // aqua blue
-    [0.4, "#80deea"], // pastel turquoise
-    [0.6, "#4dd0e1"], // medium aqua
-    [0.8, "#26c6da"], // teal-blue
-    [1.0, "#0097a7"], // deeper blue-green
-  ];
+  const neutralBlueYellowScale: Array<[number, string]> = [
+  [0.0, "#1b2a41"], // deep navy blue
+  [0.25, "#324b66"], // slate blue-gray
+  [0.5, "#b8b8b8"], // neutral gray midpoint
+  [0.75, "#d9c97c"], // muted sand yellow
+  [1.0, "#f4e34f"], // bright pastel yellow highlight
+];
 
   useEffect(() => {
     if (plotRef.current && data.length > 0) {
@@ -201,7 +200,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
           y: yValues,
           z: zValues,
           type: "heatmap",
-          colorscale: colorscale || blueGreenScale,
+          colorscale: colorscale || neutralBlueYellowScale,
           showscale: true,
           colorbar: {
             title: zLabel,

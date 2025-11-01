@@ -31,6 +31,8 @@ interface FilterPanelProps {
   additionalContent?: React.ReactNode;
 }
 
+
+
 const FilterPanel: React.FC<FilterPanelProps> = ({
   normalizationMethod,
   setNormalizationMethod,
@@ -145,9 +147,20 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     };
   }, []);
 
+  
+  //     <div
+//   ref={wrapperRef}
+//   className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto"
+// >
+//   <div className={className}>
+// <div ref={wrapperRef} className="sticky top-24">
+//     {/* inner panel keeps your original width / bg / shadow */}
+//     <div className={className}>
+
   return (
     <div ref={wrapperRef} className="relative min-h-screen">
       <div ref={filterPanelRef} className={className}>
+
         <Card className="border-0 shadow-lg bg-blue-100">
           <CardHeader className="pb-4">
             <CardTitle className="text-blue-900">Filters</CardTitle>

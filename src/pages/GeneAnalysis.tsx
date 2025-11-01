@@ -8,6 +8,8 @@ import CancerTypeSelector from "@/components/siteSelector";
 import GeneSelector from "@/components/GeneSelector";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const GeneAnalysis = () => {
@@ -57,9 +59,9 @@ const GeneAnalysis = () => {
           </Link>
 
           {/* Page Title */}
-          <div className="mb-8">
+          <div className="mb-4">
             <h2 className="text-4xl font-bold text-blue-900 mb-2">
-              Gene Expression Noise Analysis
+              Gene Noise Analysis
             </h2>
             <p className="text-lg text-blue-700">
               Select analysis type, cancer sites, and genes to analyze gene expression noise.
@@ -69,9 +71,9 @@ const GeneAnalysis = () => {
           </div>
 
           {/* Selection Controls */}
-          <div className="grid gap-6 mb-8">
+          <div className="grid gap-4 mb-2">
             {/* Analysis Type Selection */}
-            <Card className="border-0 shadow-lg">
+            {/* <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">
                   Select Analysis Type
@@ -88,11 +90,75 @@ const GeneAnalysis = () => {
                   </SelectContent>
                 </Select>
               </CardContent>
-            </Card>
+            </Card> */}
+            {/* <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl text-blue-800">
+                    Select Analysis Type
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="border border-gray-300 rounded-lg p-4 flex flex-col space-y-3">
+            <label className="flex items-center space-x-2 cursor-pointer text-blue-900">
+              <input
+                type="radio"
+                name="analysis-type"
+                value="pan-cancer"
+                checked={analysisType === "pan-cancer"}
+                onChange={(e) => setAnalysisType(e.target.value as "pan-cancer")}
+                className="text-blue-600 focus:ring-blue-500"
+              />
+              <span>Pan-Cancer Analysis</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer text-blue-900">
+              <input
+                type="radio"
+                name="analysis-type"
+                value="cancer-specific"
+                checked={analysisType === "cancer-specific"}
+                onChange={(e) => setAnalysisType(e.target.value as "cancer-specific")}
+                className="text-blue-600 focus:ring-blue-500"
+              />
+              <span>Cancer-Specific Analysis</span>
+            </label>
+          </div>
+                </CardContent>
+              </Card> 
+               */}
+               <Card className="border shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl text-blue-800">
+                  Select Analysis Type
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <RadioGroup
+                    value={analysisType ?? ""}
+                    onValueChange={(value: "pan-cancer" | "cancer-specific") => setAnalysisType(value)}
+                    className="flex flex-col space-y-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="pan-cancer" id="pan-cancer" />
+                      <Label htmlFor="pan-cancer" className="text-blue-900">
+                        Pan-Cancer Analysis
+                      </Label>
+                    </div>
 
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cancer-specific" id="cancer-specific" />
+                      <Label htmlFor="cancer-specific" className="text-blue-900">
+                        Cancer-Specific Analysis
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </CardContent>
+            </Card>
+          
             {/* Cancer Site and Type Selection */}
             {analysisType && (
-              <Card className="border-0 shadow-lg">
+              <Card className="border shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-xl text-blue-800">
                     Select Cancer Sites and Projects

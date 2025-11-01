@@ -383,11 +383,11 @@ const TumourResults: React.FC = () => {
                       </table>
                     </div>
 
-                    <div className="flex justify-center">
-                      <Card className="border-0 shadow-lg w-full max-w-xs">
-                        <CardContent className="flex flex-col items-center p-4 text-center">
-                          <Users className="h-6 w-6 text-red-600 mb-2" />
-                          <div className="text-2xl font-bold text-red-600">{totalTumorSamples}</div>
+                    <div className="flex justify-center items-center">
+                       <Card className="border-0 shadow-lg w-full">
+                         <CardContent className="flex flex-col items-center p-4 text-center">
+                           <Users className="h-6 w-6 text-red-600 mb-2" />
+                           <div className="text-2xl font-bold text-red-600">{totalTumorSamples}</div>
                           <div className="text-xs text-gray-600">Total Tumor Samples</div>
                         </CardContent>
                       </Card>

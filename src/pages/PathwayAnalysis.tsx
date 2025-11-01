@@ -67,7 +67,7 @@ const PathwayAnalysis = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -84,7 +84,7 @@ const PathwayAnalysis = () => {
           </div>
 
           <div className="grid gap-6 mb-8">
-            <Card className="border-0 shadow-lg">
+            <Card className="border shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">Select Cancer Sites and Projects</CardTitle>
               </CardHeader>
@@ -103,7 +103,7 @@ const PathwayAnalysis = () => {
               onGenesChange={setSelectedGenes}
             />
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">Or Upload Gene List File (.txt)</CardTitle>
               </CardHeader>

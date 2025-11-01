@@ -11,6 +11,8 @@ import GeneSelector from "@/components/GeneSelector";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useCache } from "@/hooks/use-cache";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 
 const UploadAnalysis = () => {
   const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
@@ -181,7 +183,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div>
+              {/* <div>
                 <Label htmlFor="analysis-type" className="text-blue-900">
                   Analysis Type
                 </Label>
@@ -195,9 +197,55 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
                     <SelectItem value="Tumor">Tumor Analysis</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
+              {/* <div>
+  <Label className="text-blue-900 block mb-2 font-bold">Analysis Type</Label>
+  <div className="flex space-x-6">
+    {["Gene", "Pathway", "Tumor"].map((type) => (
+      <label
+        key={type}
+        className="flex items-center space-x-2 cursor-pointer text-blue-900"
+      >
+        <input
+          type="radio"
+          name="analysis-type"
+          value={type}
+          checked={analysisType === type}
+          onChange={(e) => setAnalysisType(e.target.value)}
+          className="text-blue-600 focus:ring-blue-500"
+        />
+        <span>{type} Analysis</span>
+      </label>
+    ))}
+  </div>
+</div> */}
+<div>
+  <Label className="text-blue-900 block mb-2 font-bold">Analysis Type</Label>
+  <div className="border border-gray-300 rounded-lg p-4">
+    <RadioGroup
+      value={analysisType}
+      onValueChange={setAnalysisType}
+      className="flex flex-col space-y-3"
+    >
+      {[
+        { value: "Gene", label: "Gene Analysis" },
+        { value: "Pathway", label: "Pathway Analysis" },
+        { value: "Tumor", label: "Tumor Analysis" },
+      ].map((option) => (
+        <div key={option.value} className="flex items-center space-x-2">
+          <RadioGroupItem value={option.value} id={option.value} />
+          <Label htmlFor={option.value} className="text-blue-900">
+            {option.label}
+          </Label>
+        </div>
+      ))}
+    </RadioGroup>
+  </div>
+</div>
+
+
               <div className="mt-6">
-                <Label htmlFor="expression-file-upload" className="text-blue-900">
+                <Label htmlFor="expression-file-upload" className="text-blue-900 font-bold">
                   Upload Expression Data File
                 </Label>
                 <p className="text-sm text-blue-700 mb-2">

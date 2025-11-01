@@ -46,7 +46,7 @@ const TumourAnalysis = () => {
         </div>
 
         {/* Selection Section */}
-        <Card className="border-0 shadow-lg mb-10">
+        <Card className="border shadow-lg mb-10">
           <CardHeader>
             <CardTitle className="text-xl text-blue-800">Select Cancer Site & Project(s)</CardTitle>
           </CardHeader>

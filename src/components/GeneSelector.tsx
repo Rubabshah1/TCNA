@@ -84,7 +84,7 @@ const GeneSelector = ({ selectedGenes, onGenesChange, maxGenes }: GeneSelectorPr
 
   // === UI ===
   return (
-    <Card className="border-0 shadow-lg">
+    <Card className="border shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl text-blue-800">
           Select Genes{" "}
