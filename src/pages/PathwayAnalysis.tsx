@@ -67,23 +67,38 @@ const PathwayAnalysis = () => {
   };
 
   return (
+    // <div className="min-h-screen bg-white flex flex-col">
+    //   <Header />
+    //   <main className="flex-grow">
+    //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    //       <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors">
+    //         <ArrowLeft className="h-4 w-4 mr-2" />
+    //         Back to Home
+    //       </Link>
+
+    //       <div className="mb-8">
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors">
+          {/* Back Button */}
+          <Link
+            to="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2 transition-colors"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
 
-          <div className="mb-8">
+          {/* Page Title */}
+          <div className="mb-4">
             <h2 className="text-4xl font-bold text-blue-900 mb-2">Pathway Analysis</h2>
-            <p className="text-xl text-blue-700">
+            <p className="text-lg text-blue-700">
               Select cancer sites and projects, and provide a custom gene list to analyze the noise of a gene pathway.
             </p>
           </div>
 
-          <div className="grid gap-6 mb-8">
+          <div className="grid gap-4 mb-2">
             <Card className="border shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">Select Cancer Sites and Projects</CardTitle>
@@ -98,11 +113,18 @@ const PathwayAnalysis = () => {
               </CardContent>
             </Card>
 
-            <GeneSelector
+            {/* <GeneSelector
               selectedGenes={selectedGenes}
               onGenesChange={setSelectedGenes}
-            />
-
+            /> */}
+            {selectedSites.length > 0 && (
+                <>
+              <GeneSelector
+                selectedGenes={selectedGenes}
+                onGenesChange={setSelectedGenes}
+              />
+            
+            
             <Card className="border shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">Or Upload Gene List File (.txt)</CardTitle>
@@ -111,7 +133,8 @@ const PathwayAnalysis = () => {
                 <input type="file" accept=".txt" onChange={handleFileUpload} />
               </CardContent>
             </Card>
-
+            </>
+            )}
             <div className="flex justify-center">
               <Button
                 onClick={handleAnalyze}

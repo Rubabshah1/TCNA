@@ -54,6 +54,22 @@ export interface ResultsData {
   log2: EnrichmentResults;
 }
 
+
+interface FilterOption {
+  id: string;
+  label: string;
+  tooltip?: string;
+}
+
+interface FilterSection {
+  title: string;
+  id: string;
+  options: FilterOption[];
+  isMasterCheckbox?: boolean;
+  type: "checkbox" | "radio";
+  defaultOpen?: boolean;
+}
+
 interface FilterState {
   selectedGroups: string[];
   selectedSites: string[];
@@ -306,6 +322,7 @@ const PathwayResults: React.FC = () => {
     mode: searchParams.get("mode") || "enrichment",
     pathway: searchParams.get("pathway"),
   }), [searchParams]);
+  const initialGenesRef = useRef<string[]>(params.genes);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -316,6 +333,10 @@ const PathwayResults: React.FC = () => {
     analysisMode: params.mode as "enrichment" | "neighbors",
     geneInput: params.genes.join(", "),
   });
+  const areGenesSubsetOfInitial = (genes: string[]) => {
+    if (!initialGenesRef.current.length) return false;               // no initial → always fetch
+    return genes.every(g => initialGenesRef.current.includes(g));
+  };
 
   // === ENRICHMENT DATA ===
   const {
@@ -358,12 +379,23 @@ const PathwayResults: React.FC = () => {
       JSON.stringify(prevGenes.current.sort()) !== JSON.stringify(selectedGenesForNoise.sort());
     const sitesChanged = !prevSites.current ||
       JSON.stringify(prevSites.current.sort()) !== JSON.stringify(filterState.selectedSites.sort());
+    
+    const genesToUse = filterState.selectedPathway
+    ? filterState.selectedPathway.MatchingGenes
+    : filterState.selectedGenes;
+    const genesSubset = areGenesSubsetOfInitial(genesToUse);
 
-    if (genesChanged || sitesChanged) {
-      prevGenes.current = selectedGenesForNoise;
-      prevSites.current = filterState.selectedSites;
-      refetchNoise();
-    }
+    // if (genesChanged || sitesChanged) {
+    //   prevGenes.current = selectedGenesForNoise;
+    //   prevSites.current = filterState.selectedSites;
+    //   refetchNoise();
+    // }
+    // fetch **only** if sites changed **or** the genes are *not* a subset of the initial list
+  if (sitesChanged || !genesSubset) {
+    // prevSites.current = sites;
+    prevSites.current = filterState.selectedSites
+    refetchNoise();
+  }
   }, [selectedGenesForNoise, filterState.selectedSites, refetchNoise]);
   
   // // === UPDATE FILTERS ===  
@@ -409,12 +441,48 @@ const PathwayResults: React.FC = () => {
     updateFilters({ selectedGenes: genes, geneInput: genes.join(", "), selectedPathway: null }); // Reset pathway when genes change
   }, [filterState.geneInput, updateFilters]);
 
+  const customFilters: FilterSection[] = useMemo(() => {
+    const availableGenes = filterState.selectedPathway
+      ? filterState.selectedPathway.MatchingGenes.map((gene) => ({ id: gene, label: gene }))
+      : [
+          ...new Set(
+            ["raw", "log2"].flatMap((scale) =>
+              ["tpm", "fpkm", "fpkm_uq"].flatMap((method) => Object.keys(resultsData[scale]?.[method]?.gene_stats || {}))
+            )
+          ),
+        ].map((gene) => ({ id: gene, label: gene }));
+
+    return [
+      {
+        title: "Sites",
+        id: "sites",
+        type: "checkbox",
+        options: availableSites.map((site) => ({
+          id: site.name,
+          label: site.name,
+          tooltip: `Cancer site: ${site.name}`,
+        })),
+        isMasterCheckbox: true,
+        defaultOpen: false,
+      },
+      {
+        title: "Genes",
+        id: "genes",
+        type: "checkbox",
+        options: availableGenes.length > 0 ? availableGenes : params.genes.map((gene) => ({ id: gene, label: gene })),
+        isMasterCheckbox: true,
+        defaultOpen: false,
+      },
+    ];
+  }, [availableSites, resultsData, params.genes, filterState.selectedPathway]);
 
   // === PATHWAY TABLE ===
     const currentResults = resultsData[filterState.dataFormats.mean]?.[filterState.normalizationMethod] || { enrichment: [], gene_stats: {} } as any;
     const currentEnrichment = currentResults.enrichment || [];
     const enrichedPathways = useMemo(() => {
       return (currentEnrichment as any[]).map((p: any, i: number) => {
+        const originalMatchingGenes: string[] =
+      p.MatchingGenes ?? p.matchingGenes ?? p.inputGenes ?? p.inputGenesList ?? p.genes ?? [];
         // normalize possible API field names and ensure required fields exist
         const Term: string = p.Term ?? p.term ?? p.value ?? "";
         const FDR: number = p.FDR ?? p.fdr ?? p.fdr_value ?? 1;
@@ -428,7 +496,8 @@ const PathwayResults: React.FC = () => {
           Term,
           Database,
           FDR,
-          MatchingGenes,
+          // MatchingGenes,
+          MatchingGenes: originalMatchingGenes,
           Description,
           GeneCount,
           EnrichmentScore,
@@ -728,7 +797,8 @@ const PathwayResults: React.FC = () => {
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-[320px_1fr] gap-6">
-            <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+            {/* <div> */}
+              
               {/* <FilterPanel
                 normalizationMethod={filterState.normalizationMethod}
                 setNormalizationMethod={(v) => updateFilters({ normalizationMethod: v })}
@@ -753,19 +823,22 @@ const PathwayResults: React.FC = () => {
                 selectedValues={{ sites: filterState.selectedSites, genes: filterState.selectedGenes }}
               /> */}
               <FilterPanel
-  normalizationMethod={filterState.normalizationMethod}
-  setNormalizationMethod={v => updateFilters({ normalizationMethod: v })}
-  customFilters={pathwayCustomFilters}
-  onFilterChange={(id, value) => {
-    if (id === "sites") updateFilters({ selectedSites: value });
-    if (id === "genes") updateFilters({ selectedGenes: value });
-  }}
-  selectedValues={{
-    sites: filterState.selectedSites,
-    genes: filterState.selectedGenes,
-  }}
-/>
-              </div>
+                normalizationMethod={filterState.normalizationMethod}
+                setNormalizationMethod={(value) => updateFilters({ normalizationMethod: value })}
+                customFilters={customFilters}
+                onFilterChange={(filterId, value) => {
+                  if (filterId === "sites") {
+                    updateFilters({ selectedSites: value });
+                  } else if (filterId === "genes") {
+                    updateFilters({ selectedGenes: value });
+                  }
+                }}
+                selectedValues={{
+                  sites: filterState.selectedSites,
+                  genes: filterState.selectedGenes,
+                }}
+              />
+              {/* </div> */}
 
             <div className="flex-1">
               {enrichLoading || noiseLoading ? (
@@ -794,10 +867,10 @@ const PathwayResults: React.FC = () => {
                     <div className="overflow-x-auto mb-6">
                       <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                         <tbody>
-                          <tr className="border-b">
+                          {/* <tr className="border-b">
                             <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Analysis Mode</th>
-                            <td className="py-3 px-4 text-blue-700">{filterState.analysisMode}</td>
-                          </tr>
+                            <td className="py-3 px-4 text-blue-700">{filterState.analysisMode.toUpperCase()}</td>
+                          </tr> */}
                           <tr className="border-b">
                             <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Normalization</th>
                             <td className="py-3 px-4 text-blue-700">{filterState.normalizationMethod.toUpperCase()}</td>
@@ -808,7 +881,7 @@ const PathwayResults: React.FC = () => {
                           </tr>
                           <tr className="border-b">
                             <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Selected Pathway</th>
-                            <td className="py-3 px-4 text-blue-700">{filterState.selectedPathway?.Term || "None"}</td>
+                            <td className="py-3 px-4 text-blue-700">{filterState.selectedPathway?.Description || "None"}</td>
                           </tr>
                           <tr>
                             <th className="text-left py-3 px-4 text-blue-700 font-semibold w-1/3">Cancer Site(s)</th>
@@ -883,29 +956,50 @@ const PathwayResults: React.FC = () => {
                               //     selectedGenes: filterState.selectedPathway?.Term === row.Term ? params.genes : row.MatchingGenes,
                               //   })
                               // }
+                              // onRowClick={(row: Enrichment) => {
+                              //  const currentlySelected = filterState.selectedPathway?.Term === row.Term;
+                              //   const newPathway = currentlySelected ? null : row;
+                              //   const newGenes = currentlySelected ? params.genes : row.MatchingGenes;
+
+                              //   // update reducer state directly
+                              //   dispatch({ type: "SET_SELECTED_PATHWAY", payload: newPathway });
+                              //   dispatch({ type: "SET_GENES", payload: newGenes });
+
+                              //   // update URL params to reflect selection (remove when cleared)
+                              //   const newParams: any = { ...Object.fromEntries(searchParams) };
+                              //   if (newPathway) {
+                              //     newParams.pathway = newPathway.Term;
+                              //     if (newGenes && newGenes.length) newParams.genes = newGenes.join(",");
+                              //     else delete newParams.genes;
+                              //   } else {
+                              //     delete newParams.pathway;
+                              //     if (params.genes && params.genes.length) newParams.genes = params.genes.join(",");
+                              //     else delete newParams.genes;
+                              //   }
+                              //   setSearchParams(newParams);
+                              //   // fetching is handled by the useEffect that watches selectedPathway / selectedSites
+                              // }}
                               onRowClick={(row: Enrichment) => {
-                               const currentlySelected = filterState.selectedPathway?.Term === row.Term;
-                                const newPathway = currentlySelected ? null : row;
-                                const newGenes = currentlySelected ? params.genes : row.MatchingGenes;
+                              const currentlySelected = filterState.selectedPathway?.Term === row.Term;
+                              const newPathway = currentlySelected ? null : row;
 
-                                // update reducer state directly
-                                dispatch({ type: "SET_SELECTED_PATHWAY", payload: newPathway });
-                                dispatch({ type: "SET_GENES", payload: newGenes });
+                              // Update ONLY the selected pathway — NEVER touch selectedGenes
+                              dispatch({ type: "SET_SELECTED_PATHWAY", payload: newPathway });
 
-                                // update URL params to reflect selection (remove when cleared)
-                                const newParams: any = { ...Object.fromEntries(searchParams) };
-                                if (newPathway) {
-                                  newParams.pathway = newPathway.Term;
-                                  if (newGenes && newGenes.length) newParams.genes = newGenes.join(",");
-                                  else delete newParams.genes;
-                                } else {
-                                  delete newParams.pathway;
-                                  if (params.genes && params.genes.length) newParams.genes = params.genes.join(",");
-                                  else delete newParams.genes;
-                                }
-                                setSearchParams(newParams);
-                                // fetching is handled by the useEffect that watches selectedPathway / selectedSites
-                              }}
+                              // Update URL to reflect current pathway (optional, for bookmarking)
+                              const newParams: any = { ...Object.fromEntries(searchParams) };
+                              if (newPathway) {
+                                newParams.pathway = newPathway.Term;
+                                // Do NOT set `genes` here — keep original genes in URL
+                              } else {
+                                delete newParams.pathway;
+                              }
+                              setSearchParams(newParams);
+
+                              // Trigger enrichment refetch (if needed) — safe because sites didn't change
+                              // Noise fetch will use: selectedPathway ? MatchingGenes : selectedGenes
+                              // → useEffect below will handle it correctly
+                            }}
                               containerWidth="565px"
                               rowClassName={(row) => {
                                 const isSelected = filterState.selectedPathway?.Term === row.Term;
@@ -930,8 +1024,8 @@ const PathwayResults: React.FC = () => {
                                     <div>{formatFDR(filterState.selectedPathway.FDR)}</div>
                                     <div>Gene Count:</div>
                                     <div>{filterState.selectedPathway.GeneCount}</div>
-                                    <div>Enrichment Score:</div>
-                                    <div>{filterState.selectedPathway.EnrichmentScore?.toFixed(2) || "N/A"}</div>
+                                    {/* <div>Enrichment Score:</div>
+                                    <div>{filterState.selectedPathway.EnrichmentScore?.toFixed(2) || "N/A"}</div> */}
                                   </div>
                                 </div>
                                 <div>
@@ -1805,40 +1899,40 @@ export default React.memo(PathwayResults);
 //     );
 //   }, [resultsData, filterState.dataFormats.mean, filterState.normalizationMethod]);
 
-//   const customFilters: FilterSection[] = useMemo(() => {
-//     const availableGenes = filterState.selectedPathway
-//       ? filterState.selectedPathway.MatchingGenes.map((gene) => ({ id: gene, label: gene }))
-//       : [
-//           ...new Set(
-//             ["raw", "log2"].flatMap((scale) =>
-//               ["tpm", "fpkm", "fpkm_uq"].flatMap((method) => Object.keys(resultsData[scale]?.[method]?.gene_stats || {}))
-//             )
-//           ),
-//         ].map((gene) => ({ id: gene, label: gene }));
+  // const customFilters: FilterSection[] = useMemo(() => {
+  //   const availableGenes = filterState.selectedPathway
+  //     ? filterState.selectedPathway.MatchingGenes.map((gene) => ({ id: gene, label: gene }))
+  //     : [
+  //         ...new Set(
+  //           ["raw", "log2"].flatMap((scale) =>
+  //             ["tpm", "fpkm", "fpkm_uq"].flatMap((method) => Object.keys(resultsData[scale]?.[method]?.gene_stats || {}))
+  //           )
+  //         ),
+  //       ].map((gene) => ({ id: gene, label: gene }));
 
-//     return [
-//       {
-//         title: "Sites",
-//         id: "sites",
-//         type: "checkbox",
-//         options: availableSites.map((site) => ({
-//           id: site.name,
-//           label: site.name,
-//           tooltip: `Cancer site: ${site.name}`,
-//         })),
-//         isMasterCheckbox: true,
-//         defaultOpen: false,
-//       },
-//       {
-//         title: "Genes",
-//         id: "genes",
-//         type: "checkbox",
-//         options: availableGenes.length > 0 ? availableGenes : params.genes.map((gene) => ({ id: gene, label: gene })),
-//         isMasterCheckbox: true,
-//         defaultOpen: false,
-//       },
-//     ];
-//   }, [availableSites, resultsData, params.genes, filterState.selectedPathway]);
+  //   return [
+  //     {
+  //       title: "Sites",
+  //       id: "sites",
+  //       type: "checkbox",
+  //       options: availableSites.map((site) => ({
+  //         id: site.name,
+  //         label: site.name,
+  //         tooltip: `Cancer site: ${site.name}`,
+  //       })),
+  //       isMasterCheckbox: true,
+  //       defaultOpen: false,
+  //     },
+  //     {
+  //       title: "Genes",
+  //       id: "genes",
+  //       type: "checkbox",
+  //       options: availableGenes.length > 0 ? availableGenes : params.genes.map((gene) => ({ id: gene, label: gene })),
+  //       isMasterCheckbox: true,
+  //       defaultOpen: false,
+  //     },
+  //   ];
+  // }, [availableSites, resultsData, params.genes, filterState.selectedPathway]);
 
 //   const enrichedPathways = useMemo(() => {
 //     return currentResults.enrichment
@@ -2035,22 +2129,22 @@ export default React.memo(PathwayResults);
   //                 </div>
   //               </CardContent>
   //             </Card> */}
-//               <FilterPanel
-//                 normalizationMethod={filterState.normalizationMethod}
-//                 setNormalizationMethod={(value) => updateFilters({ normalizationMethod: value })}
-//                 customFilters={customFilters}
-//                 onFilterChange={(filterId, value) => {
-//                   if (filterId === "sites") {
-//                     updateFilters({ selectedSites: value });
-//                   } else if (filterId === "genes") {
-//                     updateFilters({ selectedGenes: value });
-//                   }
-//                 }}
-//                 selectedValues={{
-//                   sites: filterState.selectedSites,
-//                   genes: filterState.selectedGenes,
-//                 }}
-//               />
+              // <FilterPanel
+              //   normalizationMethod={filterState.normalizationMethod}
+              //   setNormalizationMethod={(value) => updateFilters({ normalizationMethod: value })}
+              //   customFilters={customFilters}
+              //   onFilterChange={(filterId, value) => {
+              //     if (filterId === "sites") {
+              //       updateFilters({ selectedSites: value });
+              //     } else if (filterId === "genes") {
+              //       updateFilters({ selectedGenes: value });
+              //     }
+              //   }}
+              //   selectedValues={{
+              //     sites: filterState.selectedSites,
+              //     genes: filterState.selectedGenes,
+              //   }}
+              // />
 //             </div>
 //             <div className="flex-1">
 //               {isLoading ? (

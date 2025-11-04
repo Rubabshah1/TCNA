@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Activity, ArrowLeft, Dna, ArrowRight } from "lucide-react";
 import { Upload, Loader2, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import GeneSelector from "@/components/GeneSelector";
@@ -172,10 +173,26 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
   };
 
   return (
+    // <div className="min-h-screen bg-white flex flex-col">
+    //   <Header />
+    //   <main className="flex-grow py-12">
+    //     <div className="max-w-6xl mx-auto px-4 sm:px-0 lg:pl-0 lg:pr-8">
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
-      <main className="flex-grow py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-0 lg:pl-0 lg:pr-8">
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back Button */}
+          <Link
+            to="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+
+          {/* Page Title */}
+          {/* <div className="mb-4"> */}
+            {/* <h2 className="text-4xl font-bold text-blue-900 mb-2"></h2> */}
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-blue-900">

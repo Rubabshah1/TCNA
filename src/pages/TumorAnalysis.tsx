@@ -33,21 +33,22 @@ const TumourAnalysis = () => {
       <main className="flex-grow">
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+        <div className="mb-4">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
 
-          <h1 className="text-4xl font-bold text-blue-900 mb-4">Tumor Analysis</h1>
-          <p className="text-xl text-blue-700">
+          <h1 className="text-4xl font-bold text-blue-900 mb-2">Tumor Analysis</h1>
+          <p className="text-lg text-blue-700">
             Select a cancer site and project to analyse  noise and tumor values across different metrics.
           </p>
         </div>
 
         {/* Selection Section */}
-        <Card className="border shadow-lg mb-10">
-          <CardHeader>
+        <div className="grid gap-6 mb-8">
+            <Card className="border shadow-lg">
+              <CardHeader>
             <CardTitle className="text-xl text-blue-800">Select Cancer Site & Project(s)</CardTitle>
           </CardHeader>
           <CardContent>
@@ -62,6 +63,7 @@ const TumourAnalysis = () => {
             />
           </CardContent>
         </Card>
+        </div>
 
         {/* Proceed Button */}
         <div className="flex justify-center">

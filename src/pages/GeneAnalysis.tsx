@@ -52,7 +52,7 @@ const GeneAnalysis = () => {
           {/* Back Button */}
           <Link
             to="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
@@ -73,58 +73,6 @@ const GeneAnalysis = () => {
           {/* Selection Controls */}
           <div className="grid gap-4 mb-2">
             {/* Analysis Type Selection */}
-            {/* <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl text-blue-800">
-                  Select Analysis Type
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select onValueChange={(value: "pan-cancer" | "cancer-specific") => setAnalysisType(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose analysis type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pan-cancer">Pan-Cancer Analysis</SelectItem>
-                    <SelectItem value="cancer-specific">Cancer-Specific Analysis</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card> */}
-            {/* <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl text-blue-800">
-                    Select Analysis Type
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="border border-gray-300 rounded-lg p-4 flex flex-col space-y-3">
-            <label className="flex items-center space-x-2 cursor-pointer text-blue-900">
-              <input
-                type="radio"
-                name="analysis-type"
-                value="pan-cancer"
-                checked={analysisType === "pan-cancer"}
-                onChange={(e) => setAnalysisType(e.target.value as "pan-cancer")}
-                className="text-blue-600 focus:ring-blue-500"
-              />
-              <span>Pan-Cancer Analysis</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer text-blue-900">
-              <input
-                type="radio"
-                name="analysis-type"
-                value="cancer-specific"
-                checked={analysisType === "cancer-specific"}
-                onChange={(e) => setAnalysisType(e.target.value as "cancer-specific")}
-                className="text-blue-600 focus:ring-blue-500"
-              />
-              <span>Cancer-Specific Analysis</span>
-            </label>
-          </div>
-                </CardContent>
-              </Card> 
-               */}
                <Card className="border shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl text-blue-800">

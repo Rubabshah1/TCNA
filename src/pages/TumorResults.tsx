@@ -54,6 +54,8 @@ const filterReducer = (state: FilterState, action: FilterAction): FilterState =>
   }
 };
 
+
+
 // === Custom Hook: useTumorResultsData (No Caching) ===
 const useTumorResultsData = (
   params: { cancerSite: string; cancerTypes: string[] },
@@ -66,6 +68,12 @@ const useTumorResultsData = (
     error: string | null;
     totalTumorSamples: number;
     sampleToCancerType: { [sampleId: string]: SampleInfo };
+    topNoisyGenes: {
+    [norm in "tpm" | "fpkm" | "fpkm_uq"]?: {
+      tumor:  { gene_symbol: string; cv: number }[];
+      normal: { gene_symbol: string; cv: number }[];
+    };
+  };
   }>({
     rawData: { tpm: [], fpkm: [], fpkm_uq: [] },
     filteredData: [],
@@ -73,6 +81,7 @@ const useTumorResultsData = (
     error: null,
     totalTumorSamples: 0,
     sampleToCancerType: {},
+    topNoisyGenes: {},
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -108,6 +117,8 @@ const useTumorResultsData = (
 
         const apiData = await response.json();
         if (apiData.error) throw new Error(apiData.error);
+        // NEW: top noisy genes (per normalization)
+        const topNoisy = apiData.top_noisy_genes || {};
 
         const sampleToCancerType: { [sampleId: string]: SampleInfo } = {};
         const dataByNorm: { [norm: string]: TumorData[] } = { tpm: [], fpkm: [], fpkm_uq: [] };
@@ -153,6 +164,7 @@ const useTumorResultsData = (
           error: null,
           totalTumorSamples: apiData.sample_counts?.tumor || currentNormData.length,
           sampleToCancerType,
+          topNoisyGenes: topNoisy,
         });
       } catch (err: any) {
         if (err.name === "AbortError") return;
@@ -212,9 +224,11 @@ const useTumorResultsData = (
     error: state.error,
     totalTumorSamples: state.totalTumorSamples,
     sampleToCancerType: state.sampleToCancerType,
+    topNoisyGenes: state.topNoisyGenes,
     refetch: triggerFetch,
   };
 };
+
 
 // === Main Component ===
 const TumourResults: React.FC = () => {
@@ -234,6 +248,7 @@ const TumourResults: React.FC = () => {
     error,
     totalTumorSamples,
     sampleToCancerType,
+    topNoisyGenes,
     refetch,
   } = useTumorResultsData(rawParams, filterState);
 
@@ -354,14 +369,14 @@ const TumourResults: React.FC = () => {
                 <>
                   <Link
                     to="/tumour-analysis"
-                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+                    className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2 transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Tumor Analysis
                   </Link>
 
-                  <div className="mb-8">
-                    <h2 className="text-4xl font-bold text-blue-900 mb-6">Tumor Analysis Results</h2>
+                  <div className="mb-6">
+                    <h2 className="text-4xl font-bold text-blue-900 mb-2">Tumor Analysis Results</h2>
 
                     <div className="overflow-x-auto mb-6">
                       <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -457,6 +472,34 @@ const TumourResults: React.FC = () => {
                               stickyHeader={true}
                             />
                           </CollapsibleCard>
+                          {/* <CollapsibleCard
+                            title="Top 50 Noisy Genes"
+                            defaultOpen={false}
+                            className="mt-6"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {["tumor", "normal"].map((state) => {
+                                const genes = topNoisyGenes?.[filterState.normalizationMethod]?.[state] ?? [];
+                                return (
+                                  <div key={state} className="space-y-2">
+                                    <h4 className="font-semibold capitalize">{state} (CV %)</h4>
+                                    {genes.length === 0 ? (
+                                      <p className="text-sm text-gray-500">No data</p>
+                                    ) : (
+                                      <ol className="list-decimal pl-5 text-sm">
+                                        {genes.map((g: any, i: number) => (
+                                          <li key={i}>
+                                            <span className="font-mono">{g.gene_symbol}</span>{" "}
+                                            <span className="text-gray-600">({g.cv})</span>
+                                          </li>
+                                        ))}
+                                      </ol>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </CollapsibleCard> */}
                         </>
                       )}
                     </div>
