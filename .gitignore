@@ -26,5 +26,6 @@ venv/
 .env
 backend/data/raw/
 backend/data/scripts/__pycache__
+backend/data/scripts/db_conn.py
 
 

@@ -177,6 +177,10 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
     //   <Header />
     //   <main className="flex-grow py-12">
     //     <div className="max-w-6xl mx-auto px-4 sm:px-0 lg:pl-0 lg:pr-8">
+    // <div className="min-h-screen bg-white flex flex-col">
+    //   <Header />
+    //   <main className="flex-grow">
+    //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-grow">

@@ -1,6 +1,5 @@
 import { parse } from "@babel/parser";
 import * as esbuild from "esbuild";
-// import { promises as fs } from "fs";
 import MagicString from "magic-string";
 import resolveConfig from "tailwindcss/resolveConfig.js";
 import fs from "fs";

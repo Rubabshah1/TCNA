@@ -2,7 +2,7 @@ export interface TumorData {
   sample: string;
   cancer_type: string;
   depth2?: number;
-  tith?: number;
+  depth?: number;
 }
 
 export interface SampleInfo {

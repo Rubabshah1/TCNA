@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-// import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
+//pages urls
 import Index from "./pages/Index";
 import GeneAnalysis from "./pages/GeneAnalysis";
 import GeneResults from "./pages/GeneResults";
@@ -17,16 +17,6 @@ import NotFound from "./pages/NotFound";
 import UploadAnalysis from "./pages/useUpload";
 import UploadResults from "./pages/UploadResults";
 
-// Supabase types (you can replace `any` with your DB types if you have them generated)
-type Instrument = {
-  id: string;
-  name: string;
-};
-
-// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-// const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 const queryClient = new QueryClient();
 
@@ -49,13 +39,6 @@ function App() {
             <Route path="/upload-results" element={<UploadResults />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-
-          {/* Optional: Display fetched instruments */}
-          {/* <ul className="p-4">
-            {instruments.map((instrument) => (
-              <li key={instrument.id}>{instrument.name}</li>
-            ))}
-          </ul> */}
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

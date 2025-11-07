@@ -19,6 +19,7 @@ interface FilterSection {
   isMasterCheckbox?: boolean;
   type: 'checkbox' | 'radio';
   defaultOpen?: boolean;
+  customRender?: () => React.ReactNode;
 }
 
 interface FilterPanelProps {
@@ -31,8 +32,6 @@ interface FilterPanelProps {
   additionalContent?: React.ReactNode;
 }
 
-
-
 const FilterPanel: React.FC<FilterPanelProps> = ({
   normalizationMethod,
   setNormalizationMethod,
@@ -40,6 +39,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onFilterChange,
   selectedValues = {},
   className = "w-80 bg-blue-100 shadow-lg rounded-lg",
+  // className = "w-92 bg-blue-100 rounded-lg -ml-24 sticky top-24 z-10",
   additionalContent,
 }) => {
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>(
@@ -147,124 +147,114 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     };
   }, []);
 
-  
-  //     <div
-//   ref={wrapperRef}
-//   className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto"
-// >
-//   <div className={className}>
-// <div ref={wrapperRef} className="sticky top-24">
-//     {/* inner panel keeps your original width / bg / shadow */}
-//     <div className={className}>
-
   return (
+    // <div ref={wrapperRef} className="relative min-h-screen">
+    //   <div ref={filterPanelRef} className={className}>
     <div ref={wrapperRef} className="relative min-h-screen">
-      <div ref={filterPanelRef} className={className}>
-
-        <Card className="border-0 shadow-lg bg-blue-100">
+  <div ref={filterPanelRef} className={className}>
+        <Card className="border-0 bg-blue-100">
           <CardHeader className="pb-4">
             <CardTitle className="text-blue-900">Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {allFilters.map((section) => (
-              <div key={section.id} className="border rounded-md bg-white">
-                <div className="flex justify-between items-center px-4 py-2">
-                  <div className="flex items-center space-x-2">
-                    {section.isMasterCheckbox && (
-                      <Checkbox
-                        id={`${section.id}-master`}
-                        checked={isAllSelected(section.id, section.options)}
-                        onCheckedChange={(checked) => handleMasterCheckboxChange(section.id, !!checked)}
-                      />
-                    )}
-                    <Label
-                      htmlFor={section.isMasterCheckbox ? `${section.id}-master` : undefined}
-                      className={`font-bold text-blue-900 ${section.isMasterCheckbox ? '-ml-5' : ''}`}
-                    >
-                      {section.title}
-                    </Label>
-                  </div>
-                  <button onClick={() => toggleSection(section.id)} className="text-blue-900">
-                    {openSections[section.id] ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
+            <div key={section.id} className="border rounded-md bg-white">
+              <div className="flex justify-between items-center px-4 py-2">
+                <div className="flex items-center space-x-2">
+                  {section.isMasterCheckbox && (
+                    <Checkbox
+                      id={`${section.id}-master`}
+                      checked={isAllSelected(section.id, section.options)}
+                      onCheckedChange={(checked) => handleMasterCheckboxChange(section.id, !!checked)}
+                    />
+                  )}
+                  <Label
+                    htmlFor={section.isMasterCheckbox ? `${section.id}-master` : undefined}
+                    className={`font-bold text-blue-900 ${section.isMasterCheckbox ? '-ml-5' : ''}`}
+                  >
+                    {section.title}
+                  </Label>
                 </div>
-                {openSections[section.id] && (
-                  <div className="px-4 py-2 space-y-2">
-                    {section.type === 'radio' ? (
-                      <RadioGroup
-                        value={section.id === 'normalization' ? normalizationMethod : selectedValues[section.id] as string}
-                        onValueChange={(value) => {
-                          if (section.id === 'normalization') {
-                            setNormalizationMethod?.(value);
-                          } else if (onFilterChange) {
-                            onFilterChange(section.id, value);
-                          }
-                        }}
-                      >
-                        {section.options.map((option) => (
-                          <div key={option.id} className="flex items-center space-x-2 relative group">
-                            <RadioGroupItem value={option.id} id={option.id} />
-                            <Label htmlFor={option.id} className="text-sm">
-                              {option.label}
-                            </Label>
-                            {option.tooltip && (
-                              <div
-                                className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 z-10"
-                                style={{ minWidth: "200px" }}
-                              >
-                                {option.tooltip}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    ) : (
-                      <>
-                        {section.options.map((option) => (
-                          <div key={option.id} className="flex items-center space-x-2 relative group">
-                            <Checkbox
-                              id={option.id}
-                              checked={
-                                section.id === "sites"
-                                  ? pendingSites.includes(option.id)
-                                  : (selectedValues[section.id] as string[] | undefined)?.includes(option.id) || false
-                              }
-                              onCheckedChange={(checked) => handleCheckboxChange(section.id, option.id, !!checked)}
-                            />
-                            <Label htmlFor={option.id} className="text-sm">
-                              {option.label}
-                            </Label>
-                            {option.tooltip && (
-                              <div
-                                className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 z-10 whitespace-nowrap"
-                              >
-                                {option.tooltip}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {section.id === "sites" && (
-                          <Button
-                            onClick={handleApplySites}
-                            className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white"
-                            disabled={
-                              JSON.stringify(pendingSites.sort()) ===
-                              JSON.stringify(((selectedValues.sites as string[]) || []).sort())
-                            }
-                          >
-                            Apply Sites
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
+                <button onClick={() => toggleSection(section.id)} className="text-blue-900">
+                  {openSections[section.id] ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-            ))}
+
+              {/* === CUSTOM RENDER OR DEFAULT === */}
+              {openSections[section.id] && (
+                <div className="px-4 py-2">
+                  {section.customRender ? (
+                    section.customRender()
+                  ) : section.type === 'radio' ? (
+                    <RadioGroup
+                      value={section.id === 'normalization' ? normalizationMethod : selectedValues[section.id] as string}
+                      onValueChange={(value) => {
+                        if (section.id === 'normalization') {
+                          setNormalizationMethod?.(value);
+                        } else if (onFilterChange) {
+                          onFilterChange(section.id, value);
+                        }
+                      }}
+                    >
+                      {section.options.map((option) => (
+                        <div key={option.id} className="flex items-center space-x-2 relative group">
+                          <RadioGroupItem value={option.id} id={option.id} />
+                          <Label htmlFor={option.id} className="text-sm">
+                            {option.label}
+                          </Label>
+                          {option.tooltip && (
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 z-10">
+                              {option.tooltip}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <>
+                      {section.options.map((option) => (
+                        <div key={option.id} className="flex items-center space-x-2 relative group">
+                          <Checkbox
+                            id={option.id}
+                            checked={
+                              section.id === "sites"
+                                ? pendingSites.includes(option.id)
+                                : (selectedValues[section.id] as string[] | undefined)?.includes(option.id) || false
+                            }
+                            onCheckedChange={(checked) => handleCheckboxChange(section.id, option.id, !!checked)}
+                          />
+                          <Label htmlFor={option.id} className="text-sm">
+                            {option.label}
+                          </Label>
+                          {option.tooltip && (
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 z-10 whitespace-nowrap">
+                              {option.tooltip}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {section.id === "sites" && (
+                        <Button
+                          onClick={handleApplySites}
+                          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={
+                            JSON.stringify(pendingSites.sort()) ===
+                            JSON.stringify(((selectedValues.sites as string[]) || []).sort())
+                          }
+                        >
+                          Apply Sites
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
             {additionalContent && (
               <div className="mt-6">
                 {additionalContent}

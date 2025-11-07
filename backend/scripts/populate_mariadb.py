@@ -26,7 +26,7 @@ gene_map = {ensembl_id: id for id, ensembl_id in cur.fetchall()}
 cur.execute("SELECT id, sample_barcode FROM samples")
 sample_map = {barcode: id for id, barcode in cur.fetchall()}
 
-print(f"✅ Loaded {len(gene_map):,} genes and {len(sample_map):,} samples.\n")
+print(f"Loaded {len(gene_map):,} genes and {len(sample_map):,} samples.\n")
 
 
 # === CORE FUNCTION ===
@@ -35,7 +35,7 @@ def process_expression_set(folder_path, prefix, cancer_name):
     Process one expression type (tumor or normal) inside a cancer folder.
     Loads data, merges, maps IDs, and bulk loads into MariaDB.
     """
-    print(f"🧬 Processing {prefix.upper()} data for {cancer_name}...")
+    print(f"Processing {prefix.upper()} data for {cancer_name}...")
 
     # === File paths ===
     tpm_path = os.path.join(folder_path, f"{prefix}_tpm.csv")
@@ -44,11 +44,11 @@ def process_expression_set(folder_path, prefix, cancer_name):
 
     # === Check existence ===
     if not all(os.path.exists(p) for p in [tpm_path, fpkm_path, fpkm_uq_path]):
-        print(f"⚠️ Missing {prefix} files in {cancer_name}, skipping.")
+        print(f"Missing {prefix} files in {cancer_name}, skipping.")
         return
 
     # === Load CSVs efficiently ===
-    print("📥 Loading CSV files...")
+    print("Loading CSV files...")
     read_opts = dict(low_memory=False, dtype=str)
     tpm_df = pd.read_csv(tpm_path, **read_opts)
     fpkm_df = pd.read_csv(fpkm_path, **read_opts)
@@ -60,7 +60,7 @@ def process_expression_set(folder_path, prefix, cancer_name):
         df.rename(columns={"gene_id": "ensembl_id"}, inplace=True)
 
     # === Melt (wide → long) ===
-    print("🔄 Melting dataframes...")
+    print("Melting dataframes...")
     tpm_long = tpm_df.melt(id_vars="ensembl_id", var_name="sample_barcode", value_name="tpm")
     fpkm_long = fpkm_df.melt(id_vars="ensembl_id", var_name="sample_barcode", value_name="fpkm")
     fpkm_uq_long = fpkm_uq_df.melt(id_vars="ensembl_id", var_name="sample_barcode", value_name="fpkm_uq")
@@ -68,10 +68,10 @@ def process_expression_set(folder_path, prefix, cancer_name):
     # === Merge all three ===
     merged_df = tpm_long.merge(fpkm_long, on=["ensembl_id", "sample_barcode"])
     merged_df = merged_df.merge(fpkm_uq_long, on=["ensembl_id", "sample_barcode"])
-    print(f"✅ {prefix.capitalize()} merged rows: {len(merged_df):,}")
+    print(f"{prefix.capitalize()} merged rows: {len(merged_df):,}")
 
     # === Map gene_id and sample_id (vectorized) ===
-    print("🧭 Mapping gene/sample IDs...")
+    print("Mapping gene/sample IDs...")
     merged_df["gene_id"] = merged_df["ensembl_id"].map(gene_map)
     merged_df["sample_id"] = merged_df["sample_barcode"].map(sample_map)
     merged_df.dropna(subset=["gene_id", "sample_id"], inplace=True)
@@ -82,13 +82,13 @@ def process_expression_set(folder_path, prefix, cancer_name):
         pd.to_numeric, errors="coerce"
     )
 
-    print(f"📊 Ready to insert {len(merged_df):,} records for {cancer_name}-{prefix}")
+    print(f"Ready to insert {len(merged_df):,} records for {cancer_name}-{prefix}")
 
     # === Write to a temporary TSV file ===
     with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as tmpfile:
         tmp_path = tmpfile.name
         merged_df.to_csv(tmp_path, sep="\t", header=False, index=False)
-    print(f"💾 Temp file created: {tmp_path}")
+    print(f"Temp file created: {tmp_path}")
 
     # === Try fast LOAD DATA LOCAL INFILE ===
     try:
@@ -106,11 +106,11 @@ def process_expression_set(folder_path, prefix, cancer_name):
         """
         cur.execute(load_sql)
         conn.commit()
-        print(f"✅ Successfully loaded {len(merged_df):,} {prefix} records for {cancer_name}")
+        print(f"Successfully loaded {len(merged_df):,} {prefix} records for {cancer_name}")
 
     except Exception as e:
         print(f"❌ LOAD DATA failed: {e}")
-        print("⚠️ Falling back to slower executemany() mode...")
+        print("Falling back to slower executemany() mode...")
 
         insert_query = """
             INSERT INTO gene_expressions (gene_id, sample_id, tpm, fpkm, fpkm_uq)
@@ -126,7 +126,7 @@ def process_expression_set(folder_path, prefix, cancer_name):
             batch = records[i:i + BATCH_SIZE]
             cur.executemany(insert_query, batch)
             conn.commit()
-            print(f"✅ Inserted batch {i:,}–{i + len(batch):,} ({prefix}) for {cancer_name}")
+            print(f"Inserted batch {i:,}–{i + len(batch):,} ({prefix}) for {cancer_name}")
 
     finally:
         os.remove(tmp_path)
@@ -135,12 +135,12 @@ def process_expression_set(folder_path, prefix, cancer_name):
 
 def process_cancer_folder(folder_path, cancer_name):
     """Process all data (tumor + normal) for one cancer site"""
-    print(f"\n📂 Processing {cancer_name}...")
+    print(f"\nProcessing {cancer_name}...")
 
     for prefix in ["tumor", "normal"]:
         process_expression_set(folder_path, prefix, cancer_name)
 
-    print(f"🎉 Finished {cancer_name}\n")
+    print(f"Finished {cancer_name}\n")
 
 
 # === MAIN LOOP ===
@@ -149,11 +149,11 @@ for cancer_name in CANCER_NAMES:
     if os.path.isdir(folder_path):
         process_cancer_folder(folder_path, cancer_name)
     else:
-        print(f"❌ Folder not found: {folder_path}")
+        print(f"Folder not found: {folder_path}")
 
 cur.close()
 conn.close()
-print("\n🎯 All cancer folders processed successfully!")
+print("\nAll cancer folders processed successfully!")
 
 # import os
 # import pandas as pd

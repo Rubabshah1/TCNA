@@ -224,7 +224,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
         xaxis: {
           title: xLabel,
           
-          tickangle: -30,
+          tickangle: -25,
           titlefont: { size: 12, weight: "bold" },
           tickfont: { size: 10, weight: "bold" },
           automargin: true,

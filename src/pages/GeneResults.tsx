@@ -593,6 +593,7 @@ const GeneResults: React.FC = () => {
                       genes={filterState.selectedGenes}
                       selectedSites={filterState.selectedSites}
                     />
+                    
                   </div>
                 </>
               )}

@@ -2786,170 +2786,170 @@ if __name__ == "__main__":
 # #     finally:
 # #         conn.close()
 
-# # @app.get("/api/gene_noise")
-# # def get_gene_noise(
-# #     cancer_site: list[str] = Query(..., description="One or more cancer sites (e.g., Lung, Liver, Adrenal Gland)"),
-# #     cancer_type: list[str] = Query(None, description="Optional list of cancer types (TCGA codes)"),
-# #     gene_ids: list[str] = Query(..., description="One or more gene IDs or symbols (e.g., TP53, EGFR)")
-# # ):
-# #     """
-# #     Compute expression noise metrics for one or more cancer sites and genes.
-# #     Returns JSON with structure:
-# #     {
-# #       site: {
-# #         gene_symbol: {
-# #           norm_method: { "raw": {...}, "log2": {...} }
-# #         }
-# #       }
-# #     }
-# #     """
-# #     conn = get_connection()
-# #     cur = conn.cursor(pymysql.cursors.DictCursor)
+# @app.get("/api/gene_noise")
+# def get_gene_noise(
+#     cancer_site: list[str] = Query(..., description="One or more cancer sites (e.g., Lung, Liver, Adrenal Gland)"),
+#     cancer_type: list[str] = Query(None, description="Optional list of cancer types (TCGA codes)"),
+#     gene_ids: list[str] = Query(..., description="One or more gene IDs or symbols (e.g., TP53, EGFR)")
+# ):
+#     """
+#     Compute expression noise metrics for one or more cancer sites and genes.
+#     Returns JSON with structure:
+#     {
+#       site: {
+#         gene_symbol: {
+#           norm_method: { "raw": {...}, "log2": {...} }
+#         }
+#       }
+#     }
+#     """
+#     conn = get_connection()
+#     cur = conn.cursor(pymysql.cursors.DictCursor)
 
-# #     results = {}
-# #     debug_info = {}
-# #     sample_counts = {}
+#     results = {}
+#     debug_info = {}
+#     sample_counts = {}
 
-# #     try:
-# #         for site in cancer_site:
-# #             cur.execute("SELECT id FROM sites WHERE name = %s", (site,))
-# #             site_row = cur.fetchone()
-# #             if not site_row:
-# #                 debug_info[site] = {"error": f"Site '{site}' not found."}
-# #                 continue
-# #             site_id = site_row["id"]
+#     try:
+#         for site in cancer_site:
+#             cur.execute("SELECT id FROM sites WHERE name = %s", (site,))
+#             site_row = cur.fetchone()
+#             if not site_row:
+#                 debug_info[site] = {"error": f"Site '{site}' not found."}
+#                 continue
+#             site_id = site_row["id"]
 
-# #             # Determine all cancer types for this site
-# #             if cancer_type:
-# #                 cur.execute(
-# #                     "SELECT tcga_code FROM cancer_types WHERE site_id = %s AND tcga_code IN %s",
-# #                     (site_id, tuple(cancer_type)),
-# #                 )
-# #             else:
-# #                 cur.execute("SELECT tcga_code FROM cancer_types WHERE site_id = %s", (site_id,))
-# #             cancer_types = [row["tcga_code"] for row in cur.fetchall()]
+#             # Determine all cancer types for this site
+#             if cancer_type:
+#                 cur.execute(
+#                     "SELECT tcga_code FROM cancer_types WHERE site_id = %s AND tcga_code IN %s",
+#                     (site_id, tuple(cancer_type)),
+#                 )
+#             else:
+#                 cur.execute("SELECT tcga_code FROM cancer_types WHERE site_id = %s", (site_id,))
+#             cancer_types = [row["tcga_code"] for row in cur.fetchall()]
 
-# #             if not cancer_types:
-# #                 debug_info[site] = {"error": f"No cancer types found for site '{site}'."}
-# #                 continue
+#             if not cancer_types:
+#                 debug_info[site] = {"error": f"No cancer types found for site '{site}'."}
+#                 continue
 
-# #             # Count tumor/normal samples for the site
-# #             cur.execute(
-# #                 """
-# #                 SELECT s.sample_type, COUNT(*) AS count
-# #                 FROM samples s
-# #                 JOIN cancer_types c ON c.id = s.cancer_type_id
-# #                 WHERE c.site_id = %s AND c.tcga_code IN %s
-# #                 GROUP BY s.sample_type
-# #                 """,
-# #                 (site_id, tuple(cancer_types)),
-# #             )
-# #             site_counts = {"tumor": 0, "normal": 0}
-# #             for row in cur.fetchall():
-# #                 stype = row["sample_type"].lower()
-# #                 if stype in site_counts:
-# #                     site_counts[stype] = row["count"]
-# #             sample_counts[site] = site_counts
+#             # Count tumor/normal samples for the site
+#             cur.execute(
+#                 """
+#                 SELECT s.sample_type, COUNT(*) AS count
+#                 FROM samples s
+#                 JOIN cancer_types c ON c.id = s.cancer_type_id
+#                 WHERE c.site_id = %s AND c.tcga_code IN %s
+#                 GROUP BY s.sample_type
+#                 """,
+#                 (site_id, tuple(cancer_types)),
+#             )
+#             site_counts = {"tumor": 0, "normal": 0}
+#             for row in cur.fetchall():
+#                 stype = row["sample_type"].lower()
+#                 if stype in site_counts:
+#                     site_counts[stype] = row["count"]
+#             sample_counts[site] = site_counts
 
-# #             # Initialize results for this site
-# #             results[site] = {}
+#             # Initialize results for this site
+#             results[site] = {}
 
-# #             # Loop over all requested genes
-# #             for gene_input in gene_ids:
-# #                 cur.execute(
-# #                     "SELECT id, ensembl_id, gene_symbol FROM genes WHERE ensembl_id = %s OR gene_symbol = %s",
-# #                     (gene_input, gene_input),
-# #                 )
-# #                 gene_row = cur.fetchone()
-# #                 if not gene_row:
-# #                     debug_info.setdefault(site, {})[gene_input] = {"error": f"Gene '{gene_input}' not found."}
-# #                     continue
+#             # Loop over all requested genes
+#             for gene_input in gene_ids:
+#                 cur.execute(
+#                     "SELECT id, ensembl_id, gene_symbol FROM genes WHERE ensembl_id = %s OR gene_symbol = %s",
+#                     (gene_input, gene_input),
+#                 )
+#                 gene_row = cur.fetchone()
+#                 if not gene_row:
+#                     debug_info.setdefault(site, {})[gene_input] = {"error": f"Gene '{gene_input}' not found."}
+#                     continue
 
-# #                 gene_id = gene_row["id"]
-# #                 gene_symbol = gene_row["gene_symbol"]
-# #                 ensembl_id = gene_row["ensembl_id"]
+#                 gene_id = gene_row["id"]
+#                 gene_symbol = gene_row["gene_symbol"]
+#                 ensembl_id = gene_row["ensembl_id"]
 
-# #                 # Prepare gene entry
-# #                 results[site][gene_symbol] = {}
+#                 # Prepare gene entry
+#                 results[site][gene_symbol] = {}
 
-# #                 for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
-# #                     all_tumor_vals, all_normal_vals = [], []
+#                 for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
+#                     all_tumor_vals, all_normal_vals = [], []
 
-# #                     for ct in cancer_types:
-# #                         cur.execute(
-# #                             f"""
-# #                             SELECT s.sample_type, e.{norm_method} AS expr
-# #                             FROM gene_expressions e
-# #                             JOIN samples s ON s.id = e.sample_id
-# #                             JOIN cancer_types c ON c.id = s.cancer_type_id
-# #                             WHERE c.site_id = %s AND c.tcga_code = %s AND e.gene_id = %s
-# #                             """,
-# #                             (site_id, ct, gene_id),
-# #                         )
-# #                         rows = cur.fetchall()
-# #                         if not rows:
-# #                             continue
-# #                         df = pd.DataFrame(rows)
-# #                         all_tumor_vals.extend(df[df["sample_type"].str.lower() == "tumor"]["expr"].tolist())
-# #                         all_normal_vals.extend(df[df["sample_type"].str.lower() == "normal"]["expr"].tolist())
+#                     for ct in cancer_types:
+#                         cur.execute(
+#                             f"""
+#                             SELECT s.sample_type, e.{norm_method} AS expr
+#                             FROM gene_expressions e
+#                             JOIN samples s ON s.id = e.sample_id
+#                             JOIN cancer_types c ON c.id = s.cancer_type_id
+#                             WHERE c.site_id = %s AND c.tcga_code = %s AND e.gene_id = %s
+#                             """,
+#                             (site_id, ct, gene_id),
+#                         )
+#                         rows = cur.fetchall()
+#                         if not rows:
+#                             continue
+#                         df = pd.DataFrame(rows)
+#                         all_tumor_vals.extend(df[df["sample_type"].str.lower() == "tumor"]["expr"].tolist())
+#                         all_normal_vals.extend(df[df["sample_type"].str.lower() == "normal"]["expr"].tolist())
 
-# #                     tumor = pd.Series(all_tumor_vals)
-# #                     normal = pd.Series(all_normal_vals)
+#                     tumor = pd.Series(all_tumor_vals)
+#                     normal = pd.Series(all_normal_vals)
 
-# #                     tumor_stats = compute_metrics(tumor)
-# #                     normal_stats = compute_metrics(normal)
-# #                     logfc_raw = np.nan
-# #                     if tumor_stats and normal_stats and normal_stats["cv"] > 0:
-# #                         logfc_raw = math.log2(tumor_stats["cv"] / normal_stats["cv"])
+#                     tumor_stats = compute_metrics(tumor)
+#                     normal_stats = compute_metrics(normal)
+#                     logfc_raw = np.nan
+#                     if tumor_stats and normal_stats and normal_stats["cv"] > 0:
+#                         logfc_raw = math.log2(tumor_stats["cv"] / normal_stats["cv"])
 
                     
 
-# #                     # Log2-transformed
-# #                     df_all = pd.DataFrame({
-# #                         "sample_type": ["tumor"] * len(tumor) + ["normal"] * len(normal),
-# #                         "expr": list(tumor) + list(normal),
-# #                     })
-# #                     df_all["log2_expr"] = np.log2(df_all["expr"] + 1)
+#                     # Log2-transformed
+#                     df_all = pd.DataFrame({
+#                         "sample_type": ["tumor"] * len(tumor) + ["normal"] * len(normal),
+#                         "expr": list(tumor) + list(normal),
+#                     })
+#                     df_all["log2_expr"] = np.log2(df_all["expr"] + 1)
 
-# #                     tumor_log = df_all[df_all["sample_type"] == "tumor"]["log2_expr"]
-# #                     normal_log = df_all[df_all["sample_type"] == "normal"]["log2_expr"]
+#                     tumor_log = df_all[df_all["sample_type"] == "tumor"]["log2_expr"]
+#                     normal_log = df_all[df_all["sample_type"] == "normal"]["log2_expr"]
 
-# #                     tumor_stats_log = compute_metrics(tumor_log)
-# #                     normal_stats_log = compute_metrics(normal_log)
-# #                     logfc_log = np.nan
-# #                     if tumor_stats_log and normal_stats_log:
-# #                         logfc_log = tumor_stats_log["cv"] - normal_stats_log["cv"]
+#                     tumor_stats_log = compute_metrics(tumor_log)
+#                     normal_stats_log = compute_metrics(normal_log)
+#                     logfc_log = np.nan
+#                     if tumor_stats_log and normal_stats_log:
+#                         logfc_log = tumor_stats_log["cv"] - normal_stats_log["cv"]
 
-# #                     results[site][gene_symbol][norm_method] = {
-# #                         "raw": {
-# #                             **(tumor_stats or {}),
-# #                             **{f"{k}_normal": v for k, v in (normal_stats or {}).items()},
-# #                             "logfc": logfc_log,
-# #                         },
-# #                         "log2": {
-# #                             **(tumor_stats_log or {}),
-# #                             **{f"{k}_normal": v for k, v in (normal_stats_log or {}).items()},
-# #                             "logfc": logfc_log,
-# #                         },
+#                     results[site][gene_symbol][norm_method] = {
+#                         "raw": {
+#                             **(tumor_stats or {}),
+#                             **{f"{k}_normal": v for k, v in (normal_stats or {}).items()},
+#                             "logfc": logfc_log,
+#                         },
+#                         "log2": {
+#                             **(tumor_stats_log or {}),
+#                             **{f"{k}_normal": v for k, v in (normal_stats_log or {}).items()},
+#                             "logfc": logfc_log,
+#                         },
                         
-# #                     }
-# #                     print(logfc_raw, logfc_log)
+#                     }
+#                     print(logfc_raw, logfc_log)
 
-# #         final_output = {
-# #             "results": sanitize_floats(results),
-# #             "sample_counts": sample_counts,
-# #         }
+#         final_output = {
+#             "results": sanitize_floats(results),
+#             "sample_counts": sample_counts,
+#         }
 
-# #     except Exception as e:
-# #         final_output = {"error": f"Unexpected error: {str(e)}"}
-# #     finally:
-# #         conn.close()
+#     except Exception as e:
+#         final_output = {"error": f"Unexpected error: {str(e)}"}
+#     finally:
+#         conn.close()
 
-# #     # Clean up NaN, inf, etc. for JSON compliance
-# #     results = sanitize_floats(final_output)
-# #     print(results)
-# #     return JSONResponse(results)
-# #     # return JSONResponse(final_output)
+#     # Clean up NaN, inf, etc. for JSON compliance
+#     results = sanitize_floats(final_output)
+#     print(results)
+#     return JSONResponse(results)
+#     # return JSONResponse(final_output)
 
 # # @app.get("/api/pathway-analysis")
 # # def get_pathway_analysis(
@@ -3459,229 +3459,229 @@ if __name__ == "__main__":
 # #     cv2 = cv**2 if not np.isnan(cv) else np.nan
 # #     return {"mean": mean, "std": std, "mad": mad, "cv": cv, "cv_squared": cv2}
 
-# # @app.get("/api/gene_noise")
-# # def get_gene_noise(
-# #     cancer_site: str = Query(..., description="Cancer site (e.g., 'Lung', 'Liver', 'Adrenal Gland')"),
-# #     cancer_type: List[str] = Query(None, description="Cancer type (optional: if not provided, use all types for site)"),
-# #     gene_ids: List[str] = Query(..., description="One or more Ensembl IDs or gene symbols (e.g., 'TP53')"),
-# # ):
-# #     print(cancer_type)
-# #     """
-# #     For a given cancer site and list of gene IDs (Ensembl IDs or gene symbols), compute mean, std, mad, cv, cv², and logFC
-# #     between tumor vs normal samples across selected cancer types.
-# #     Returns sample counts, processed data, and debug information.
-# #     """
-# #     start_time = time.time()
-# #     conn = get_connection()
-# #     cur = conn.cursor(pymysql.cursors.DictCursor)
+# @app.get("/api/gene_noise")
+# def get_gene_noise(
+#     cancer_site: str = Query(..., description="Cancer site (e.g., 'Lung', 'Liver', 'Adrenal Gland')"),
+#     cancer_type: List[str] = Query(None, description="Cancer type (optional: if not provided, use all types for site)"),
+#     gene_ids: List[str] = Query(..., description="One or more Ensembl IDs or gene symbols (e.g., 'TP53')"),
+# ):
+#     print(cancer_type)
+#     """
+#     For a given cancer site and list of gene IDs (Ensembl IDs or gene symbols), compute mean, std, mad, cv, cv², and logFC
+#     between tumor vs normal samples across selected cancer types.
+#     Returns sample counts, processed data, and debug information.
+#     """
+#     start_time = time.time()
+#     conn = get_connection()
+#     cur = conn.cursor(pymysql.cursors.DictCursor)
+#     cur.execute("""
+#                 SELECT id 
+#                 FROM sites 
+#                 where
+#                 name = %s
+#             """, (cancer_site,))
+#     cancer_site_id = [row["id"] for row in cur.fetchall()]
+#     print(cancer_site_id)
+#     print(cancer_type)
+
 # #     cur.execute("""
-# #                 SELECT id 
-# #                 FROM sites 
-# #                 where
-# #                 name = %s
-# #             """, (cancer_site,))
-# #     cancer_site_id = [row["id"] for row in cur.fetchall()]
-# #     print(cancer_site_id)
-# #     print(cancer_type)
-
-# # #     cur.execute("""
-# # # SELECT count(*) 
-# # # FROM samples 
-# # # WHERE cancer_type_id IN (
-# # #     SELECT id 
-# # #     FROM cancer_types 
-# # #     WHERE site_id IN (
-# # #         SELECT id 
-# # #         FROM Sites
-# # #         WHERE name = 'Colorectal' 
-# # #         AND tcga_code = 'TCGA-READ'
-# # #     )
-# # # )
-# # # AND sample_type='tumor'
-# # #                  """)
+# # SELECT count(*) 
+# # FROM samples 
+# # WHERE cancer_type_id IN (
+# #     SELECT id 
+# #     FROM cancer_types 
+# #     WHERE site_id IN (
+# #         SELECT id 
+# #         FROM Sites
+# #         WHERE name = 'Colorectal' 
+# #         AND tcga_code = 'TCGA-READ'
+# #     )
+# # )
+# # AND sample_type='tumor'
+# #                  """)
     
     
-# #     # cancer_site_id = [row["id"] for row in cur.fetchall()]
-# #     # print(cur.fetchall())
+#     # cancer_site_id = [row["id"] for row in cur.fetchall()]
+#     # print(cur.fetchall())
 
-# #     results = {"raw": {}, "log2": {}, "sample_counts": {}, "cancer_types_used": [], "debug": {}}
-# #     try:
-# #         # Get cancer types based on site
-# #         if cancer_type:
-# #             print(cancer_type)
-# #             cur.execute("SELECT tcga_code FROM cancer_types WHERE tcga_code in %s", (cancer_type,))
-# #             # print(cur.fetchall())
-# #         else:
-# #             cur.execute("""
-# #                 SELECT ct.tcga_code 
-# #                 FROM cancer_types ct
-# #                 JOIN Sites cs ON cs.id = ct.site_id
-# #                 WHERE cs.name = %s
-# #             """, (cancer_site,))
-# #         cancer_types = [row["tcga_code"] for row in cur.fetchall()]
-# #         print(cancer_types)
-# #         if not cancer_types:
-# #             return {"error": f"No cancer types found for site '{cancer_site}'."}
+#     results = {"raw": {}, "log2": {}, "sample_counts": {}, "cancer_types_used": [], "debug": {}}
+#     try:
+#         # Get cancer types based on site
+#         if cancer_type:
+#             print(cancer_type)
+#             cur.execute("SELECT tcga_code FROM cancer_types WHERE tcga_code in %s", (cancer_type,))
+#             # print(cur.fetchall())
+#         else:
+#             cur.execute("""
+#                 SELECT ct.tcga_code 
+#                 FROM cancer_types ct
+#                 JOIN Sites cs ON cs.id = ct.site_id
+#                 WHERE cs.name = %s
+#             """, (cancer_site,))
+#         cancer_types = [row["tcga_code"] for row in cur.fetchall()]
+#         print(cancer_types)
+#         if not cancer_types:
+#             return {"error": f"No cancer types found for site '{cancer_site}'."}
 
-# #         results["cancer_types_used"] = cancer_types
+#         results["cancer_types_used"] = cancer_types
     
-# #         # Initialize sample counts
-# #         sample_counts = {"tumor": 0, "normal": 0}
+#         # Initialize sample counts
+#         sample_counts = {"tumor": 0, "normal": 0}
         
-# #         if cancer_type and len(cancer_type) == 1:
-# #             cur.execute("""
-# #                 SELECT s.sample_type, COUNT(*) as count
-# #                 FROM samples s
-# #                 JOIN cancer_types c ON c.id = s.cancer_type_id
-# #                 WHERE c.tcga_code = %s AND c.site_id = %s
-# #                 GROUP BY s.sample_type
-# #             """, (cancer_type, cancer_site_id))
-# #             # print(cur.fetchall)
-# #             for row in cur.fetchall():
-# #                 sample_type = row["sample_type"].lower()
-# #                 if sample_type == "tumor":
-# #                     sample_counts["tumor"] = row["count"]
-# #                 elif sample_type == "normal":
-# #                     sample_counts["normal"] = row["count"]
-# #         else:
-# #             # print((cancer_types))
-# #             for ct in cancer_types:
-# #                 cur.execute("""
-# #                     SELECT s.sample_type, COUNT(*) as count
-# #                     FROM samples s
-# #                     JOIN cancer_types c ON c.id = s.cancer_type_id
-# #                     WHERE c.tcga_code = %s AND c.site_id = %s
-# #                     GROUP BY s.sample_type
-# #                 """, (ct, cancer_site_id))
-# #                 print(cur.fetchall)
-# #                 for row in cur.fetchall():
-# #                     sample_type = row["sample_type"].lower()
-# #                     if sample_type == "tumor":
-# #                         sample_counts["tumor"] += row["count"]
-# #                     elif sample_type == "normal":
-# #                         sample_counts["normal"] += row["count"]
+#         if cancer_type and len(cancer_type) == 1:
+#             cur.execute("""
+#                 SELECT s.sample_type, COUNT(*) as count
+#                 FROM samples s
+#                 JOIN cancer_types c ON c.id = s.cancer_type_id
+#                 WHERE c.tcga_code = %s AND c.site_id = %s
+#                 GROUP BY s.sample_type
+#             """, (cancer_type, cancer_site_id))
+#             # print(cur.fetchall)
+#             for row in cur.fetchall():
+#                 sample_type = row["sample_type"].lower()
+#                 if sample_type == "tumor":
+#                     sample_counts["tumor"] = row["count"]
+#                 elif sample_type == "normal":
+#                     sample_counts["normal"] = row["count"]
+#         else:
+#             # print((cancer_types))
+#             for ct in cancer_types:
+#                 cur.execute("""
+#                     SELECT s.sample_type, COUNT(*) as count
+#                     FROM samples s
+#                     JOIN cancer_types c ON c.id = s.cancer_type_id
+#                     WHERE c.tcga_code = %s AND c.site_id = %s
+#                     GROUP BY s.sample_type
+#                 """, (ct, cancer_site_id))
+#                 print(cur.fetchall)
+#                 for row in cur.fetchall():
+#                     sample_type = row["sample_type"].lower()
+#                     if sample_type == "tumor":
+#                         sample_counts["tumor"] += row["count"]
+#                     elif sample_type == "normal":
+#                         sample_counts["normal"] += row["count"]
             
-# #         results["sample_counts"][cancer_site] = sample_counts
+#         results["sample_counts"][cancer_site] = sample_counts
 
-# #         for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
-# #             results["raw"][norm_method] = {}
-# #             results["log2"][norm_method] = {}
-# #             results["debug"][norm_method] = {}
+#         for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
+#             results["raw"][norm_method] = {}
+#             results["log2"][norm_method] = {}
+#             results["debug"][norm_method] = {}
 
-# #             for gene_input in gene_ids:
-# #                 # Try gene_input as both Ensembl ID and gene symbol
-# #                 cur.execute("""
-# #                     SELECT id, ensembl_id, gene_symbol 
-# #                     FROM genes 
-# #                     WHERE ensembl_id = %s OR gene_symbol = %s
-# #                 """, (gene_input, gene_input))
-# #                 gene_row = cur.fetchone()
-# #                 if not gene_row:
-# #                     results["debug"][norm_method][gene_input] = {
-# #                         "error": f"Gene '{gene_input}' not found in database."
-# #                     }
-# #                     continue
-# #                 gene_id = gene_row["id"]
-# #                 ensembl_id = gene_row["ensembl_id"]
-# #                 gene_symbol = gene_row["gene_symbol"]
+#             for gene_input in gene_ids:
+#                 # Try gene_input as both Ensembl ID and gene symbol
+#                 cur.execute("""
+#                     SELECT id, ensembl_id, gene_symbol 
+#                     FROM genes 
+#                     WHERE ensembl_id = %s OR gene_symbol = %s
+#                 """, (gene_input, gene_input))
+#                 gene_row = cur.fetchone()
+#                 if not gene_row:
+#                     results["debug"][norm_method][gene_input] = {
+#                         "error": f"Gene '{gene_input}' not found in database."
+#                     }
+#                     continue
+#                 gene_id = gene_row["id"]
+#                 ensembl_id = gene_row["ensembl_id"]
+#                 gene_symbol = gene_row["gene_symbol"]
 
-# #                 all_tumor_vals, all_normal_vals = [], []
+#                 all_tumor_vals, all_normal_vals = [], []
 
-# #                 for ct in cancer_types:
-# #                     sql = f"""
-# #                         SELECT s.sample_type, e.{norm_method} AS expr
-# #                         FROM gene_expressions e
-# #                         JOIN samples s ON s.id = e.sample_id
-# #                         JOIN cancer_types c ON c.id = s.cancer_type_id
-# #                         WHERE c.site_id = %s AND c.tcga_code = %s AND e.gene_id = %s  
-# #                     """
-# #                     cur.execute(sql, (cancer_site_id, ct, gene_id ))
-# #                     rows = cur.fetchall()
-# #                     if not rows:
-# #                         continue
+#                 for ct in cancer_types:
+#                     sql = f"""
+#                         SELECT s.sample_type, e.{norm_method} AS expr
+#                         FROM gene_expressions e
+#                         JOIN samples s ON s.id = e.sample_id
+#                         JOIN cancer_types c ON c.id = s.cancer_type_id
+#                         WHERE c.site_id = %s AND c.tcga_code = %s AND e.gene_id = %s  
+#                     """
+#                     cur.execute(sql, (cancer_site_id, ct, gene_id ))
+#                     rows = cur.fetchall()
+#                     if not rows:
+#                         continue
 
-# #                     df = pd.DataFrame(rows)
-# #                     all_tumor_vals.extend(df[df["sample_type"].str.lower().eq("tumor")]["expr"].tolist())
-# #                     all_normal_vals.extend(df[df["sample_type"].str.lower().eq("normal")]["expr"].tolist())
+#                     df = pd.DataFrame(rows)
+#                     all_tumor_vals.extend(df[df["sample_type"].str.lower().eq("tumor")]["expr"].tolist())
+#                     all_normal_vals.extend(df[df["sample_type"].str.lower().eq("normal")]["expr"].tolist())
 
-# #                 results["debug"][norm_method][gene_input] = {
-# #                     "tumor_samples": len(all_tumor_vals),
-# #                     "normal_samples": len(all_normal_vals)
-# #                 }
+#                 results["debug"][norm_method][gene_input] = {
+#                     "tumor_samples": len(all_tumor_vals),
+#                     "normal_samples": len(all_normal_vals)
+#                 }
 
-# #                 if not all_tumor_vals and not all_normal_vals:
-# #                     results["debug"][norm_method][gene_input]["error"] = f"No expression data found for gene '{gene_input}' ({norm_method})."
-# #                     continue
+#                 if not all_tumor_vals and not all_normal_vals:
+#                     results["debug"][norm_method][gene_input]["error"] = f"No expression data found for gene '{gene_input}' ({norm_method})."
+#                     continue
 
-# #                 tumor = pd.Series(all_tumor_vals)
-# #                 normal = pd.Series(all_normal_vals)
+#                 tumor = pd.Series(all_tumor_vals)
+#                 normal = pd.Series(all_normal_vals)
 
-# #                 # RAW METRICS
-# #                 tumor_stats = compute_metrics(tumor)
-# #                 # if len(all_normal_vals) == 0:
-# #                 #     normal_stats = 0
-# #                 # else:
-# #                 normal_stats = compute_metrics(normal)
+#                 # RAW METRICS
+#                 tumor_stats = compute_metrics(tumor)
+#                 # if len(all_normal_vals) == 0:
+#                 #     normal_stats = 0
+#                 # else:
+#                 normal_stats = compute_metrics(normal)
 
-# #                 logfc = np.nan
-# #                 if tumor_stats and normal_stats and normal_stats["mean"] > 0:
-# #                     logfc = math.log2(tumor_stats["mean"] / normal_stats["mean"])
+#                 logfc = np.nan
+#                 if tumor_stats and normal_stats and normal_stats["mean"] > 0:
+#                     logfc = math.log2(tumor_stats["mean"] / normal_stats["mean"])
 
-# #                 results["raw"][norm_method][ensembl_id] = {
-# #                     "gene_symbol": gene_symbol,
-# #                     "mean_tumor": tumor_stats["mean"] if tumor_stats else np.nan,
-# #                     "mean_normal": normal_stats["mean"] if normal_stats else np.nan,
-# #                     "std_tumor": tumor_stats["std"] if tumor_stats else np.nan,
-# #                     "std_normal": normal_stats["std"] if normal_stats else np.nan,
-# #                     "mad_tumor": tumor_stats["mad"] if tumor_stats else np.nan,
-# #                     "mad_normal": normal_stats["mad"] if normal_stats else np.nan,
-# #                     "cv_tumor": tumor_stats["cv"] if tumor_stats else np.nan,
-# #                     "cv_normal": normal_stats["cv"] if normal_stats else np.nan,
-# #                     "cv_squared_tumor": tumor_stats["cv_squared"] if tumor_stats else np.nan,
-# #                     "cv_squared_normal": normal_stats["cv_squared"] if normal_stats else np.nan,
-# #                     "logfc": logfc,
-# #                 }
+#                 results["raw"][norm_method][ensembl_id] = {
+#                     "gene_symbol": gene_symbol,
+#                     "mean_tumor": tumor_stats["mean"] if tumor_stats else np.nan,
+#                     "mean_normal": normal_stats["mean"] if normal_stats else np.nan,
+#                     "std_tumor": tumor_stats["std"] if tumor_stats else np.nan,
+#                     "std_normal": normal_stats["std"] if normal_stats else np.nan,
+#                     "mad_tumor": tumor_stats["mad"] if tumor_stats else np.nan,
+#                     "mad_normal": normal_stats["mad"] if normal_stats else np.nan,
+#                     "cv_tumor": tumor_stats["cv"] if tumor_stats else np.nan,
+#                     "cv_normal": normal_stats["cv"] if normal_stats else np.nan,
+#                     "cv_squared_tumor": tumor_stats["cv_squared"] if tumor_stats else np.nan,
+#                     "cv_squared_normal": normal_stats["cv_squared"] if normal_stats else np.nan,
+#                     "logfc": logfc,
+#                 }
 
-# #                 # LOG2 METRICS
-# #                 df = pd.DataFrame({
-# #                     "sample_type": ["tumor"] * len(tumor) + ["normal"] * len(normal),
-# #                     "expr": list(tumor) + list(normal)
-# #                 })
-# #                 df["log2_expr"] = np.log2(df["expr"] + 1)
+#                 # LOG2 METRICS
+#                 df = pd.DataFrame({
+#                     "sample_type": ["tumor"] * len(tumor) + ["normal"] * len(normal),
+#                     "expr": list(tumor) + list(normal)
+#                 })
+#                 df["log2_expr"] = np.log2(df["expr"] + 1)
 
-# #                 tumor_log = df[df["sample_type"].eq("tumor")]["log2_expr"]
-# #                 normal_log = df[df["sample_type"].eq("normal")]["log2_expr"]
+#                 tumor_log = df[df["sample_type"].eq("tumor")]["log2_expr"]
+#                 normal_log = df[df["sample_type"].eq("normal")]["log2_expr"]
 
-# #                 tumor_stats_log = compute_metrics(tumor_log)
-# #                 normal_stats_log = compute_metrics(normal_log)
+#                 tumor_stats_log = compute_metrics(tumor_log)
+#                 normal_stats_log = compute_metrics(normal_log)
 
-# #                 logfc_log = np.nan
-# #                 if tumor_stats_log and normal_stats_log:
-# #                     logfc_log = tumor_stats_log["mean"] - normal_stats_log["mean"]
+#                 logfc_log = np.nan
+#                 if tumor_stats_log and normal_stats_log:
+#                     logfc_log = tumor_stats_log["mean"] - normal_stats_log["mean"]
 
-# #                 results["log2"][norm_method][ensembl_id] = {
-# #                     "gene_symbol": gene_symbol,
-# #                     "mean_tumor": tumor_stats_log["mean"] if tumor_stats_log else np.nan,
-# #                     "mean_normal": normal_stats_log["mean"] if normal_stats_log else np.nan,
-# #                     "std_tumor": tumor_stats_log["std"] if tumor_stats_log else np.nan,
-# #                     "std_normal": normal_stats_log["std"] if normal_stats_log else np.nan,
-# #                     "mad_tumor": tumor_stats_log["mad"] if tumor_stats_log else np.nan,
-# #                     "mad_normal": normal_stats_log["mad"] if normal_stats_log else np.nan,
-# #                     "cv_tumor": tumor_stats_log["cv"] if tumor_stats_log else np.nan,
-# #                     "cv_normal": normal_stats_log["cv"] if normal_stats_log else np.nan,
-# #                     "cv_squared_tumor": tumor_stats_log["cv_squared"] if tumor_stats_log else np.nan,
-# #                     "cv_squared_normal": normal_stats_log["cv_squared"] if normal_stats_log else np.nan,
-# #                     "logfc": logfc_log,
-# #                 }
+#                 results["log2"][norm_method][ensembl_id] = {
+#                     "gene_symbol": gene_symbol,
+#                     "mean_tumor": tumor_stats_log["mean"] if tumor_stats_log else np.nan,
+#                     "mean_normal": normal_stats_log["mean"] if normal_stats_log else np.nan,
+#                     "std_tumor": tumor_stats_log["std"] if tumor_stats_log else np.nan,
+#                     "std_normal": normal_stats_log["std"] if normal_stats_log else np.nan,
+#                     "mad_tumor": tumor_stats_log["mad"] if tumor_stats_log else np.nan,
+#                     "mad_normal": normal_stats_log["mad"] if normal_stats_log else np.nan,
+#                     "cv_tumor": tumor_stats_log["cv"] if tumor_stats_log else np.nan,
+#                     "cv_normal": normal_stats_log["cv"] if normal_stats_log else np.nan,
+#                     "cv_squared_tumor": tumor_stats_log["cv_squared"] if tumor_stats_log else np.nan,
+#                     "cv_squared_normal": normal_stats_log["cv_squared"] if normal_stats_log else np.nan,
+#                     "logfc": logfc_log,
+#                 }
 
-# #         results["execution_time_sec"] = round(time.time() - start_time, 3)
-# #     except Exception as e:
-# #         results["error"] = f"An unexpected error occurred: {str(e)}"
-# #     finally:
-# #         conn.close()
-# #     print(results)
-# #     results = sanitize_floats(results)
-# #     return JSONResponse(results)
+#         results["execution_time_sec"] = round(time.time() - start_time, 3)
+#     except Exception as e:
+#         results["error"] = f"An unexpected error occurred: {str(e)}"
+#     finally:
+#         conn.close()
+#     print(results)
+#     results = sanitize_floats(results)
+#     return JSONResponse(results)
 
 # # if __name__ == "__main__":
 # #     import uvicorn

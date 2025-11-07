@@ -11,7 +11,7 @@ const Index = () => {
       {/* Header */}
       <Header  />
       <main className="flex-grow">
-      {/* Hero Section with lighter gradient background */}
+      {/* section with lighter gradient background */}
       {/* <section className="py-20 bg-gradient-to-br from-blue-900/70 via-yellow-600/70 to-blue-200/70"> */}
       <section className="py-16 bg-gradient-to-r from-blue-900 to-yellow-600">
         <div className="max-w-full sm:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -67,7 +67,6 @@ const Index = () => {
         </div>
       </section>
 
-     {/* How It Works Section */}
       <section className="py-8 bg-gradient-to-r from-blue-100 to-yellow-100">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
@@ -83,7 +82,6 @@ const Index = () => {
               </div>
               <h4 className="text-lg font-semibold text-blue-900 mb-2">Select Analysis Type</h4>
               <p className="text-blue-700 text-sm">
-                {/* Optional brief text here */}
               </p>
             </div>
 
@@ -93,7 +91,6 @@ const Index = () => {
               </div>
               <h4 className="text-lg font-semibold text-blue-900 mb-2">Configure Parameters</h4>
               <p className="text-blue-700 text-sm">
-                {/* Optional brief text here */}
               </p>
             </div>
 
@@ -103,7 +100,6 @@ const Index = () => {
               </div>
               <h4 className="text-lg font-semibold text-blue-900 mb-2">Explore Results</h4>
               <p className="text-blue-700 text-sm">
-                {/* Optional brief text here */}
               </p>
             </div>
           </div>

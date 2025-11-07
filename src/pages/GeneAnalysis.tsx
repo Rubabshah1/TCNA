@@ -19,7 +19,7 @@ const GeneAnalysis = () => {
   const [analysisType, setAnalysisType] = useState<"pan-cancer" | "cancer-specific" | null>(null);
   const navigate = useNavigate();
 
-  // Require at least one site and one gene for cancer-specific, or one gene for pan-cancer
+  //require at least one site and one gene for cancer-specific, or one gene for pan-cancer
   const canShowAnalysis = 
     (analysisType === "pan-cancer" && selectedGenes.length === 1 && selectedSites.length > 0) ||
     (analysisType === "cancer-specific" && selectedSites.length > 0 && selectedGenes.length > 0);
@@ -104,7 +104,7 @@ const GeneAnalysis = () => {
               </CardContent>
             </Card>
           
-            {/* Cancer Site and Type Selection */}
+            {/* cancer Site and project Selection */}
             {analysisType && (
               <Card className="border shadow-lg">
                 <CardHeader>
@@ -123,7 +123,7 @@ const GeneAnalysis = () => {
               </Card>
             )}
 
-            {/* Gene Selection */}
+            {/* gene Selection */}
             {selectedSites.length > 0 && analysisType && (
               <GeneSelector
                 selectedGenes={selectedGenes}
@@ -132,7 +132,7 @@ const GeneAnalysis = () => {
               />
             )}
 
-            {/* Analyze Button */}
+            {/* analyze Button -> api fetching */}
             <div className="flex justify-center">
               <Button
                 onClick={handleAnalyze}
