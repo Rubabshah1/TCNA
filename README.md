@@ -1,11 +1,3 @@
-# TCNA - The Cancer Noise Atlas
-
-## TCNA is a comprehensive analysis platform for gene expression variability, pathway interactions, and tumor analysis across different cancer types. 
-
-
-
-**Use your preferred IDE**
-
 If you want to work locally using your own IDE, you can clone this repo and push changes. 
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
