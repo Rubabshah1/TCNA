@@ -1,3 +1,6 @@
+import sys
+
+sys.dont_write_bytecode = True
 from fastapi import FastAPI, APIRouter, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
