@@ -15,7 +15,7 @@ Before proceeding, ensure you have:
 
 ---
 
-## Import into MariaDB
+## 1. Import into MariaDB
 
 If you haven’t already created a database to import into, run:
 
@@ -23,5 +23,34 @@ If you haven’t already created a database to import into, run:
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE tcna_cancer_db;"
+```
 
+### 2. Import the SQL File
 
+Once the database exists, import the SQL dump file:
+```bash
+mysql -u root -p tcna_cancer_db < tcna_cancer_db.sql
+```
+root → your MariaDB username
+
+tcna_cancer_db → name of the target database
+
+tcna_cancer_db.sql → path to your SQL dump file
+
+You’ll be asked to enter your password. The process may take a few moments depending on the size of the file.
+
+### 3. Verify the Import
+
+Log in to MariaDB:
+
+```bash
+mysql -u root -p tcna_cancer_db
+```
+
+Then inside MariaDB, run:
+
+```bash
+SHOW TABLES;
+```
+
+If you see the expected tables, the import was successful.
