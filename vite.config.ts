@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => ({
         secure: false,
       },
     },
+    fs: {
+      deny: ['.git', '.env', 'node_modules'],
+    },
   },
   plugins: [
     react(),
