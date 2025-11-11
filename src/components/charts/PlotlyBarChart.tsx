@@ -9,7 +9,7 @@ interface PlotlyBarChartProps {
   title?: string;
   xKey: string | string[];
   yKey?: string | string[];
-  errorKey?: string | string[];   // ✅ new
+  errorKey?: string | string[];  
   xLabel?: string;
   yLabel?: string;
   colors?: string | string[];
