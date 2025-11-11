@@ -53,7 +53,7 @@ metric_funcs_gene = {
 
 metric_funcs_TH = {
     "DEPTH2": depth2_calculation,
-    "tITH": depth_calculation,
+    "DEPTH": depth_calculation,
 }
 
 
@@ -74,6 +74,17 @@ class Pathway(BaseModel):
     value: str
     label: str
     category: str
+
+#z-score normalization for heatmaps in pathways
+def zscore_series(values: pd.Series) -> pd.Series:
+    """Return Z-score (standardised) series.  NaN → NaN."""
+    if len(values) == 0:
+        return values
+    mean = values.mean()
+    std  = values.std(ddof=1)
+    if std == 0:
+        return pd.Series([0.0] * len(values), index=values.index)
+    return (values - mean) / std
 
 def compute_metrics(values: pd.Series):
     """Compute mean, std, mad, cv, and cv² for a numeric series."""
@@ -278,7 +289,7 @@ def get_gene_noise(
     # return JSONResponse(final_output)
 
 # pathway analysis
-@app.get("/api/gene-noise-pathway")
+@app.post("/api/gene-noise-pathway")
 def get_gene_noise_pathway(
     cancer: str = Query(..., description="Comma-separated cancer sites"),
     genes: List[str] = Query(..., description="Gene symbols (comma-separated)"),
@@ -439,15 +450,6 @@ def get_gene_noise_pathway(
     
 # pathway analysis 
 # enriched pathways
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List
-import requests
-
-router = APIRouter()
-
-class GeneRequest(BaseModel):
-    genes: List[str]
 
 class Pathway(BaseModel):
     id: str
@@ -516,13 +518,6 @@ async def get_enriched_pathways(request: GeneRequest):
 
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch enriched pathways: {str(e)}")
-
-from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional, Set
-import requests
-import re
-
-router = APIRouter()
 
 @app.get("/api/get-genes")
 def get_genes_for_pathway(pathway: str):
@@ -635,71 +630,6 @@ def get_pathway_analysis(
         return JSONResponse(sanitize_floats(results))
 
 
-
-# # pathway results dashboard
-# @app.get("/api/pathway-analysis")
-# def get_pathway_analysis(
-#     cancer: str = Query(...),
-#     genes: Optional[List[str]] = Query(None),
-#     top_n: int = Query(1000),
-#     logfc_threshold: float = Query(0.7),
-#     mode: str = Query("enrichment"),
-#     network_type: str = Query("functional"),
-#     score_threshold: float = Query(0.4),
-#     pathway: Optional[str] = Query(None)
-# ):
-#     """Perform pathway or network analysis for genes across cancer sites."""
-#     cancer_sites = [s.strip() for s in cancer.split(",") if s.strip()]
-#     with get_connection() as conn:
-#         cur = conn.cursor()
-#         gene_list, selected_gene_set, warning = get_genes(cur, genes, cancer_sites, logfc_threshold)
-        
-#         if pathway:
-#             response = requests.get(f"https://string-db.org/api/json/enrichment?identifiers={'%0D'.join(genes)}&species=9606")
-#             response.raise_for_status()
-#             data = response.json()
-#             pathway_data = next((item for item in data if item["term"] == pathway), None)
-#             if not pathway_data:
-#                 raise HTTPException(status_code=404, detail=f"Pathway '{pathway}' not found.")
-#             selected_gene_set = set(pathway_data["inputGenes"])
-#             cur.execute("SELECT id, gene_symbol FROM genes WHERE gene_symbol IN %s", (tuple(selected_gene_set),))
-#             gene_list = [row["id"] for row in cur.fetchall()]
-#             # selected_gene_set = set(row["gene_symbol"] for row in cur.fetchall())
-#             selected_gene_set = set(pathway_data.get("inputGenes", []) or [])
-#             # if STRING returned no genes for this term, keep existing behaviour (error/fallback)
-#             if not selected_gene_set:
-#                 raise HTTPException(status_code=404, detail=f"No genes found for pathway '{pathway}'.")
-#             # query DB once and use the fetched rows
-#             cur.execute("SELECT id, gene_symbol FROM genes WHERE gene_symbol IN %s", (tuple(selected_gene_set),))
-#             gene_rows = cur.fetchall()
-#             gene_list = [row["id"] for row in gene_rows]
-#             # rebuild selected_gene_set from DB results (ensures symbols actually exist in our DB)
-#             selected_gene_set = set(row["gene_symbol"] for row in gene_rows)
-#             if not gene_list:
-#                 raise HTTPException(status_code=404, detail=f"No pathway genes found in database for '{pathway}'.")
-
-
-#         sample_counts = get_sample_counts(cur, cancer_sites)
-#         results = compute_gene_stats(cur, cancer_sites, gene_list)
-#         print(selected_gene_set)
-#         string_results = run_stringdb_neighbors(selected_gene_set, network_type, score_threshold, top_n) if mode == "neighbors" else run_stringdb_enrichment(selected_gene_set, top_n)
-#         print("\nSTRING RESULTS:\n",string_results)
-#         for scale in ["raw", "log2"]:
-#             for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
-#                 results[scale][norm_method]["top_genes"] = list(selected_gene_set)
-#                 results[scale][norm_method][mode] = string_results
-
-#         results = sanitize_floats({
-#             "raw": results["raw"],
-#             "log2": results["log2"],
-#             "sample_counts": sample_counts,
-#             "available_sites": get_available_sites(cur),
-#             "warning": warning,
-#             "mode": mode,
-#         })
-#         # print(results)
-#         return JSONResponse(sanitize_floats(results))
-
 def run_stringdb_enrichment(gene_set: Set[str], top_n: int, species: int = 9606) -> List[Dict]:
     """Run STRINGdb enrichment for a gene set."""
     if not gene_set:
@@ -761,29 +691,6 @@ def get_genes(cur, genes_input: List[str], cancer_sites: List[str], logfc_thresh
                     gene_set.add(row["gene_symbol"])
             return gene_list, gene_set, f"Found {len(gene_list)}/{len(unique_genes)} genes" if len(gene_list) < len(unique_genes) else None
 
-        # gene_list, gene_set = [], set()
-        # for site in cancer_sites[:2]:
-        #     cur.execute("SELECT id FROM sites WHERE name = %s", (site,))
-        #     site_row = cur.fetchone()
-        #     if not site_row:
-        #         continue
-        #     cur.execute(
-        #         """
-        #         SELECT g.id, g.gene_symbol
-        #         FROM genes g JOIN gene_expressions ge ON g.id = ge.gene_id
-        #         JOIN samples s ON ge.sample_id = s.id JOIN cancer_types c ON s.cancer_type_id = c.id
-        #         WHERE c.site_id = %s
-        #         GROUP BY g.id, g.gene_symbol
-        #         HAVING AVG(CASE WHEN s.sample_type = 'Normal' THEN ge.tpm END) > 0
-        #         AND AVG(CASE WHEN s.sample_type = 'Tumor' THEN ge.tpm END) > 0
-        #         ORDER BY ABS(LOG2(AVG(CASE WHEN s.sample_type = 'Tumor' THEN ge.tpm END)/AVG(CASE WHEN s.sample_type = 'Normal' THEN ge.tpm END))) DESC
-        #         LIMIT 10
-        #         """, (site_row["id"],))
-        #     for row in cur.fetchall():
-        #         gene_list.append(row["id"])
-        #         gene_set.add(row["gene_symbol"])
-        # print(gene_list, gene_set)
-        # return list(set(gene_list)), gene_set, "No genes provided. Using top DE genes."
     
 def get_sample_counts(cur, cancer_sites: List[str]) -> Dict[str, Dict[str, int]]:
     """Get tumor/normal sample counts per site."""
@@ -899,7 +806,7 @@ def get_available_sites(cur) -> List[Dict]:
 # tumor analysis
 @app.get("/api/tumor_results")
 def get_tumor_results(cancer_site: str = Query(...), cancer_types: Optional[List[str]] = Query(None)):
-    """Fetch tumor sample data with DEPTH2 and tITH scores."""
+    """Fetch tumor sample data with DEPTH2 and DEPTH scores."""
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id FROM sites WHERE name = %s", (cancer_site,))
@@ -965,9 +872,12 @@ def get_tumor_results(cancer_site: str = Query(...), cancer_types: Optional[List
 
         # return JSONResponse(sanitize_floats({"results": results, "sample_counts": sample_counts, "error": None}))
 
+import json
+
 # def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: str):
 #     """
-#     Return top-50 genes by CV (same formula as compute_metrics) for tumor & normal.
+#     Top-50 genes by CV = (STDDEV_SAMP / AVG) * 100
+#     Fully in MariaDB, no Python loop, works on 60k+ genes.
 #     """
 #     where_tcga = ""
 #     params: List[Any] = [site_id]
@@ -976,46 +886,64 @@ def get_tumor_results(cancer_site: str = Query(...), cancer_types: Optional[List
 #         params.append(tuple(tcga_codes))
 
 #     sql = f"""
-#         SELECT g.gene_symbol,
-#                s.sample_type,
-#                e.{norm} AS expr
-#         FROM gene_expressions e
-#         JOIN samples      s ON e.sample_id = s.id
-#         JOIN cancer_types c ON s.cancer_type_id = c.id
-#         JOIN genes        g ON e.gene_id = g.id
-#         WHERE c.site_id = %s {where_tcga}
-#           AND e.{norm} IS NOT NULL
+#         WITH stats AS (
+#             SELECT
+#                 s.sample_type,
+#                 g.gene_symbol,
+#                 AVG(e.{norm}) AS mean_val,
+#                 STDDEV_SAMP(e.{norm}) AS std_val,
+#                 COUNT(e.{norm}) AS n_samples
+#             FROM gene_expressions e
+#             JOIN samples s      ON e.sample_id = s.id
+#             JOIN cancer_types c ON s.cancer_type_id = c.id
+#             JOIN genes g        ON e.gene_id = g.id 
+#             WHERE c.site_id = %s {where_tcga}
+#               AND e.{norm} IS NOT NULL
+#             GROUP BY s.sample_type, g.id, g.gene_symbol
+#             HAVING n_samples >= 3 AND mean_val > 0
+#         ),
+#         ranked AS (
+#             SELECT
+#                 sample_type,
+#                 gene_symbol,
+#                 (std_val / mean_val) * 100 AS cv,
+#                 ROW_NUMBER() OVER (PARTITION BY sample_type ORDER BY (std_val / mean_val) DESC) AS rn
+#             FROM stats
+#         ),
+#         top50 AS (
+#             SELECT sample_type, gene_symbol, cv
+#             FROM ranked
+#             WHERE rn <= 50
+#         )
+#         SELECT
+#             sample_type AS tissue,
+#             JSON_ARRAYAGG(
+#                 JSON_OBJECT('gene_symbol', gene_symbol, 'cv', ROUND(cv, 4))
+#             ) AS top_genes
+#         FROM top50
+#         GROUP BY sample_type;
 #     """
+
 #     cur.execute(sql, params)
 #     rows = cur.fetchall()
-#     if not rows:
-#         return {"tumor": [], "normal": []}
-    
-#     df = pd.DataFrame(rows)
-#     tumor  = df[df["sample_type"].str.lower() == "tumor"]
-#     normal = df[df["sample_type"].str.lower() == "normal"]
 
-#     def _cv(df_part: pd.DataFrame) -> List[Dict]:
-#         if df_part.empty:
-#             return []
-#         out = []
-#         for gene, series in df_part.groupby("gene_symbol")["expr"]:
-#             stats = compute_metrics(series)          # SAME FUNCTION AS /gene_noise
-#             if stats and stats["mean"] > 0:
-#                 out.append({"gene_symbol": gene, "cv": round(stats["cv"], 4)})
-#         return sorted(out, key=lambda x: x["cv"], reverse=True)[:50]
-
-#     return {"tumor": _cv(tumor), "normal": _cv(normal)}
+#     result = {"tumor": [], "normal": []}
+#     for row in rows:
+#         tissue = row["tissue"].lower()
+#         genes_json = row["top_genes"]
+#         if genes_json:
+#             result[tissue] = json.loads(genes_json)
+#     return result
 import json
-import json  # Make sure this is at the top
+from typing import Optional, List, Any
 
 def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: str):
     """
-    Top-50 genes by CV = (STDDEV_SAMP / AVG) * 100
-    Fully in MariaDB, no Python loop, works on 60k+ genes.
+    Top-50 noisy genes using pure MySQL 8.0+ (no Pandas)
+    Fixed: g.gene_id → g.id
     """
     where_tcga = ""
-    params: List[Any] = [site_id]
+    params = [site_id]
     if tcga_codes:
         where_tcga = "AND c.tcga_code IN %s"
         params.append(tuple(tcga_codes))
@@ -1023,40 +951,37 @@ def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: s
     sql = f"""
         WITH stats AS (
             SELECT
-                s.sample_type,
+                LOWER(s.sample_type) AS tissue,
                 g.gene_symbol,
                 AVG(e.{norm}) AS mean_val,
                 STDDEV_SAMP(e.{norm}) AS std_val,
-                COUNT(e.{norm}) AS n_samples
+                COUNT(*) AS n_samples
             FROM gene_expressions e
-            JOIN samples s      ON e.sample_id = s.id
+            JOIN samples s ON e.sample_id = s.id
             JOIN cancer_types c ON s.cancer_type_id = c.id
-            JOIN genes g        ON e.gene_id = g.id 
+            JOIN genes g ON e.gene_id = g.id
             WHERE c.site_id = %s {where_tcga}
               AND e.{norm} IS NOT NULL
-            GROUP BY s.sample_type, g.id, g.gene_symbol
+              AND e.{norm} > 0
+            GROUP BY g.id, g.gene_symbol, s.sample_type
             HAVING n_samples >= 3 AND mean_val > 0
         ),
         ranked AS (
             SELECT
-                sample_type,
+                tissue,
                 gene_symbol,
                 (std_val / mean_val) * 100 AS cv,
-                ROW_NUMBER() OVER (PARTITION BY sample_type ORDER BY (std_val / mean_val) DESC) AS rn
+                ROW_NUMBER() OVER (PARTITION BY tissue ORDER BY (std_val / mean_val) DESC) AS rn
             FROM stats
-        ),
-        top50 AS (
-            SELECT sample_type, gene_symbol, cv
-            FROM ranked
-            WHERE rn <= 50
         )
-        SELECT
-            sample_type AS tissue,
+        SELECT 
+            tissue,
             JSON_ARRAYAGG(
                 JSON_OBJECT('gene_symbol', gene_symbol, 'cv', ROUND(cv, 4))
             ) AS top_genes
-        FROM top50
-        GROUP BY sample_type;
+        FROM ranked
+        WHERE rn <= 50
+        GROUP BY tissue;
     """
 
     cur.execute(sql, params)
@@ -1064,427 +989,156 @@ def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: s
 
     result = {"tumor": [], "normal": []}
     for row in rows:
-        tissue = row["tissue"].lower()
+        tissue = row["tissue"]
         genes_json = row["top_genes"]
         if genes_json:
-            result[tissue] = json.loads(genes_json)
+            genes = json.loads(genes_json)
+            # Sort by CV descending (safe, only 100 items)
+            genes.sort(key=lambda x: x["cv"], reverse=True)
+            result[tissue] = genes
+    
     return result
 
 @app.post("/api/csv-upload")
 async def csv_upload(request: Request):
-    """Handle CSV/TSV file upload for gene, pathway, or tumor analysis."""
     try:
         form = await request.form()
         analysis_type = form.get('analysis_type', 'Pathway')
         top_n = int(form.get('top_n', 15))
         gene_set = form.get('gene_set', 'KEGG_2021_Human') if analysis_type == 'Pathway' else None
         genes = form.get('genes', '')
-        
-        if analysis_type not in ['Gene', 'Pathway', 'Tumor']:
-            raise HTTPException(status_code=400, detail=f"Invalid analysis type: {analysis_type}")
+
+        logger.info(f"Input: analysis_type={analysis_type}, top_n={top_n}, gene_set={gene_set}, genes={genes}")
+
+        valid_analysis_types = ['Gene', 'Pathway', 'Tumor']
+        if analysis_type not in valid_analysis_types:
+            return JSONResponse({"error": f"Invalid analysis type: {analysis_type}"}, status_code=400)
 
         selected_genes = [g.strip().upper() for g in genes.split(',') if g.strip()] if genes.strip() else None
         if analysis_type in ['Gene', 'Pathway'] and not selected_genes and 'expression_file' not in form:
-            raise HTTPException(status_code=400, detail="Gene or Pathway Analysis requires a gene list or expression data")
+            return JSONResponse({"error": "Gene or Pathway Analysis requires a gene list or expression data"}, status_code=400)
 
+        # Initialize response
         response = {
             "analysis_type": analysis_type,
-            "raw": {"warning": "Differential noise analysis not possible"},
-            "log2": {"warning": "Differential noise analysis not possible" if analysis_type != 'Tumor' else ""}
+            "raw": {"warning": "Differential noise analysis (e.g., logFC) is not possible"},
+            "log2": {"warning": "Differential noise analysis (e.g., logFC) is not possible"}
+        } if analysis_type != 'Tumor' else {
+            "analysis_type": analysis_type,
+            "log2": {"warning": ""}
         }
 
+        # Process uploaded expression file
         df_raw = None
+        df_log2 = None
         if 'expression_file' in form:
             expression_file = form['expression_file']
+            if not expression_file.filename:
+                return JSONResponse({"error": "No expression file selected"}, status_code=400)
             if not expression_file.filename.endswith(('.csv', '.tsv')):
-                raise HTTPException(status_code=400, detail="Expression file must be CSV or TSV")
-            df_raw = pd.read_csv(io.BytesIO(await expression_file.read()), delimiter=',' if expression_file.filename.endswith('.csv') else '\t')
-            
+                return JSONResponse({"error": "Expression file must be CSV or TSV"}, status_code=400)
+            delimiter = ',' if expression_file.filename.endswith('.csv') else '\t'
+
+            # Read the CSV/TSV file
+            content = await expression_file.read()
+            df_raw = pd.read_csv(io.BytesIO(content), delimiter=delimiter)
+            if not {'Hugo_Symbol', 'gene_name'}.intersection(df_raw.columns):
+                return JSONResponse({"error": "Expression file must contain 'Hugo_Symbol' or 'gene_name' column"}, status_code=400)
+
             gene_column = 'gene_name' if 'gene_name' in df_raw.columns else 'Hugo_Symbol'
-            if gene_column not in df_raw.columns:
-                raise HTTPException(status_code=400, detail="Expression file must contain 'Hugo_Symbol' or 'gene_name' column")
-            
+            gene_id = 'gene_id' if 'gene_id' in df_raw.columns else 'Entrez_Gene_Id' if 'Entrez_Gene_Id' in df_raw.columns else None
             df_raw[gene_column] = df_raw[gene_column].astype(str).str.upper()
-            df_raw = df_raw.set_index(gene_column).select_dtypes(include=np.number).fillna(df_raw.median(numeric_only=True))
+
+            # Prepare raw and log2 data
+            df_raw = df_raw.set_index(gene_column)
+            if gene_id in df_raw.columns:
+                df_raw = df_raw.drop(columns=[gene_id])
+            df_raw = df_raw.apply(pd.to_numeric, errors='coerce')
+            df_raw = df_raw.fillna(df_raw.median(numeric_only=True))
             df_log2 = np.log2(df_raw + 1)
 
+        # Handle Gene Analysis
         if analysis_type == 'Gene':
             for transform, df in [('raw', df_raw), ('log2', df_log2)]:
-                top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
-                if df is not None and not top_genes:
-                    raise HTTPException(status_code=400, detail=f"None of the provided genes found in {transform} data")
-                metrics = {name: func(df.loc[top_genes]).to_dict() for name, func in metric_funcs_gene.items()} if df is not None else {name: {gene: 0.0 for gene in selected_genes} for name in metric_funcs_gene}
+                if df is not None:
+                    top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+                    if not top_genes:
+                        return JSONResponse({"error": f"None of the provided genes found in {transform} expression data"}, status_code=400)
+                    df = df.loc[top_genes]
+                    metrics = {name: func(df).to_dict() for name, func in metric_funcs_gene.items()}
+                else:
+                    if not selected_genes:
+                        return JSONResponse({"error": "Gene Analysis requires a gene list or expression data"}, status_code=400)
+                    top_genes = selected_genes
+                    metrics = {name: {gene: 0.0 for gene in top_genes} for name in metric_funcs_gene.keys()}
                 response[transform].update({"metrics": metrics, "top_genes": top_genes})
 
+        # Handle Pathway Analysis
         elif analysis_type == 'Pathway':
             for transform, df in [('raw', df_raw), ('log2', df_log2)]:
-                top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
-                if df is not None and not top_genes:
-                    raise HTTPException(status_code=400, detail=f"None of the provided genes found in {transform} data")
-                heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(metric_funcs_gene['cv'](df.loc[gene]))} for gene in top_genes} if df is not None else {gene: {"mean": 0.0, "cv": 0.0} for gene in selected_genes}
-                response[transform].update({"enrichment": [], "top_genes": top_genes, "heatmap_data": heatmap_data})
+                if df is not None:
+                    top_genes = df.index.tolist() if selected_genes is None else [g for g in selected_genes if g in df.index]
+                    if not top_genes:
+                        return JSONResponse({"error": f"None of the provided genes found in {transform} expression data"}, status_code=400)
+                    df = df.loc[top_genes]
+                    cv_values = metric_funcs_gene['cv'](df)
+                    heatmap_data = {gene: {"mean": float(df.loc[gene].mean()), "cv": float(cv_values.get(gene, 0.0))} for gene in top_genes}
+                else:
+                    if not selected_genes:
+                        return JSONResponse({"error": "Pathway Analysis requires a gene list or expression data"}, status_code=400)
+                    top_genes = selected_genes
+                    heatmap_data = {gene: {"mean": 0.0, "cv": 0.0} for gene in top_genes}
 
+                enrichment_results = []
+                try:
+                    enr = gp.enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
+                    results_df = enr.results
+                    if not results_df.empty:
+                        results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(top_n).to_dict(orient="records")
+                        for res in results:
+                            res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
+                            res["GeneSet"] = gene_set
+                        enrichment_results.extend(results)
+                except Exception as e:
+                    logger.error(f"Failed to run ORA with {gene_set} for {transform}: {e}")
+
+                response[transform].update({
+                    "enrichment": enrichment_results,
+                    "top_genes": top_genes,
+                    "heatmap_data": heatmap_data
+                })
+
+        # Handle Tumor Analysis
         elif analysis_type == 'Tumor':
             if df_log2 is None:
-                raise HTTPException(status_code=400, detail="Tumor Analysis requires expression data")
+                return JSONResponse({"error": "Tumor Analysis requires an expression data file"}, status_code=400)
+            all_metrics = {}
+            for metric_name, func in metric_funcs_TH.items():
+                try:
+                    metric_series = func(df_log2)  # Compute across all samples
+                    all_metrics[metric_name] = metric_series
+                except Exception as e:
+                    logger.error(f"Failed to compute {metric_name}: {e}")
+                    all_metrics[metric_name] = pd.Series(0.0, index=df_log2.columns)
+
             metrics = []
             for sample in df_log2.columns:
                 sample_metrics = {"sample": sample}
-                for name, func in metric_funcs_TH.items():
-                    val = func(df_log2[sample])
-                    sample_metrics[name] = float(val) if pd.notna(val) else 0.0
+                for metric_name, metric_series in all_metrics.items():
+                    val = metric_series.get(sample, 0.0)
+                    sample_metrics[metric_name] = float(val) if pd.notna(val) else 0.0
                 metrics.append(sample_metrics)
             response["log2"]["metrics"] = metrics
 
+        logger.info(f"CSV upload response generated for {analysis_type} analysis")
+        print(response)
         return JSONResponse(response)
+
     except Exception as e:
         logger.error(f"CSV upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        return JSONResponse({"error": f"Internal server error: {str(e)}"}, status_code=500)
+
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5001)
-
-
-
-# # pathway analysis
-# # def safe_get_string_pathway_genes(
-# #     pathway: str | None,
-# #     genes: list[str],
-# #     min_score: float = 0.0,
-# # ) -> list[str]:
-# #     """
-# #     Try to resolve a STRING term → gene list.
-# #     If the term is missing or STRING returns 404, fall back to the
-# #     user-supplied `genes` list.
-# #     """
-# #     if not pathway:
-# #         return genes
-
-# #     try:
-# #         # ---- original STRING call (unchanged) ----
-# #         payload = {
-# #             "identifiers": "\n".join(genes),
-# #             "species": 9606,
-# #             "caller_identity": "app",
-# #             "additional_network_nodes": 0,
-# #             "network_flavor": "confidence",
-# #             "min_score": min_score,
-# #         }
-# #         r = requests.post(
-# #             "https://string-db.org/api/json/enrichment",
-# #             data=payload,
-# #             timeout=15,
-# #         )
-
-# #         r.raise_for_status()
-# #         data = r.json()
-# #         print(data)
-
-# #         # Find the term we asked for
-# #         for entry in data:
-# #             if entry.get("term") == pathway:
-# #                 print(entry)
-# #                 return entry.get("inputGenes", [])
-# #         # term not found in results → fall back
-# #         logger.warning(
-# #             "STRING term %s not present in enrichment result – using supplied genes",
-# #             pathway,
-# #         )
-# #         return genes
-
-# #     except requests.exceptions.HTTPError as exc:
-# #         # 404 (or any other HTTP error) → log + fallback
-# #         logger.warning(
-# #             "STRING enrichment failed for term %s (%s) – using supplied genes",
-# #             pathway,
-# #             exc,
-# #         )
-# #         return genes
-# #     except Exception as exc:   # network timeout, JSON decode, etc.
-# #         logger.error("Unexpected error while calling STRING: %s", exc)
-# #         return genes
-# def safe_get_string_pathway_genes(
-#     pathway: str | None,
-#     genes: list[str],
-#     min_score: float = 0.0,
-# ) -> list[str]:
-#     """
-#     Resolve a STRING term (GOCC:…, KEGG:…, BTO:…, etc.) → **only the genes that belong to it**.
-
-#     * No fallback to the user-supplied `genes`.
-#     * Returns [] if the term is missing or STRING errors.
-#     """
-#     if not pathway:
-#         logger.debug("No pathway supplied – returning empty gene list")
-#         return []
-
-#     # -----------------------------------------------------------------
-#     # 1. Normalise the incoming term
-#     # -----------------------------------------------------------------
-#     # STRING returns plain IDs:
-#     #   GOCC:0000800  →  GO:0000800
-#     #   GOBP:0008152  →  GO:0008152
-#     #   BTO:0002553   →  BTO:0002553
-#     #   REAC:12345    →  Reactome:12345
-#     # normalized_pathway = re.sub(r"^(GOCC|GOBP|GOMF):", r"GO:", pathway, flags=re.IGNORECASE)
-#     # keep other prefixes unchanged
-#     # normalized_pathway = re.sub(r"^REAC:", "Reactome:", normalized_pathway, flags=re.IGNORECASE)
-
-#     try:
-#         # -----------------------------------------------------------------
-#         # 2. Call STRING enrichment (unchanged)
-#         # -----------------------------------------------------------------
-#         payload = {
-#             "identifiers": "\n".join(genes),
-#             "species": 9606,
-#             "caller_identity": "app",
-#             "additional_network_nodes": 0,
-#             "network_flavor": "confidence",
-#             "min_score": min_score,
-#         }
-#         r = requests.post(
-#             "https://string-db.org/api/json/enrichment",
-#             data=payload,
-#             timeout=15,
-#         )
-#         r.raise_for_status()
-#         data = r.json()
-
-#         logger.debug("STRING enrichment response: %s", data)
-
-#         # -----------------------------------------------------------------
-#         # 3. Find the exact term and return its genes
-#         # -----------------------------------------------------------------
-#         for entry in data:
-#             if entry.get("term") == pathway:
-#                 matched_genes = entry.get("inputGenes", [])
-#                 logger.info(
-#                     "Pathway %s matched – %d confident genes: %s",
-#                     pathway, len(matched_genes), matched_genes
-#                 )
-#                 return matched_genes
-
-#         # -----------------------------------------------------------------
-#         # 4. Term not found → empty list (no fallback!)
-#         # -----------------------------------------------------------------
-#         logger.warning(
-#             "STRING term %s (normalized %s) not found in enrichment result – returning []",
-#             pathway, pathway,
-#         )
-#         return []
-
-#     except requests.exceptions.HTTPError as exc:
-#         logger.warning(
-#             "STRING enrichment HTTP error for term %s: %s – returning []",
-#             pathway, exc,
-#         )
-#         return []
-#     except Exception as exc:
-#         logger.error("Unexpected error while calling STRING: %s", exc)
-#         return []
-    
-# @app.get("/api/pathway-results")
-# async def pathway_results(
-#     cancer: str = Query(..., description="Comma-separated site names, e.g. Bone+Marrow+and+Blood"),
-#     cancer_type: str | None = Query(None, description="Optional TCGA code, e.g. LAML"),
-#     top_n: int = Query(100, ge=1, le=500),
-#     library: str = Query("KEGG_2021_Human"),
-#     mode: str = Query("enrichment"),
-#     genes: str | None = Query(None, description="Comma-separated gene symbols"),
-#     pathway: str | None = Query(None, description="STRING term (optional)"),
-# ):
-#     """
-#     Returns per-site / per-gene noise statistics for **all three**
-#     normalisation methods (tpm, fpkm, fpkm_uq).
-
-#     * If `cancer_type` is given → only that TCGA code under the site.
-#     * If omitted → all cancer types that belong to the site.
-#     * If a `pathway` term cannot be resolved → fall back to the `genes` list.
-#     """
-#     # -----------------------------------------------------------------
-#     #  1. Parse sites
-#     # -----------------------------------------------------------------
-#     sites = [s.strip() for s in cancer.split(",") if s.strip()]
-#     if not sites:
-#         raise HTTPException(status_code=400, detail="At least one site required")
-
-#     # -----------------------------------------------------------------
-#     #  2. Resolve gene list (STRING fallback)
-#     # -----------------------------------------------------------------
-#     supplied = [g.strip().upper() for g in (genes or "").split(",") if g.strip()]
-#     if mode == "enrichment" and supplied:
-#         gene_list = safe_get_string_pathway_genes(pathway, supplied, min_score=0.0)
-#         print(gene_list)
-#     else:
-#         gene_list = supplied
-
-#     if not gene_list:
-#         raise HTTPException(status_code=400, detail="No genes to analyse")
-
-#     # -----------------------------------------------------------------
-#     #  3. DB connection
-#     # -----------------------------------------------------------------
-#     conn = get_connection()
-#     cur = conn.cursor(pymysql.cursors.DictCursor)
-
-#     # ---- gene symbol → id ------------------------------------------------
-#     placeholders = ",".join(["%s"] * len(gene_list))
-#     print(placeholders)
-#     cur.execute(
-#         f"SELECT id, gene_symbol FROM genes WHERE gene_symbol IN ({placeholders})",
-#         gene_list,
-#     )
-#     gene_map = {r["gene_symbol"]: r["id"] for r in cur.fetchall()}
-#     missing = [g for g in gene_list if g not in gene_map]
-#     if missing:
-#         logger.warning("Genes not in DB: %s", missing)
-#     gene_list = [g for g in gene_list if g in gene_map]
-#     if not gene_list:
-#         conn.close()
-#         raise HTTPException(status_code=400, detail="None of the genes exist in the database")
-
-#     # -----------------------------------------------------------------
-#     #  4. Build site → list of cancer_type ids
-#     # -----------------------------------------------------------------
-#     site_ct_map: Dict[str, List[int]] = {}
-#     for site in sites:
-#         cur.execute("SELECT id FROM sites WHERE name = %s", (site,))
-#         row = cur.fetchone()
-#         if not row:
-#             logger.warning("Site not found: %s", site)
-#             continue
-#         site_id = row["id"]
-
-#         if cancer_type:
-#             cur.execute(
-#                 "SELECT id FROM cancer_types WHERE site_id = %s AND tcga_code = %s",
-#                 (site_id, cancer_type.upper()),
-#             )
-#         else:
-#             cur.execute("SELECT id FROM cancer_types WHERE site_id = %s", (site_id,))
-
-#         ct_ids = [r["id"] for r in cur.fetchall()]
-#         if ct_ids:
-#             site_ct_map[site] = ct_ids
-
-#     if not site_ct_map:
-#         conn.close()
-#         # No data → 200 with empty payload (frontend shows “no results”)
-#         return JSONResponse(
-#             {
-#                 "sites": [],
-#                 "genes": gene_list,
-#                 "normalization_methods": ["tpm", "fpkm", "fpkm_uq"],
-#                 "data": {},
-#             }
-#         )
-
-#     # ----------------------------------------------------------------arming-
-#     #  5. Pull expression + compute stats
-#     # -----------------------------------------------------------------
-#     norm_cols = ["tpm", "fpkm", "fpkm_uq"]
-#     result: Dict[str, Dict[str, Dict[str, Any]]] = {}
-
-#     for site, ct_ids in site_ct_map.items():
-#         site_res: Dict[str, Dict[str, Any]] = {}
-
-#         for norm in norm_cols:
-#             # depth2_scores contains all three columns
-#             sql = f"""
-#                 SELECT g.gene_symbol,
-#                        s.sample_type,
-#                        expr.{norm} AS value
-#                 FROM gene_expressions expr
-#                 JOIN samples s ON s.id = expr.sample_id
-#                 JOIN genes g   ON g.id = expr.gene_id
-#                 WHERE s.cancer_type_id IN ({','.join(['%s'] * len(ct_ids))})
-#                   AND g.gene_symbol   IN ({','.join(['%s'] * len(gene_list))})
-#                   AND expr.{norm} IS NOT NULL
-#             """
-#             cur.execute(sql, ct_ids + gene_list)
-#             rows = cur.fetchall()
-#             if not rows:
-#                 continue
-
-#             df = pd.DataFrame(rows)
-#             piv = df.pivot_table(
-#                 index="gene_symbol",
-#                 columns="sample_type",
-#                 values="value",
-#                 aggfunc="mean",
-#             ).fillna(np.nan)
-
-#             normal = piv.get("normal", pd.Series())
-#             tumor  = piv.get("tumor",  pd.Series())
-
-#             for gene in gene_list:
-#                 if gene not in site_res:
-#                     site_res[gene] = {"raw": {}, "log2": {}}
-
-#                 # ---- raw -------------------------------------------------
-#                 n_vals = normal.get(gene)
-#                 t_vals = tumor.get(gene)
-
-#                 n_mean = float(n_vals.mean()) if pd.notna(n_vals) and len(n_vals) else None
-#                 t_mean = float(t_vals.mean()) if pd.notna(t_vals) and len(t_vals) else None
-
-#                 n_cv = (
-#                     float(n_vals.std(ddof=1) / n_vals.mean())
-#                     if n_mean and n_mean != 0
-#                     else None
-#                 )
-#                 t_cv = (
-#                     float(t_vals.std(ddof=1) / t_vals.mean())
-#                     if t_mean and t_mean != 0
-#                     else None
-#                 )
-#                 raw_fc = np.log2(t_cv / n_cv) if n_cv and t_cv and n_cv != 0 else None
-
-#                 site_res[gene]["raw"][norm] = {
-#                     "mean_normal": n_mean,
-#                     "mean_tumor":  t_mean,
-#                     "cv_normal":   n_cv,
-#                     "cv_tumor":    t_cv,
-#                     "log2fc":      raw_fc,
-#                 }
-
-#                 # ---- log2(x+1) -------------------------------------------
-#                 if pd.notna(n_vals) and len(n_vals):
-#                     n_log = np.log2(pd.Series(n_vals) + 1)
-#                     n_log_mean = float(n_log.mean())
-#                     n_log_cv   = float(n_log.std(ddof=1) / n_log.mean()) if n_log.mean() != 0 else None
-#                 else:
-#                     n_log_mean = n_log_cv = None
-
-#                 if pd.notna(t_vals) and len(t_vals):
-#                     t_log = np.log2(pd.Series(t_vals) + 1)
-#                     t_log_mean = float(t_log.mean())
-#                     t_log_cv   = float(t_log.std(ddof=1) / t_log.mean()) if t_log.mean() != 0 else None
-#                 else:
-#                     t_log_mean = t_log_cv = None
-
-#                 log_fc = np.log2(t_log_cv / n_log_cv) if n_log_cv and t_log_cv and n_log_cv != 0 else None
-
-#                 site_res[gene]["log2"][norm] = {
-#                     "mean_normal": n_log_mean,
-#                     "mean_tumor":  t_log_mean,
-#                     "cv_normal":   n_log_cv,
-#                     "cv_tumor":    t_log_cv,
-#                     "log2fc":      log_fc,
-#                 }
-
-#         result[site] = site_res
-
-#     conn.close()
-
-#     # -----------------------------------------------------------------
-#     #  6. Response
-#     # -----------------------------------------------------------------
-#     payload = {
-#         "sites": list(result.keys()),
-#         "genes": gene_list,
-#         "normalization_methods": norm_cols,
-#         "data": sanitize_floats(result),
-#     }
-#     return JSONResponse(payload)
