@@ -276,38 +276,83 @@ const useGeneNoise = (
   const { getCachedData, setCachedData, generateCacheKey } = useCache<any>();
   const abortRef = useRef<AbortController | null>(null);
 
+  // const fetchNoise = useCallback(async () => {
+  //   if (!sites.length || !genes.length) return;
+
+  //   const cacheKey = generateCacheKey({ endpoint: "gene-noise", sites, genes });
+  //   const cached = getCachedData(cacheKey);
+  //   if (cached) {
+  //     setState({ data: cached, isLoading: false, error: null });
+  //     return;
+  //   }
+
+  //   if (abortRef.current) abortRef.current.abort();
+  //   const ctrl = new AbortController();
+  //   abortRef.current = ctrl;
+
+  //   setState(s => ({ ...s, isLoading: true }));
+  //   try {
+  //     const qp = new URLSearchParams();
+  //     qp.set("cancer", sites.join(","));
+  //     if (genes && genes.length) qp.set("genes", genes.join(","));
+  //     if (cancerTypes && cancerTypes.length) qp.set("cancer_types", cancerTypes.join(","));
+  //     const url = `/api/gene-noise-pathway?${qp.toString()}`;
+
+  //     const res = await fetch(url, { signal: ctrl.signal });
+  //     if (!res.ok) throw new Error(await res.text());
+  //     const json = await res.json();
+  //     const payload = json.gene_noise;
+  //     setCachedData(cacheKey, payload);
+  //     setState({ data: payload, isLoading: false, error: null });
+  //   } catch (e: any) {
+  //     if (e.name !== "AbortError") setState(s => ({ ...s, isLoading: false, error: e.message }));
+  //   }
+  // }, [sites, genes, getCachedData, setCachedData, generateCacheKey]);
   const fetchNoise = useCallback(async () => {
-    if (!sites.length || !genes.length) return;
+  if (!sites.length || !genes.length) return;
 
-    const cacheKey = generateCacheKey({ endpoint: "gene-noise", sites, genes });
-    const cached = getCachedData(cacheKey);
-    if (cached) {
-      setState({ data: cached, isLoading: false, error: null });
-      return;
+  const cacheKey = generateCacheKey({ endpoint: "gene-noise", sites, genes });
+  const cached = getCachedData(cacheKey);
+  if (cached) {
+    setState({ data: cached, isLoading: false, error: null });
+    return;
+  }
+
+  if (abortRef.current) abortRef.current.abort();
+  const ctrl = new AbortController();
+  abortRef.current = ctrl;
+
+  setState(s => ({ ...s, isLoading: true }));
+  try {
+    const body = {
+      cancer: sites,
+      genes: genes,
+      ...(cancerTypes && cancerTypes.length && { cancer_types: cancerTypes }),
+    };
+
+    const res = await fetch("/api/gene-noise-pathway", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `HTTP ${res.status}`);
     }
 
-    if (abortRef.current) abortRef.current.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    setState(s => ({ ...s, isLoading: true }));
-    try {
-      const qp = new URLSearchParams();
-      qp.set("cancer", sites.join(","));
-      if (genes && genes.length) qp.set("genes", genes.join(","));
-      if (cancerTypes && cancerTypes.length) qp.set("cancer_types", cancerTypes.join(","));
-      const url = `/api/gene-noise-pathway?${qp.toString()}`;
-
-      const res = await fetch(url, { signal: ctrl.signal });
-      if (!res.ok) throw new Error(await res.text());
-      const json = await res.json();
-      const payload = json.gene_noise;
-      setCachedData(cacheKey, payload);
-      setState({ data: payload, isLoading: false, error: null });
-    } catch (e: any) {
-      if (e.name !== "AbortError") setState(s => ({ ...s, isLoading: false, error: e.message }));
+    const json = await res.json();
+    const payload = json.gene_noise;
+    setCachedData(cacheKey, payload);
+    setState({ data: payload, isLoading: false, error: null });
+  } catch (e: any) {
+    if (e.name !== "AbortError") {
+      console.error("[useGeneNoise] error:", e);
+      setState(s => ({ ...s, isLoading: false, error: e.message }));
     }
-  }, [sites, genes, getCachedData, setCachedData, generateCacheKey]);
+  }
+}, [sites, genes, cancerTypes, getCachedData, setCachedData, generateCacheKey]);
 
   const debounced = useMemo(() => {
     let t: NodeJS.Timeout;
@@ -522,14 +567,6 @@ const [filterState, dispatch] = useReducer(filterReducer, {
           label: site.name,
           tooltip: `Cancer site: ${site.name}`,
         })),
-        isMasterCheckbox: true,
-        defaultOpen: false,
-      },
-      {
-        title: "Genes",
-        id: "genes",
-        type: "checkbox",
-        options: availableGenes.length > 0 ? availableGenes : params.genes.map((gene) => ({ id: gene, label: gene })),
         isMasterCheckbox: true,
         defaultOpen: false,
       },
@@ -823,7 +860,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
 
             <div className="flex-1">
               {enrichLoading || noiseLoading || isFetchingPathway ? (
-                <LoadingSpinner message="Loading..." />
+                <LoadingSpinner message="Please wait..." />
               ) : enrichError ? (
                 <div className="text-red-600">{enrichError}</div>
               ) : filterState.selectedSites.length === 0 ? (
@@ -887,7 +924,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
                       </table>
                       {hasNoNormal && (
                         <Alert className="mb-4">
-                          <AlertDescription>Warning: Some sites have no normal samples. CV-normal and logFC will show "0".</AlertDescription>
+                          <AlertDescription>Warning: Some sites have no normal samples. CV-normal and logFC will show 0.</AlertDescription>
                         </Alert>
                       )}
                     </div>
