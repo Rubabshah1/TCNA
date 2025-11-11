@@ -11,6 +11,7 @@ import FilterPanel from "@/components/FilterPanel";
 import SampleCounts from "@/components/SampleCounts";
 import StatisticalMetrics from "@/components/statisticalMetrics";
 import { GeneStats } from "@/components/types/genes";
+import { DataTable } from "@/components/ui/data-table";   
 
 interface FilterState {
   selectedGroups: string[];
@@ -24,6 +25,7 @@ interface FilterState {
   isAnalysisPlotsOpen: boolean;
   isSampleCountsOpen: boolean;
   dataFormat: "raw" | "log2";
+  
 }
 
 type FilterAction =
@@ -85,7 +87,7 @@ const filterReducer = (state: FilterState, action: FilterAction): FilterState =>
 interface GeneResultsState {
   resultsData: GeneStats[];
   rawResultsData: GeneStats[];
-  cachedApiData: any;
+  cachedApiData: {},
   isLoading: boolean;
   error: string | null;
   totalTumorSamples: number;
@@ -96,12 +98,18 @@ interface GeneResultsState {
   debugMessages: string[];
 }
 
-const useGeneResultsData = (params: {
-  cancerSites: string[];
-  cancerTypes: string[];
-  genes: string[];
-  analysisType: string;
-}, filterState: FilterState) => {
+const useGeneResultsData = (
+  params: {
+    cancerSites: string[];
+    cancerTypes: string[];
+    genes: string[];
+    analysisType: string;
+  },
+  filterState: FilterState
+) => {
+  /* ------------------------------------------------------------------
+   * 1. STATE
+   * ------------------------------------------------------------------ */
   const [state, setState] = React.useState<GeneResultsState>({
     resultsData: [],
     rawResultsData: [],
@@ -116,221 +124,274 @@ const useGeneResultsData = (params: {
     debugMessages: [],
   });
 
-  const processData = useCallback((apiData: any): GeneStats[] => {
-    if (!apiData || !apiData.results) {
-      console.log("No API data or results available.");
-      setState((prev) => ({
-        ...prev,
-        resultsData: [],
-        rawResultsData: [],
-        siteSampleCounts: [],
-        availableSites: [],
-        availableGenes: [],
-        totalTumorSamples: 0,
-        totalNormalSamples: 0,
-        error: "No data available in the API response.",
-        isLoading: false,
-        debugMessages: [],
-      }));
-      return [];
-    }
+  /* ------------------------------------------------------------------
+   * 2. PER-SITE CACHE – **must be a hook** and declared **first**
+   * ------------------------------------------------------------------ */
+  const siteCache = React.useRef<Record<string, any>>({});
 
-    console.log("Processing API data with dataFormat:", filterState.dataFormat);
+  /* ------------------------------------------------------------------
+   * 3. PROCESS RAW API → GeneStats[]
+   * ------------------------------------------------------------------ */
+  const processData = useCallback(
+    (apiData: any): GeneStats[] => {
+      if (!apiData || !apiData.results) {
+        setState((prev) => ({
+          ...prev,
+          resultsData: [],
+          rawResultsData: [],
+          siteSampleCounts: [],
+          availableSites: [],
+          availableGenes: [],
+          totalTumorSamples: 0,
+          totalNormalSamples: 0,
+          error: "No data available in the API response.",
+          isLoading: false,
+          debugMessages: [],
+        }));
+        return [];
+      }
 
-    const processedData: GeneStats[] = [];
-    const siteSampleCounts: { site: string; tumor: number; normal: number }[] = [];
-    const availableSites: string[] = Object.keys(apiData.results);
-    const availableGenes: string[] = [];
-    const debugMessages: string[] = [];
+      const processedData: GeneStats[] = [];
+      const siteSampleCounts: { site: string; tumor: number; normal: number }[] = [];
+      const availableSites: string[] = Object.keys(apiData.results);
+      const availableGenes: string[] = [];
+      const debugMessages: string[] = [];
 
-    // Collect debug messages from API
-    for (const norm of ["tpm", "fpkm", "fpkm_uq"]) {
-      for (const key in apiData.debug?.[norm]) {
-        if (apiData.debug[norm][key]?.error) {
-          debugMessages.push(apiData.debug[norm][key].error);
+      // ---- debug messages -------------------------------------------------
+      for (const norm of ["tpm", "fpkm", "fpkm_uq"] as const) {
+        for (const key in apiData.debug?.[norm]) {
+          if (apiData.debug[norm][key]?.error) {
+            debugMessages.push(apiData.debug[norm][key].error);
+          }
         }
       }
-    }
 
-    // Create a mapping of gene symbols to Ensembl IDs
-    const geneIdMap: { [key: string]: string } = {};
-    for (const site of Object.keys(apiData.results)) {
-      for (const gene of Object.keys(apiData.results[site])) {
-        for (const norm of ["tpm", "fpkm", "fpkm_uq"]) {
-          const geneData = apiData.results[site][gene][norm]?.raw;
-          if (geneData) {
-            const geneSymbol = geneData.gene_symbol || gene;
-            geneIdMap[geneSymbol] = gene;
-            if (!availableGenes.includes(geneSymbol)) {
-              availableGenes.push(geneSymbol);
+      // ---- gene-symbol → ensembl map --------------------------------------
+      const geneIdMap: { [symbol: string]: string } = {};
+      for (const site of Object.keys(apiData.results)) {
+        for (const gene of Object.keys(apiData.results[site])) {
+          for (const norm of ["tpm", "fpkm", "fpkm_uq"] as const) {
+            const raw = apiData.results[site][gene][norm]?.raw;
+            if (raw) {
+              const symbol = raw.gene_symbol || gene;
+              geneIdMap[symbol] = gene;
+              if (!availableGenes.includes(symbol)) availableGenes.push(symbol);
             }
           }
         }
       }
-    }
 
-    console.log("Available Genes:", availableGenes);
-    console.log("Gene ID Map:", geneIdMap);
+      // ---- build GeneStats ------------------------------------------------
+      for (const site of Object.keys(apiData.results)) {
+        const counts = apiData.sample_counts[site] || { tumor: 0, normal: 0 };
+        siteSampleCounts.push({ site, tumor: counts.tumor, normal: counts.normal });
 
-    // Process data for each site, gene, normalization, and format
-    for (const site of Object.keys(apiData.results)) {
-      const counts = apiData.sample_counts[site] || { tumor: 0, normal: 0 };
-      siteSampleCounts.push({ site, tumor: counts.tumor, normal: counts.normal });
+        const siteData = apiData.results[site];
+        for (const gene of Object.keys(siteData)) {
+          const geneData = siteData[gene];
+          const ensemblId = geneIdMap[gene] || gene;
 
-      const siteData = apiData.results[site] || {};
-      for (const gene of Object.keys(siteData)) {
-        const geneData = siteData[gene] || {};
-        const ensemblId = geneIdMap[gene] || gene;
+          for (const norm of ["tpm", "fpkm", "fpkm_uq"] as const) {
+            for (const format of ["raw", "log2"] as const) {
+              const data = geneData[norm]?.[format] || {};
 
-        for (const norm of ["tpm", "fpkm", "fpkm_uq"]) {
-          for (const format of ["raw", "log2"] as const) {
-            const data = geneData[norm]?.[format] || {};
-            console.log(`Processing ${site}.${gene}.${norm}.${format}:`, data);
+              const tumorValues: number[] = [];
+              const normalValues: number[] = [];
 
-            const tumorValues: number[] = [];
-            const normalValues: number[] = [];
+              const noiseMetrics = {
+                CV: "cv",
+                Mean: "mean",
+                "Standard Deviation": "std",
+                MAD: "mad",
+                "CV²": "cv_squared",
+                "Differential Noise": "logfc",
+              } as const;
 
-            const noiseMetrics = {
-              CV: "cv",
-              Mean: "mean",
-              "Standard Deviation": "std",
-              MAD: "mad",
-              "CV²": "cv_squared",
-              "Differential Noise": "logfc",
-            };
+              const metrics: any = {};
+              Object.entries(noiseMetrics).forEach(([label, key]) => {
+                const tumorKey = `${key}_tumor`;
+                const normalKey = `${key}_normal`;
+                const tumorVal = data[key] ?? undefined;
+                const normalVal = data[`${key}_normal`] ?? undefined;
 
-            const metrics: any = {};
-            Object.keys(noiseMetrics).forEach((metric) => {
-              const metricKey = noiseMetrics[metric];
-              const tumorKey = `${metricKey}_tumor`;
-              const normalKey = `${metricKey}_normal`;
-              const tumorValue = data[metricKey] ?? undefined;
-              const normalValue = data[`${metricKey}_normal`] ?? undefined;
-              metrics[`${metricKey}_tumor_${norm}`] = tumorValue;
-              metrics[`${metricKey}_normal_${norm}`] = normalValue;
-              if (metricKey === "logfc") {
-                metrics[`logfc_${norm}`] = data[`logfc`] ?? undefined;
-              }
-              if (tumorValue !== undefined) {
-                tumorValues.push(tumorValue);
-              }
-              if (normalValue !== undefined && metricKey !== "logfc") {
-                normalValues.push(normalValue);
-              }
-            });
+                metrics[`${key}_tumor_${norm}`] = tumorVal;
+                metrics[`${key}_normal_${norm}`] = normalVal;
 
-            const geneStat: GeneStats = {
-              gene: `${data.gene_symbol || gene} (${gene})`,
-              ensembl_id: ensemblId,
-              gene_symbol: data.gene_symbol || gene,
-              tumorValues: tumorValues.length > 0 ? tumorValues : undefined,
-              normalValues: normalValues.length > 0 ? normalValues : undefined,
-              cv_tumor: metrics[`cv_tumor_${norm}`] ?? undefined,
-              mean_tumor: metrics[`mean_tumor_${norm}`] ?? undefined,
-              std_tumor: metrics[`std_tumor_${norm}`] ?? undefined,
-              mad_tumor: metrics[`mad_tumor_${norm}`] ?? undefined,
-              cv_squared_tumor: metrics[`cv_squared_tumor_${norm}`] ?? undefined,
-              cv_normal: metrics[`cv_normal_${norm}`] ?? undefined,
-              mean_normal: metrics[`mean_normal_${norm}`] ?? undefined,
-              std_normal: metrics[`std_normal_${norm}`] ?? undefined,
-              mad_normal: metrics[`mad_normal_${norm}`] ?? undefined,
-              cv_squared_normal: metrics[`cv_squared_normal_${norm}`] ?? undefined,
-              tumorSamples: counts.tumor,
-              normalSamples: counts.normal,
-              logfc: metrics[`logfc_${norm}`] ?? undefined,
-              logfcMessage: counts.normal < 5 ? "Warning: Low number of normal samples may affect differential results." : undefined,
-              site,
-              normalizationMethod: norm,
-              dataFormat: format,
-              ...metrics,
-            };
-            processedData.push(geneStat);
+                if (key === "logfc") metrics[`logfc_${norm}`] = data.logfc ?? undefined;
+
+                if (tumorVal !== undefined) tumorValues.push(tumorVal);
+                if (normalVal !== undefined && key !== "logfc") normalValues.push(normalVal);
+              });
+
+              const geneStat: GeneStats = {
+                gene: `${data.gene_symbol || gene} (${gene})`,
+                ensembl_id: ensemblId,
+                gene_symbol: data.gene_symbol || gene,
+                tumorValues: tumorValues.length ? tumorValues : undefined,
+                normalValues: normalValues.length ? normalValues : undefined,
+                cv_tumor: metrics[`cv_tumor_${norm}`] ?? undefined,
+                mean_tumor: metrics[`mean_tumor_${norm}`] ?? undefined,
+                std_tumor: metrics[`std_tumor_${norm}`] ?? undefined,
+                mad_tumor: metrics[`mad_tumor_${norm}`] ?? undefined,
+                cv_squared_tumor: metrics[`cv_squared_tumor_${norm}`] ?? undefined,
+                cv_normal: metrics[`cv_normal_${norm}`] ?? undefined,
+                mean_normal: metrics[`mean_normal_${norm}`] ?? undefined,
+                std_normal: metrics[`std_normal_${norm}`] ?? undefined,
+                mad_normal: metrics[`mad_normal_${norm}`] ?? undefined,
+                cv_squared_normal: metrics[`cv_squared_normal_${norm}`] ?? undefined,
+                tumorSamples: counts.tumor,
+                normalSamples: counts.normal,
+                logfc: metrics[`logfc_${norm}`] ?? undefined,
+                logfcMessage: counts.normal < 5 ? "Warning: Low number of normal samples may affect differential results." : undefined,
+                site,
+                normalizationMethod: norm,
+                dataFormat: format,
+                ...metrics,
+              };
+              processedData.push(geneStat);
+            }
           }
         }
       }
-    }
 
-    const filteredData = processedData.filter(
-      (d) =>
-        filterState.selectedSites.includes(d.site) &&
-        filterState.selectedGenes.includes(d.gene_symbol) &&
-        d.normalizationMethod === filterState.normalizationMethod &&
-        d.dataFormat === filterState.dataFormat
-    );
+      // ---- apply current UI filters ---------------------------------------
+      const filteredData = processedData.filter(
+        (d) =>
+          filterState.selectedSites.includes(d.site) &&
+          filterState.selectedGenes.includes(d.gene_symbol) &&
+          d.normalizationMethod === filterState.normalizationMethod &&
+          d.dataFormat === filterState.dataFormat
+      );
 
-    console.log("Raw Results Data Length:", processedData.length);
-    console.log("Filtered Results Data Length:", filteredData.length);
-    console.log("Filtered Data Sample:", filteredData.slice(0, 2));
+      // ---- update hook state ---------------------------------------------
+      setState((prev) => ({
+        ...prev,
+        resultsData: filteredData,
+        rawResultsData: processedData,
+        siteSampleCounts,
+        availableSites,
+        availableGenes,
+        totalTumorSamples: siteSampleCounts.reduce((s, c) => s + c.tumor, 0),
+        totalNormalSamples: siteSampleCounts.reduce((s, c) => s + c.normal, 0),
+        error:
+          debugMessages.length > 0 && filteredData.length === 0
+            ? `No data for selected filters (sites: ${filterState.selectedSites}, genes: ${filterState.selectedGenes}, norm: ${filterState.normalizationMethod}, fmt: ${filterState.dataFormat}).`
+            : null,
+        isLoading: false,
+        debugMessages,
+      }));
 
-    setState((prev) => ({
-      ...prev,
-      resultsData: filteredData,
-      rawResultsData: processedData,
-      siteSampleCounts,
-      availableSites,
-      availableGenes,
-      totalTumorSamples: siteSampleCounts.reduce((sum, c) => sum + c.tumor, 0),
-      totalNormalSamples: siteSampleCounts.reduce((sum, c) => sum + c.normal, 0),
-      error: debugMessages.length > 0 && filteredData.length === 0 ? `No data available for selected filters (sites: ${filterState.selectedSites}, genes: ${filterState.selectedGenes}, normalization: ${filterState.normalizationMethod}, format: ${filterState.dataFormat}).` : null,
-      isLoading: false,
-      debugMessages,
-    }));
+      return filteredData;
+    },
+    [filterState]
+  );
 
-    return filteredData;
-  }, [filterState]);
-
-  const fetchData = useCallback(async (sitesToFetch: string[]) => {
-    if (!sitesToFetch.length || !params.genes.length) {
-      console.log("No sites or genes selected for fetch.");
-      setState((prev) => ({ ...prev, error: "Please select at least one cancer site and one gene.", isLoading: false, debugMessages: [] }));
-      return;
-    }
-
-    console.log("Fetching data for sites:", sitesToFetch, "genes:", params.genes);
-    setState((prev) => ({ ...prev, isLoading: true, error: null, debugMessages: [] }));
-
-    try {
-      const queryParams = new URLSearchParams();
-      sitesToFetch.forEach((site) => queryParams.append("cancer_site", site));
-      if (params.cancerTypes.length > 0) {
-        params.cancerTypes.forEach((type) => queryParams.append("cancer_type", type));
+  /* ------------------------------------------------------------------
+   * MERGE ALL CACHED SITES → single API-shaped object
+   * ------------------------------------------------------------------ */
+  const mergeAllCached = useCallback(() => {
+    const merged: any = { results: {}, sample_counts: {}, debug: {} };
+    for (const site of Object.keys(siteCache.current)) {
+      const cached = siteCache.current[site];
+      merged.results[site] = cached.results;
+      merged.sample_counts[site] = cached.sample_counts;
+      if (!merged.debug || Object.keys(merged.debug).length === 0) {
+        merged.debug = cached.debug ?? {};
       }
-      params.genes.forEach((gene) => queryParams.append("gene_ids", gene));
-
-      const response = await fetch(`/api/gene_noise?${queryParams}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch gene noise data: ${errorText}`);
-      }
-
-      const apiData = await response.json();
-      if (apiData.error) {
-        throw new Error(apiData.error);
-      }
-
-      console.log("API Data Fetched:", apiData);
-      setState((prev) => ({ ...prev, cachedApiData: apiData }));
-      processData(apiData);
-    } catch (error: any) {
-      console.error("Fetch Error:", error);
-      setState((prev) => ({ ...prev, error: error.message || "An error occurred while fetching data.", isLoading: false, debugMessages: [] }));
     }
-  }, [params, processData]);
+    return merged;
+  }, []);
 
+  /* ------------------------------------------------------------------
+   * SMART FETCH – only requests missing sites
+   * ------------------------------------------------------------------ */
+  const fetchData = useCallback(
+    async (sitesToFetch: string[]) => {
+      if (!sitesToFetch.length || !params.genes.length) {
+        setState((prev) => ({
+          ...prev,
+          error: "Please select at least one cancer site and one gene.",
+          isLoading: false,
+          debugMessages: [],
+        }));
+        return;
+      }
+
+      const missingSites = sitesToFetch.filter((s) => !siteCache.current[s]);
+
+      if (missingSites.length === 0) {
+        processData(mergeAllCached());
+        return;
+      }
+
+      setState((prev) => ({ ...prev, isLoading: true, error: null, debugMessages: [] }));
+
+      try {
+        const qp = new URLSearchParams();
+        sitesToFetch.forEach((s) => qp.append("cancer_site", s));
+        if (params.cancerTypes.length) params.cancerTypes.forEach((t) => qp.append("cancer_type", t));
+        params.genes.forEach((g) => qp.append("gene_ids", g));
+
+        console.log("FETCHING:", `/api/gene_noise?${qp}`);   // <-- DEBUG LOG
+
+        const resp = await fetch(`/api/gene_noise?${qp}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${txt}`);
+        }
+
+        const fresh = await resp.json();
+        if (fresh.error) throw new Error(fresh.error);
+
+        // store ONLY the new sites
+        for (const site of Object.keys(fresh.results ?? {})) {
+          if (missingSites.includes(site)) {
+            siteCache.current[site] = {
+              results: fresh.results[site],
+              sample_counts: fresh.sample_counts?.[site],
+              debug: fresh.debug,
+            };
+          }
+        }
+
+        const merged = mergeAllCached();
+        setState((prev) => ({ ...prev, cachedApiData: merged }));
+        processData(merged);
+      } catch (e: any) {
+        console.error("FETCH ERROR:", e);
+        setState((prev) => ({
+          ...prev,
+          error: e.message || "Network error",
+          isLoading: false,
+          debugMessages: [],
+        }));
+      }
+    },
+    [params, processData, mergeAllCached]
+  );
+
+  /* ------------------------------------------------------------------
+   * 1. INITIAL LOAD (URL params)
+   * ------------------------------------------------------------------ */
   useEffect(() => {
-    console.log("useEffect triggered. Params:", params, "Cached Data Exists:", !!state.cachedApiData, "Filter State:", filterState);
-    if (params.cancerSites.length > 0 && params.genes.length > 0) {
-      if (!state.cachedApiData) {
-        fetchData(params.cancerSites);
-      } else {
-        processData(state.cachedApiData);
-      }
+    if (params.cancerSites.length && params.genes.length) {
+      fetchData(params.cancerSites);
     }
-  }, [params.cancerSites, params.genes, filterState, fetchData, processData, state.cachedApiData]);
+  }, [params.cancerSites, params.genes, fetchData]);
+
+  /* ------------------------------------------------------------------
+   * 2. RE-FETCH WHEN USER CHANGES SITES FILTER
+   * ------------------------------------------------------------------ */
+  useEffect(() => {
+    // This runs **after** the reducer updates `filterState.selectedSites`
+    if (filterState.selectedSites.length && params.genes.length) {
+      fetchData(filterState.selectedSites);
+    }
+  }, [filterState.selectedSites, params.genes, fetchData]);
 
   return { ...state, fetchData };
 };
@@ -347,12 +408,29 @@ const GeneResults: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  const [allAvailableSites, setAllAvailableSites] = React.useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchAllSites = async () => {
+      try {
+        const response = await fetch("/api/sites");
+        if (!response.ok) throw new Error("Failed to fetch sites");
+        const data = await response.json();
+        const sites = data.sites.map((s: { name: string }) => s.name).sort();
+        setAllAvailableSites(sites);
+      } catch (err) {
+        console.error("Error fetching sites:", err);
+      }
+    };
+    fetchAllSites();
+  }, []);
 
   const [filterState, dispatch] = useReducer(filterReducer, {
     ...initialFilterState,
     selectedGenes: params.genes,
     selectedSites: params.cancerSites,
   });
+  
 
   const { resultsData, rawResultsData, isLoading, error, totalTumorSamples, totalNormalSamples, siteSampleCounts, availableSites, availableGenes, fetchData, debugMessages } = useGeneResultsData(params, filterState);
 
@@ -367,9 +445,15 @@ const GeneResults: React.FC = () => {
     if (updates.dataFormat) dispatch({ type: "SET_DATA_FORMAT", payload: updates.dataFormat });
   }, []);
 
-  const handleFilterChange = useCallback((filterId: string, value: any) => {
-    console.log("Filter changed:", filterId, value);
-    if (filterId === "genes") {
+const handleFilterChange = useCallback(
+  (filterId: string, value: any) => {
+    if (filterId === "sites") {
+      // 1. Update reducer
+      updateFilters({ selectedSites: value });
+
+      // 2. **fetchData is now called automatically** by the useEffect above
+      //    → no manual call needed here
+    } else if (filterId === "genes") {
       updateFilters({ selectedGenes: value });
     } else if (filterId === "noiseMetrics") {
       updateFilters({ selectedNoiseMetrics: value });
@@ -377,46 +461,114 @@ const GeneResults: React.FC = () => {
       updateFilters({
         visiblePlots: {
           ...filterState.visiblePlots,
-          ...Object.fromEntries(value.map((id: string) => [id, true]).concat(
-            Object.keys(filterState.visiblePlots).filter((k) => !value.includes(k)).map((k) => [k, false])
-          )),
+          ...Object.fromEntries(
+            value.map((id: string) => [id, true]).concat(
+              Object.keys(filterState.visiblePlots)
+                .filter((k) => !value.includes(k))
+                .map((k) => [k, false])
+            )
+          ),
         },
       });
-    } else if (filterId === "sites") {
-      updateFilters({ selectedSites: value });
     }
-  }, [filterState.visiblePlots, updateFilters]);
+  },
+  [filterState.visiblePlots, updateFilters]   // <-- fetchData removed – handled by useEffect
+);
 
+  // const downloadData = useCallback((format: "csv") => {
+  //   const data = resultsData.filter((d) => d.normalizationMethod === filterState.normalizationMethod);
+  //   let content = "";
+  //   let filename = `gene_analysis_${filterState.normalizationMethod}.csv`;
+
+  //   if (format === "csv") {
+  //     const keys = [
+  //       "site", "gene_symbol", "ensembl_id", "dataFormat",
+  //       "cv_tumor", "mean_tumor", "std_tumor", "mad_tumor", "cv_squared_tumor",
+  //       "cv_normal", "mean_normal", "std_normal", "mad_normal", "cv_squared_normal",
+  //       "logfc", "tumorSamples", "normalSamples"
+  //     ];
+  //     const headers = keys.join(",");
+  //     const rows = data.map((row) =>
+  //       keys.map((key) => {
+  //         const value = row[key as keyof GeneStats];
+  //         return typeof value === "number" ? value.toFixed(6) : value || "";
+  //       }).join(",")
+  //     );
+  //     content = [headers, ...rows].join("\n");
+  //   }
+
+  //   const blob = new Blob([content], { type: "text/csv" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = filename;
+  //   a.click();
+  //   URL.revokeObjectURL(url);
+  // }, [resultsData, filterState.normalizationMethod]);
+
+  
   const downloadData = useCallback((format: "csv") => {
-    const data = resultsData.filter((d) => d.normalizationMethod === filterState.normalizationMethod);
-    let content = "";
-    let filename = `gene_analysis_${filterState.normalizationMethod}_${Date.now()}.csv`;
+  if (format !== "csv") return;
 
-    if (format === "csv") {
-      const keys = [
-        "site", "gene_symbol", "ensembl_id", "dataFormat",
-        "cv_tumor", "mean_tumor", "std_tumor", "mad_tumor", "cv_squared_tumor",
-        "cv_normal", "mean_normal", "std_normal", "mad_normal", "cv_squared_normal",
-        "logfc", "tumorSamples", "normalSamples"
-      ];
-      const headers = keys.join(",");
-      const rows = data.map((row) =>
-        keys.map((key) => {
-          const value = row[key as keyof GeneStats];
-          return typeof value === "number" ? value.toFixed(6) : value || "";
-        }).join(",")
-      );
-      content = [headers, ...rows].join("\n");
-    }
+  // Use rawResultsData which contains ALL processed entries (both raw & log2)
+  const data = rawResultsData.filter(
+    (d) => d.normalizationMethod === filterState.normalizationMethod
+  );
 
-    const blob = new Blob([content], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [resultsData, filterState.normalizationMethod]);
+  if (data.length === 0) {
+    alert("No data available to download.");
+    return;
+  }
+
+  // Define CSV columns
+  const keys = [
+    "site",
+    "gene_symbol",
+    "ensembl_id",
+    "dataFormat", // This will be "raw" or "log2"
+    "cv_tumor",
+    "mean_tumor",
+    "std_tumor",
+    "mad_tumor",
+    "cv_squared_tumor",
+    "cv_normal",
+    "mean_normal",
+    "std_normal",
+    "mad_normal",
+    "cv_squared_normal",
+    "logfc",
+    "tumorSamples",
+    "normalSamples",
+  ] as const;
+
+  // Build header
+  const headers = keys.join(",");
+
+  // Build rows (both raw and log2 will appear naturally since they're in rawResultsData)
+  const rows = data.map((row) =>
+    keys
+      .map((key) => {
+        const value = row[key];
+        return typeof value === "number" ? value.toFixed(6) : value ?? "";
+      })
+      .join(",")
+  );
+
+  // Combine header + rows
+  const content = [headers, ...rows].join("\n");
+
+  // Trigger download
+  const filename = `gene_analysis_${filterState.normalizationMethod}_raw_and_log2_${Date.now()}.csv`;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}, [rawResultsData, filterState.normalizationMethod]);
 
   const metricFormulas = {
     CV: <>CV = σ / μ</>,
@@ -428,33 +580,21 @@ const GeneResults: React.FC = () => {
   };
 
   const customFilters = useMemo(() => {
-    const filters = [
-      {
-        title: params.analysisType === "cancer-specific" ? "Genes" : "Sites",
-        id: params.analysisType === "cancer-specific" ? "genes" : "sites",
-        type: "checkbox" as const,
-        options: params.analysisType === "cancer-specific"
-          ? availableGenes.map((geneSymbol) => ({ id: geneSymbol, label: geneSymbol }))
-          : availableSites.map((site) => ({ id: site, label: site })),
-        isMasterCheckbox: true,
-        defaultOpen: false,
-      },
-      {
-        title: "Noise Metrics",
-        id: "noiseMetrics",
-        type: "checkbox" as const,
-        options: Object.keys(metricFormulas).map((metric) => ({
-          id: metric,
-          label: metric,
-          tooltip: metricFormulas[metric],
-        })),
-        isMasterCheckbox: true,
-        defaultOpen: false,
-      },
-    ];
+    const filters = [];
 
-    if (params.analysisType !== "cancer-specific" && params.genes.length > 1) {
-      filters.splice(1, 0, {
+    // Always show Sites filter (even in cancer-specific mode)
+    filters.push({
+      title: "Sites",
+      id: "sites",
+      type: "checkbox" as const,
+      options: allAvailableSites.map((site) => ({ id: site, label: site })),
+      isMasterCheckbox: true,
+      defaultOpen: false, // Open by default to show all sites
+    });
+
+    // Show Genes filter
+    if (params.analysisType === "cancer-specific") {
+      filters.push({
         title: "Genes",
         id: "genes",
         type: "checkbox" as const,
@@ -464,8 +604,22 @@ const GeneResults: React.FC = () => {
       });
     }
 
+    // Metrics filter
+    filters.push({
+      title: "Metrics",
+      id: "noiseMetrics",
+      type: "checkbox" as const,
+      options: Object.keys(metricFormulas).map((metric) => ({
+        id: metric,
+        label: metric,
+        tooltip: metricFormulas[metric],
+      })),
+      isMasterCheckbox: true,
+      defaultOpen: false,
+    });
+
     return filters;
-  }, [availableSites, availableGenes, params.analysisType]);
+  }, [allAvailableSites, availableGenes, params.analysisType, metricFormulas]);
 
   const warnings = useMemo(() => {
     return [...new Set([...resultsData.map((d) => d.logfcMessage).filter(Boolean), ...debugMessages])] as string[];
