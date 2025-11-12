@@ -581,18 +581,19 @@ const handleFilterChange = useCallback(
 
   const customFilters = useMemo(() => {
     const filters = [];
+    // show sites in pan-cancer mdoe)
+    if (params.analysisType === "pan-cancer") {
+      filters.push({
+        title: "Sites",
+        id: "sites",
+        type: "checkbox" as const,
+        options: allAvailableSites.map((site) => ({ id: site, label: site })),
+        isMasterCheckbox: true,
+        defaultOpen: false, 
+      });
+    }
 
-    // Always show Sites filter (even in cancer-specific mode)
-    filters.push({
-      title: "Sites",
-      id: "sites",
-      type: "checkbox" as const,
-      options: allAvailableSites.map((site) => ({ id: site, label: site })),
-      isMasterCheckbox: true,
-      defaultOpen: false, // Open by default to show all sites
-    });
-
-    // Show Genes filter
+    // Show Genes filter in cancer specifc mode
     if (params.analysisType === "cancer-specific") {
       filters.push({
         title: "Genes",
