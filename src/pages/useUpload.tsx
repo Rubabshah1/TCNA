@@ -12,11 +12,8 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useCache } from "@/hooks/use-cache";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import SelectReact from "react-select";               // <-- new import
+import SelectReact from "react-select";              
 
-/* -------------------------------------------------------------------------- */
-/*  Custom styles – identical to the ones used in PathwayAnalysis            */
-/* -------------------------------------------------------------------------- */
 const customSelectStyles = {
   control: (provided: any) => ({
     ...provided,
