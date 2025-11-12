@@ -175,25 +175,28 @@ const PathwayAnalysis = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
+          <div className="mb-4">
+            <h2 className="text-4xl font-bold text-blue-900 mb-2">
+              Pathway Analysis
+              </h2>
+            <p className="text-lg text-blue-700">
+              Select cancer sites and genes, or analyze genes from a specific pathway.
+            </p>
+          </div>
 
-          <h2 className="text-4xl font-bold text-blue-900 mb-2">Pathway Analysis</h2>
-          <p className="text-xl text-blue-700 mb-6">
-            Select cancer sites and genes, or analyze genes from a specific pathway.
-          </p>
-
-          <div className="grid gap-6 mb-8">
+           <div className="grid gap-4 mb-2">
             {/* --- Cancer type --- */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl text-blue-800">
+            <Card className="border shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl text-blue-800">
                   Select Cancer Sites and Projects
                 </CardTitle>
               </CardHeader>
