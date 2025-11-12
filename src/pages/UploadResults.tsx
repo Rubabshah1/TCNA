@@ -439,13 +439,13 @@ const TumorAnalysisTable = ({ metrics }) => {
   const columns = [
     { key: 'sample', header: 'Sample', sortable: true },
     { key: 'DEPTH2', header: 'DEPTH2', sortable: true, render: (value: number) => value.toFixed(4)},
-    { key: 'tITH', header: 'DEPTH', sortable: true, render: (value: number) => value.toFixed(4) },
+    { key: 'DEPTH', header: 'DEPTH', sortable: true, render: (value: number) => value.toFixed(4) },
   ];
 
   const downloadCSV = () => {
     const headers = columns.map(col => col.header).join(",");
     const rows = metrics.map(row => 
-      [row.sample, row.DEPTH2.toFixed(4), row.tITH.toFixed(4)].join(",")
+      [row.sample, row.DEPTH2.toFixed(4), row.DEPTH.toFixed(4)].join(",")
     );
     const content = [headers, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
@@ -485,7 +485,7 @@ const TumorAnalysisBoxPlot = ({ metrics }) => {
     value: item.DEPTH2,
   })).concat(metrics.map(item => ({
     metric: 'DEPTH',
-    value: item.tITH,
+    value: item.DEPTH,
   })));
 
   return (
