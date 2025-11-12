@@ -520,7 +520,7 @@ const PathwayAnalysisTable = ({ enrichmentRaw, enrichmentLog2 }) => {
 
   const columns = [
     { key: 'Term', header: 'Pathway', sortable: true },
-    { key: 'FDR', header: 'P-value', sortable: true, render: (value) => value.toExponential(2) },
+    { key: 'FDR', header: 'FDR', sortable: true, render: (value) => value.toExponential(2) },
     { key: 'Genes', header: 'Genes', render: (value) => value.join(', ') },
     { key: 'GeneSet', header: 'Gene Set' },
   ];
@@ -706,12 +706,7 @@ const UploadResults = () => {
                     </Alert>
                   ) : (
                     <>
-                      {results.raw.enrichment?.length > 0 && results.log2.enrichment?.length > 0 && (
-                        <PathwayAnalysisTable
-                          enrichmentRaw={results.raw.enrichment}
-                          enrichmentLog2={results.log2.enrichment}
-                        />
-                      )}
+                      
                       {results.raw.heatmap_data && results.raw.top_genes &&
                       results.log2.heatmap_data && results.log2.top_genes && (
                         <PathwayBarChart
@@ -721,6 +716,11 @@ const UploadResults = () => {
                           topGenesLog2={results.log2.top_genes}
                           selectedGenes={selectedGenes}
                           setSelectedGenes={setSelectedGenes}
+                        />
+                      )}{results.raw.enrichment?.length > 0 && results.log2.enrichment?.length > 0 && (
+                        <PathwayAnalysisTable
+                          enrichmentRaw={results.raw.enrichment}
+                          enrichmentLog2={results.log2.enrichment}
                         />
                       )}
                     </>
