@@ -749,21 +749,6 @@ def compute_gene_stats(cur, cancer_sites: List[str], gene_list: List[int]) -> Di
                     # convert tumor keys to *_tumor and normal keys to *_normal so frontend can read mean_tumor/cv_tumor
                     tumor_suff = {f"{k}_tumor": v for k, v in (t_stats or {}).items()}
                     normal_suff = {f"{k}_normal": v for k, v in (n_stats or {}).items()}
-                    # logfc_val = tumor_stats_log.get("cv", 0) - normal_stats_log.get("cv", 0) if tumor_stats_log and normal_stats_log else np.nan
-                    # # logfc_val = (math.log2((t_stats.get("cv", 0) / n_stats.get("cv", 1))) 
-                    # #              if t_stats and n_stats and n_stats.get("cv", 0) else np.nan)
-                    # results[scale][norm_method]["gene_stats"].setdefault(gene_symbol, {})[site_key] = {
-                    #     **tumor_suff,
-                    #     **normal_suff,
-                    #     "logfc": logfc_val
-                    # }
-                    # results[scale][norm_method]["heatmap_data"].setdefault(gene_symbol, {})[f"{site}_normal"] = n_stats.get("mean", 0)
-                    # results[scale][norm_method]["heatmap_data"][gene_symbol][f"{site}_tumor"] = t_stats.get("mean", 0)
-                    # results[scale][norm_method]["noise_metrics"].setdefault(gene_symbol, {})[site_key] = {
-                    #     "cv_tumor": t_stats.get("cv", 0), "cv_normal": n_stats.get("cv", 0),
-                    #     # "logfc": math.log2(t_stats["cv"] / n_stats["cv"]) if t_stats and n_stats and n_stats.get("cv", 0) else np.nan
-                    #     "logfc": logfc_val
-                    # }
                     # safely handle missing tumor/normal stats
                     t = t_stats or {}
                     n = n_stats or {}
@@ -871,69 +856,6 @@ def get_tumor_results(cancer_site: str = Query(...), cancer_types: Optional[List
         }))
 
         # return JSONResponse(sanitize_floats({"results": results, "sample_counts": sample_counts, "error": None}))
-
-import json
-
-# def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: str):
-#     """
-#     Top-50 genes by CV = (STDDEV_SAMP / AVG) * 100
-#     Fully in MariaDB, no Python loop, works on 60k+ genes.
-#     """
-#     where_tcga = ""
-#     params: List[Any] = [site_id]
-#     if tcga_codes:
-#         where_tcga = "AND c.tcga_code IN %s"
-#         params.append(tuple(tcga_codes))
-
-#     sql = f"""
-#         WITH stats AS (
-#             SELECT
-#                 s.sample_type,
-#                 g.gene_symbol,
-#                 AVG(e.{norm}) AS mean_val,
-#                 STDDEV_SAMP(e.{norm}) AS std_val,
-#                 COUNT(e.{norm}) AS n_samples
-#             FROM gene_expressions e
-#             JOIN samples s      ON e.sample_id = s.id
-#             JOIN cancer_types c ON s.cancer_type_id = c.id
-#             JOIN genes g        ON e.gene_id = g.id 
-#             WHERE c.site_id = %s {where_tcga}
-#               AND e.{norm} IS NOT NULL
-#             GROUP BY s.sample_type, g.id, g.gene_symbol
-#             HAVING n_samples >= 3 AND mean_val > 0
-#         ),
-#         ranked AS (
-#             SELECT
-#                 sample_type,
-#                 gene_symbol,
-#                 (std_val / mean_val) * 100 AS cv,
-#                 ROW_NUMBER() OVER (PARTITION BY sample_type ORDER BY (std_val / mean_val) DESC) AS rn
-#             FROM stats
-#         ),
-#         top50 AS (
-#             SELECT sample_type, gene_symbol, cv
-#             FROM ranked
-#             WHERE rn <= 50
-#         )
-#         SELECT
-#             sample_type AS tissue,
-#             JSON_ARRAYAGG(
-#                 JSON_OBJECT('gene_symbol', gene_symbol, 'cv', ROUND(cv, 4))
-#             ) AS top_genes
-#         FROM top50
-#         GROUP BY sample_type;
-#     """
-
-#     cur.execute(sql, params)
-#     rows = cur.fetchall()
-
-#     result = {"tumor": [], "normal": []}
-#     for row in rows:
-#         tissue = row["tissue"].lower()
-#         genes_json = row["top_genes"]
-#         if genes_json:
-#             result[tissue] = json.loads(genes_json)
-#     return result
 import json
 from typing import Optional, List, Any
 
@@ -1091,16 +1013,25 @@ async def csv_upload(request: Request):
 
                 enrichment_results = []
                 try:
-                    enr = gp.enrichr(gene_list=top_genes, gene_sets=gene_set, organism="Human", outdir=None, cutoff=0.05)
-                    results_df = enr.results
-                    if not results_df.empty:
-                        results = results_df[["Term", "P-value", "Adjusted P-value", "Odds Ratio", "Combined Score", "Genes"]].head(top_n).to_dict(orient="records")
-                        for res in results:
-                            res["Genes"] = res["Genes"].split(";") if isinstance(res["Genes"], str) else []
-                            res["GeneSet"] = gene_set
-                        enrichment_results.extend(results)
+                    # Run STRING-db enrichment
+                    string_results = run_stringdb_enrichment(gene_set=set(top_genes), top_n=int(top_n))
+
+                    # Convert to your exact response format
+                    for res in string_results:
+                        fdr = res["FDR"]
+                        p_val = fdr  # Use FDR as p-value (common in enrichment)
+                        combined_score = res["EnrichmentScore"]  # -log10(FDR)
+                        gene_list = [g["preferred_name"] if isinstance(g, dict) else str(g) for g in res["MatchingGenes"]]
+
+                        enrichment_results.append({
+                            "Term": res["Term"],
+                            "FDR": float(fdr),
+                            "Genes": gene_list,
+                            "GeneSet": f"STRINGdb_{res['Database']}"  # e.g., STRINGdb_KEGG
+                        })
+
                 except Exception as e:
-                    logger.error(f"Failed to run ORA with {gene_set} for {transform}: {e}")
+                    logger.error(f"Failed to process STRING enrichment for {transform}: {e}")
 
                 response[transform].update({
                     "enrichment": enrichment_results,
