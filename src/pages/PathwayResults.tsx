@@ -190,17 +190,22 @@ const useEnrichmentData = (
     }
 
     setState((s) => ({ ...s, isLoading: true }));
-
     try {
-      const qp = new URLSearchParams({
-        cancer: sites.join(","),
-        top_n: "1000",
+      // Build the JSON body instead of query params
+      const body = {
+        cancer: sites.join(","), // same logic as before
+        top_n: 1000,
         mode: filterState.analysisMode,
-        ...(filterState.selectedGenes.length && { genes: filterState.selectedGenes.join(",") }),
-        ...(filterState.selectedPathway?.Term && { pathway: filterState.selectedPathway.Term }),
+        genes: filterState.selectedGenes,
+        pathway: filterState.selectedPathway?.Term || null,
+      };
+
+      const res = await fetch(`/api/pathway-analysis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const res = await fetch(`/api/pathway-analysis?${qp}`);
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
 
@@ -230,6 +235,7 @@ const useEnrichmentData = (
     } catch (e: any) {
       setState((s) => ({ ...s, error: e.message, isLoading: false }));
     }
+
   }, [
     filterState.selectedGenes,
     filterState.selectedSites,
@@ -276,38 +282,6 @@ const useGeneNoise = (
   const { getCachedData, setCachedData, generateCacheKey } = useCache<any>();
   const abortRef = useRef<AbortController | null>(null);
 
-  // const fetchNoise = useCallback(async () => {
-  //   if (!sites.length || !genes.length) return;
-
-  //   const cacheKey = generateCacheKey({ endpoint: "gene-noise", sites, genes });
-  //   const cached = getCachedData(cacheKey);
-  //   if (cached) {
-  //     setState({ data: cached, isLoading: false, error: null });
-  //     return;
-  //   }
-
-  //   if (abortRef.current) abortRef.current.abort();
-  //   const ctrl = new AbortController();
-  //   abortRef.current = ctrl;
-
-  //   setState(s => ({ ...s, isLoading: true }));
-  //   try {
-  //     const qp = new URLSearchParams();
-  //     qp.set("cancer", sites.join(","));
-  //     if (genes && genes.length) qp.set("genes", genes.join(","));
-  //     if (cancerTypes && cancerTypes.length) qp.set("cancer_types", cancerTypes.join(","));
-  //     const url = `/api/gene-noise-pathway?${qp.toString()}`;
-
-  //     const res = await fetch(url, { signal: ctrl.signal });
-  //     if (!res.ok) throw new Error(await res.text());
-  //     const json = await res.json();
-  //     const payload = json.gene_noise;
-  //     setCachedData(cacheKey, payload);
-  //     setState({ data: payload, isLoading: false, error: null });
-  //   } catch (e: any) {
-  //     if (e.name !== "AbortError") setState(s => ({ ...s, isLoading: false, error: e.message }));
-  //   }
-  // }, [sites, genes, getCachedData, setCachedData, generateCacheKey]);
   const fetchNoise = useCallback(async () => {
   if (!sites.length || !genes.length) return;
 
@@ -402,48 +376,15 @@ const PathwayResults: React.FC = () => {
   };
 }, [params.pathwayId, searchParams]);
 
-// Then in filterState
-const [filterState, dispatch] = useReducer(filterReducer, {
-  ...initialFilterState,
-  selectedSites: params.sites,
-  selectedGenes: params.genes,
-  analysisMode: params.mode as "enrichment" | "neighbors",
-  geneInput: params.genes.join(", "),
-  selectedPathway: initialPathway,
-});
-  // === Load pathway object from API when pathwayId is in URL ===
-  const [isFetchingPathway, setIsFetchingPathway] = useState(false);
+  const [filterState, dispatch] = useReducer(filterReducer, {
+    ...initialFilterState,
+    selectedSites: params.sites,
+    selectedGenes: params.genes,
+    analysisMode: params.mode as "enrichment" | "neighbors",
+    geneInput: params.genes.join(", "),
+    selectedPathway: initialPathway,
+  });
 
-  useEffect(() => {
-    if (!params.pathwayId || filterState.selectedPathway) return;
-
-    const loadPathway = async () => {
-      setIsFetchingPathway(true);
-      try {
-        const res = await fetch(`/api/get-pathway?pathway=${params.pathwayId}`);
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-
-        const pathway: Enrichment = {
-          Term: data.id,
-          Database: data.category ?? "Unknown",
-          FDR: 0,
-          MatchingGenes: data.genes ?? [],
-          Description: data.description ?? data.label ?? data.id,
-          GeneCount: data.genes?.length ?? 0,
-        };
-
-        dispatch({ type: "SET_SELECTED_PATHWAY", payload: pathway });
-        dispatch({ type: "SET_GENES", payload: pathway.MatchingGenes });
-      } catch (e: any) {
-        console.error("Failed to load pathway:", e);
-      } finally {
-        setIsFetchingPathway(false);
-      }
-    };
-
-    loadPathway();
-  }, [params.pathwayId, filterState.selectedPathway]);
 
   // Helper: are current genes a subset of the initial URL genes?
   const areGenesSubsetOfInitial = useCallback(
@@ -457,7 +398,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
   // === ENRICHMENT DATA ===
   const {
     resultsData,
-    isLoading: enrichLoading,
+    isLoading,
     error: enrichError,
     totalTumorSamples,
     totalNormalSamples,
@@ -476,7 +417,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
     params.cancerTypes
   );
 
-  // === SMART REFETCH LOGIC ===
+
   const prevGenes = useRef<string[]>();
   const prevSites = useRef<string[]>();
 
@@ -637,7 +578,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
   // const renderValue = (val: number | null | undefined) =>
   //   val == null || Number.isNaN(Number(val)) ? "—" : Number(val).toFixed(3);
   const renderValue = (val: number | null | undefined) =>
-    val == null || Number.isNaN(val) ? "0" : Number(val).toFixed(3);
+    val == null || Number.isNaN(val) ? 0.00 : Number(val).toFixed(3);
 
   const norm = filterState.normalizationMethod;
   const meanSource = resultsData[filterState.dataFormats.mean]?.[norm]?.gene_stats || {};
@@ -835,6 +776,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
     return c && c.normal === 0;
   });
 
+  
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
@@ -859,7 +801,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
             />
 
             <div className="flex-1">
-              {enrichLoading || noiseLoading || isFetchingPathway ? (
+              {isLoading ? (
                 <LoadingSpinner message="Please wait..." />
               ) : enrichError ? (
                 <div className="text-red-600">{enrichError}</div>
@@ -1115,7 +1057,7 @@ const [filterState, dispatch] = useReducer(filterReducer, {
                           scrollHeight="450px"
                         />
                       </CollapsibleCard>
-                      {filterState.selectedSites.length > 0 && logfcTableData.length > 0 && isNoiseFullyLoaded && (
+                      {filterState.selectedSites.length > 0 && logfcTableData.length > 0 && (
                         <CollapsibleCard
                           title={`LogFC ≥ ${filterState.logFCThreshold}`}
                           defaultOpen={false}
@@ -1154,24 +1096,31 @@ const [filterState, dispatch] = useReducer(filterReducer, {
                                     <p className="text-sm font-medium text-blue-900 mb-2">
                                       Enriched Pathways:
                                     </p>
-                                    <div className="space-y-1">
-                                      {matchingPathways
-                                        .sort((a, b) => a.FDR - b.FDR)
-                                        .slice(0, 15)
-                                        .map((pathway) => (
-                                          <div
-                                            key={pathway.Description}
-                                            className="text-xs bg-white rounded px-2 py-1 flex justify-between items-center"
-                                          >
-                                            <span>
-                                              <strong>{pathway.Description}</strong> ({pathway.Database})
-                                            </span>
-                                            <span className="text-gray-600">
-                                              FDR: {formatFDR(pathway.FDR)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                    </div>
+
+                                    {matchingPathways.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {matchingPathways
+                                          .sort((a, b) => a.FDR - b.FDR)
+                                          .slice(0, 15)
+                                          .map((pathway) => (
+                                            <div
+                                              key={pathway.Description}
+                                              className="text-xs bg-white rounded px-2 py-1 flex justify-between items-center"
+                                            >
+                                              <span>
+                                                <strong>{pathway.Description}</strong> ({pathway.Database})
+                                              </span>
+                                              <span className="text-gray-600">
+                                                FDR: {formatFDR(pathway.FDR)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-600 italic">
+                                        No enriched pathways found for these genes.
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               );
