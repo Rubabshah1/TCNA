@@ -1,7 +1,7 @@
 import sys
 
 sys.dont_write_bytecode = True
-from fastapi import FastAPI, APIRouter, Query, HTTPException, Request
+from fastapi import FastAPI, Body, APIRouter, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Optional, Set, Any
@@ -20,7 +20,6 @@ import pandas as pd
 import numpy as np
 import math
 import scipy.stats as stats
-from statsmodels.stats.multitest import multipletests
 import requests
 import logging
 from db_conn import get_connection
@@ -96,6 +95,16 @@ def compute_metrics(values: pd.Series):
     cv = (std / mean) * 100 if mean != 0 else np.nan
     cv2 = cv**2 if not np.isnan(cv) else np.nan
     return {"mean": mean, "std": std, "mad": mad, "cv": cv, "cv_squared": cv2}
+
+def normalize_input(items: Optional[List[str]]) -> List[str]:
+    result = []
+    if not items:
+        return result
+    for item in items:
+        if not item:
+            continue
+        result.extend([x.strip().upper() for x in re.split(r"[,;]+", item) if x.strip()])
+    return result
 
 # site selector
 @app.get("/api/sites")
@@ -286,49 +295,53 @@ def get_gene_noise(
     results = sanitize_floats(final_output)
     print(results)
     return JSONResponse(results)
-    # return JSONResponse(final_output)
 
 # pathway analysis
+
+class GeneNoiseRequest(BaseModel):
+    cancer: List[str]                 # or str if you want comma-separated
+    genes: List[str]
+    cancer_types: Optional[List[str]] = None
+
 @app.post("/api/gene-noise-pathway")
-def get_gene_noise_pathway(
-    cancer: str = Query(..., description="Comma-separated cancer sites"),
-    genes: List[str] = Query(..., description="Gene symbols (comma-separated)"),
-    cancer_types: Optional[List[str]] = Query(None, description="Optional list of TCGA cancer types (comma-separated or repeated)"),
-):
-    # cancer_sites = [s.strip() for s in cancer.split(",") if s.strip()]
-    # gene_symbols = [g.strip().upper() for g in genes if g.strip()]
-    # normalize cancer sites (accept comma-separated string)
-    cancer_sites = [s.strip() for s in re.split(r"[,;]+", cancer) if s.strip()]
-
-    # normalize genes: accept repeated params or a single comma-separated string
-    gene_items: list[str] = []
-    for g in genes:
-        if not g:
+def get_gene_noise_pathway(req: GeneNoiseRequest = Body(...)):
+    # --- normalize cancer sites ---
+    cancer_sites = []
+    for c in req.cancer:
+        if not c:
             continue
-        if isinstance(g, str) and ("," in g or ";" in g):
-            gene_items.extend([x.strip() for x in re.split(r"[,;]+", g) if x.strip()])
+        if "," in c or ";" in c:
+            cancer_sites.extend([x.strip() for x in re.split(r"[,;]+", c) if x.strip()])
         else:
-            gene_items.append(str(g).strip())
-    gene_symbols = [g.upper() for g in gene_items if g]
-
-    # normalize optional cancer_types (TCGA codes); accept repeated or comma-separated
-    cancer_type_items: Optional[list[str]] = None
-    if cancer_types:
-        tmp: list[str] = []
-        for ct in cancer_types:
-            if not ct:
-                continue
-            if isinstance(ct, str) and ("," in ct or ";" in ct):
-                tmp.extend([x.strip().upper() for x in re.split(r"[,;]+", ct) if x.strip()])
-            else:
-                tmp.append(str(ct).strip().upper())
-        cancer_type_items = tmp if tmp else None
-
+            cancer_sites.append(c.strip())
     if not cancer_sites:
         raise HTTPException(status_code=400, detail="At least one cancer site is required")
+
+    # --- normalize genes ---
+    gene_symbols = []
+    for g in req.genes:
+        if not g:
+            continue
+        if "," in g or ";" in g:
+            gene_symbols.extend([x.strip().upper() for x in re.split(r"[,;]+", g) if x.strip()])
+        else:
+            gene_symbols.append(g.strip().upper())
     if not gene_symbols:
         raise HTTPException(status_code=400, detail="At least one gene symbol is required")
- 
+
+    # --- normalize optional cancer types ---
+    cancer_type_items: Optional[List[str]] = None
+    if req.cancer_types:
+        tmp: list[str] = []
+        for ct in req.cancer_types:
+            if not ct:
+                continue
+            if "," in ct or ";" in ct:
+                tmp.extend([x.strip().upper() for x in re.split(r"[,;]+", ct) if x.strip()])
+            else:
+                tmp.append(ct.strip().upper())
+        cancer_type_items = tmp if tmp else None
+
 
     with get_connection() as conn:
         cur = conn.cursor(pymysql.cursors.DictCursor)
@@ -511,9 +524,6 @@ async def get_enriched_pathways(request: GeneRequest):
                 "genes": genes,
             })
 
-        print("=== FILTERED ENRICHMENT RESPONSE ===")
-        print(pathways[:2])  # log first 2 results for debugging
-
         return pathways
 
     except requests.RequestException as e:
@@ -532,72 +542,51 @@ def get_genes_for_pathway(pathway: str):
 
     return {"pathway": pathway, "genes": genes}
 
-def fetch_kegg_genes(pathway_id: str) -> List[str]:
-    """Fetch all genes in a KEGG pathway using REST API."""
-    try:
-        resp = requests.get(f"https://rest.kegg.jp/get/{pathway_id}", timeout=10)
-        resp.raise_for_status()
-        text = resp.text
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch KEGG genes: {str(e)}")
-
-    # Example lines: "10000  AKT3; AKT serine/threonine kinase 3"
-    genes = re.findall(r"\d+\s+([A-Za-z0-9_-]+);", text)
-    return list(sorted(set(genes)))
+class PathwayAnalysisRequest(BaseModel):
+    cancer: str
+    genes: Optional[List[str]] = None
+    top_n: int = 1000
+    logfc_threshold: float = 0.7
+    mode: str = "enrichment"
+    network_type: str = "functional"
+    score_threshold: float = 0.4
+    pathway: Optional[str] = None
 
 
-def fetch_go_genes(go_id: str, taxon: int = 9606) -> List[str]:
-    """Fetch all human gene symbols annotated with a GO term from QuickGO."""
-    url = f"https://www.ebi.ac.uk/QuickGO/services/annotation/search?goId={go_id}&taxonId={taxon}"
-    try:
-        resp = requests.get(url, timeout=10, headers={"Accept": "application/json"})
-        resp.raise_for_status()
-        data = resp.json()
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch GO genes: {str(e)}")
-
-    # Extract unique symbols
-    genes = {r["symbol"].strip() for r in data.get("results", []) if r.get("symbol")}
-    return list(sorted(genes))
-
-
-@app.get("/api/pathway-analysis")
-def get_pathway_analysis(
-    cancer: str = Query(...),
-    genes: Optional[List[str]] = Query(None),
-    top_n: int = Query(1000),
-    logfc_threshold: float = Query(0.7),
-    mode: str = Query("enrichment"),
-    network_type: str = Query("functional"),
-    score_threshold: float = Query(0.4),
-    pathway: Optional[str] = Query(None)
-):
+@app.post("/api/pathway-analysis")
+def post_pathway_analysis(req: PathwayAnalysisRequest):
     """
     Perform pathway or network analysis for genes across cancer sites.
     If `pathway` (KEGG or GO ID) is provided, fetch its genes from KEGG or QuickGO first.
     """
-    cancer_sites = [s.strip() for s in cancer.split(",") if s.strip()]
+    cancer_sites = [s.strip() for s in req.cancer.split(",") if s.strip()]
+    
 
     with get_connection() as conn:
         cur = conn.cursor()
-        gene_list, selected_gene_set, warning = get_genes(cur, genes, cancer_sites, logfc_threshold)
+        gene_list, selected_gene_set, warning = get_genes(
+            cur,
+            req.genes,
+            cancer_sites,
+            req.logfc_threshold
+        )
 
         # --- NEW LOGIC: fetch pathway genes (KEGG or GO) ---
-        if pathway:
-            if pathway.upper().startswith("GO:"):
-                fetched_genes = fetch_go_genes(pathway)
+        if req.pathway:
+            if req.pathway.upper().startswith("GO:"):
+                fetched_genes = fetch_go_genes(req.pathway)
             else:
-                fetched_genes = fetch_kegg_genes(pathway)
+                fetched_genes = fetch_kegg_genes(req.pathway)
 
             if not fetched_genes:
-                raise HTTPException(status_code=404, detail=f"No genes found for pathway '{pathway}'")
+                raise HTTPException(status_code=404, detail=f"No genes found for pathway '{req.pathway}'")
 
             # ensure they exist in DB
             cur.execute("SELECT id, gene_symbol FROM genes WHERE gene_symbol IN %s", (tuple(fetched_genes),))
             gene_rows = cur.fetchall()
 
             if not gene_rows:
-                raise HTTPException(status_code=404, detail=f"No pathway genes found in database for '{pathway}'")
+                raise HTTPException(status_code=404, detail=f"No pathway genes found in database for '{req.pathway}'")
 
             gene_list = [row["id"] for row in gene_rows]
             selected_gene_set = set(row["gene_symbol"] for row in gene_rows)
@@ -607,16 +596,14 @@ def get_pathway_analysis(
         results = compute_gene_stats(cur, cancer_sites, gene_list)
 
         string_results = (
-            run_stringdb_neighbors(selected_gene_set, network_type, score_threshold, top_n)
-            if mode == "neighbors"
-            else run_stringdb_enrichment(selected_gene_set, top_n)
+            run_stringdb_enrichment(selected_gene_set, req.top_n)
         )
 
         # attach results
         for scale in ["raw", "log2"]:
             for norm_method in ["tpm", "fpkm", "fpkm_uq"]:
                 results[scale][norm_method]["top_genes"] = list(selected_gene_set)
-                results[scale][norm_method][mode] = string_results
+                results[scale][norm_method][req.mode] = string_results
 
         results = sanitize_floats({
             "raw": results["raw"],
@@ -624,21 +611,21 @@ def get_pathway_analysis(
             "sample_counts": sample_counts,
             "available_sites": get_available_sites(cur),
             "warning": warning,
-            "mode": mode,
+            "mode": req.mode,
         })
 
         return JSONResponse(sanitize_floats(results))
 
-
 def run_stringdb_enrichment(gene_set: Set[str], top_n: int, species: int = 9606) -> List[Dict]:
     """Run STRINGdb enrichment for a gene set."""
+    
     if not gene_set:
         return []
     try:
         response = requests.get(f"https://string-db.org/api/json/enrichment?identifiers={'%0D'.join(gene_set)}&species={species}")
         response.raise_for_status()
         data = response.json()
-        category_map = {"Process": "GO:BP", "Function": "GO:MF", "Component": "GO:CC", "KEGG": "KEGG", "Reactome": "Reactome", "UniProt": "UniProt", "WikiPathways": "WikiPathways"}
+        category_map = {"Process": "GO:BP", "Function": "GO:MF", "Component": "GO:CC", "KEGG": "KEGG"}
         valid_categories = set(category_map.values())
         results = [
             {
@@ -658,23 +645,6 @@ def run_stringdb_enrichment(gene_set: Set[str], top_n: int, species: int = 9606)
         return results
     except Exception as e:
         logger.error(f"STRING enrichment failed: {e}")
-        return []
-
-def run_stringdb_neighbors(gene_set: Set[str], network_type: str, score_threshold: float, top_n: int, species: int = 9606) -> List[Dict]:
-    """Get nearest neighbor network from STRINGdb."""
-    if not gene_set:
-        return []
-    try:
-        response = requests.get(f"https://string-db.org/api/json/network?identifiers={'%0D'.join(gene_set)}&species={species}")
-        response.raise_for_status()
-        data = response.json()
-        filtered = [x for x in data if x["score"] >= score_threshold and (network_type != "physical" or x.get("network_type") == "physical")]
-        return [
-            {"source": x["preferredName_A"], "target": x["preferredName_B"], "score": x["score"]}
-            for x in sorted(filtered, key=lambda x: x["score"], reverse=True)[:top_n]
-        ]
-    except Exception as e:
-        logger.error(f"STRING neighbors failed: {e}")
         return []
 
 def get_genes(cur, genes_input: List[str], cancer_sites: List[str], logfc_threshold: float) -> tuple[List[int], Set[str], Optional[str]]:
@@ -740,15 +710,7 @@ def compute_gene_stats(cur, cancer_sites: List[str], gene_list: List[int]) -> Di
                 tumor_stats_log, normal_stats_log = compute_metrics(tumor_log), compute_metrics(normal_log)
                 
                 site_key = site.lower()
-                # for scale, t_stats, n_stats in [("raw", tumor_stats, normal_stats), ("log2", tumor_stats_log, normal_stats_log)]:
-                #     results[scale][norm_method]["gene_stats"].setdefault(gene_symbol, {})[site_key] = {
-                #         **t_stats, **{f"{k}_normal": v for k, v in n_stats.items()},
-                #         "logfc": math.log2(t_stats["cv"] / n_stats["cv"]) if t_stats and n_stats and n_stats.get("cv", 0) else np.nan
-                #     }
                 for scale, t_stats, n_stats in [("raw", tumor_stats, normal_stats), ("log2", tumor_stats_log, normal_stats_log)]:
-                    # convert tumor keys to *_tumor and normal keys to *_normal so frontend can read mean_tumor/cv_tumor
-                    tumor_suff = {f"{k}_tumor": v for k, v in (t_stats or {}).items()}
-                    normal_suff = {f"{k}_normal": v for k, v in (n_stats or {}).items()}
                     # safely handle missing tumor/normal stats
                     t = t_stats or {}
                     n = n_stats or {}
@@ -856,70 +818,6 @@ def get_tumor_results(cancer_site: str = Query(...), cancer_types: Optional[List
         }))
 
         # return JSONResponse(sanitize_floats({"results": results, "sample_counts": sample_counts, "error": None}))
-import json
-from typing import Optional, List, Any
-
-def _top_noisy_genes(cur, site_id: int, tcga_codes: Optional[List[str]], norm: str):
-    """
-    Top-50 noisy genes using pure MySQL 8.0+ (no Pandas)
-    Fixed: g.gene_id → g.id
-    """
-    where_tcga = ""
-    params = [site_id]
-    if tcga_codes:
-        where_tcga = "AND c.tcga_code IN %s"
-        params.append(tuple(tcga_codes))
-
-    sql = f"""
-        WITH stats AS (
-            SELECT
-                LOWER(s.sample_type) AS tissue,
-                g.gene_symbol,
-                AVG(e.{norm}) AS mean_val,
-                STDDEV_SAMP(e.{norm}) AS std_val,
-                COUNT(*) AS n_samples
-            FROM gene_expressions e
-            JOIN samples s ON e.sample_id = s.id
-            JOIN cancer_types c ON s.cancer_type_id = c.id
-            JOIN genes g ON e.gene_id = g.id
-            WHERE c.site_id = %s {where_tcga}
-              AND e.{norm} IS NOT NULL
-              AND e.{norm} > 0
-            GROUP BY g.id, g.gene_symbol, s.sample_type
-            HAVING n_samples >= 3 AND mean_val > 0
-        ),
-        ranked AS (
-            SELECT
-                tissue,
-                gene_symbol,
-                (std_val / mean_val) * 100 AS cv,
-                ROW_NUMBER() OVER (PARTITION BY tissue ORDER BY (std_val / mean_val) DESC) AS rn
-            FROM stats
-        )
-        SELECT 
-            tissue,
-            JSON_ARRAYAGG(
-                JSON_OBJECT('gene_symbol', gene_symbol, 'cv', ROUND(cv, 4))
-            ) AS top_genes
-        FROM ranked
-        WHERE rn <= 50
-        GROUP BY tissue;
-    """
-
-    cur.execute(sql, params)
-    rows = cur.fetchall()
-
-    result = {"tumor": [], "normal": []}
-    for row in rows:
-        tissue = row["tissue"]
-        genes_json = row["top_genes"]
-        if genes_json:
-            genes = json.loads(genes_json)
-            # Sort by CV descending (safe, only 100 items)
-            genes.sort(key=lambda x: x["cv"], reverse=True)
-            result[tissue] = genes
-    
-    return result
 
 @app.post("/api/csv-upload")
 async def csv_upload(request: Request):
