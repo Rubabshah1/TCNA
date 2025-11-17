@@ -415,9 +415,9 @@ const TumorSidebar = () => {
               </a>
             </div>
             <div>
-              <h4 className="text-sm font-bold text-blue-900">tITH</h4>
+              <h4 className="text-sm font-bold text-blue-900">DEPTH</h4>
               <p className="mb-2">
-                Calculated using the DEPTH algorithm with reference to normal controls.
+                DEPTH calculates a tumor’s ITH level with reference to normal controls.
               </p>
               <a
                 href="https://www.nature.com/articles/s42003-020-01230-7"
@@ -439,13 +439,13 @@ const TumorAnalysisTable = ({ metrics }) => {
   const columns = [
     { key: 'sample', header: 'Sample', sortable: true },
     { key: 'DEPTH2', header: 'DEPTH2', sortable: true, render: (value: number) => value.toFixed(4)},
-    { key: 'tITH', header: 'tITH', sortable: true, render: (value: number) => value.toFixed(4) },
+    { key: 'DEPTH', header: 'DEPTH', sortable: true, render: (value: number) => value.toFixed(4) },
   ];
 
   const downloadCSV = () => {
     const headers = columns.map(col => col.header).join(",");
     const rows = metrics.map(row => 
-      [row.sample, row.DEPTH2.toFixed(4), row.tITH.toFixed(4)].join(",")
+      [row.sample, row.DEPTH2.toFixed(4), row.DEPTH.toFixed(4)].join(",")
     );
     const content = [headers, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
@@ -484,8 +484,8 @@ const TumorAnalysisBoxPlot = ({ metrics }) => {
     metric: 'DEPTH2',
     value: item.DEPTH2,
   })).concat(metrics.map(item => ({
-    metric: 'tITH',
-    value: item.tITH,
+    metric: 'DEPTH',
+    value: item.DEPTH,
   })));
 
   return (
@@ -497,8 +497,8 @@ const TumorAnalysisBoxPlot = ({ metrics }) => {
           xKey="metric"
           yLabel="Metric Value"
           normalizationMethod="Metric Value"
-          selectedGroups={['DEPTH2', 'tITH']}
-          colorMap={{ 'DEPTH2': 'hsl(200, 70%, 50%)', 'tITH': 'hsla(301, 98%, 32%, 1.00)' }}
+          selectedGroups={['DEPTH2', 'DEPTH']}
+          colorMap={{ 'DEPTH2': 'hsl(200, 70%, 50%)', 'DEPTH': 'hsla(301, 98%, 32%, 1.00)' }}
           className="border rounded-md"
           showLegend={true}
         />
@@ -520,8 +520,7 @@ const PathwayAnalysisTable = ({ enrichmentRaw, enrichmentLog2 }) => {
 
   const columns = [
     { key: 'Term', header: 'Pathway', sortable: true },
-    { key: 'P-value', header: 'P-value', sortable: true, render: (value) => value.toExponential(2) },
-    { key: 'Adjusted P-value', header: 'Adjusted P-value', sortable: true, render: (value) => value.toExponential(2) },
+    { key: 'FDR', header: 'FDR', sortable: true, render: (value) => value.toExponential(2) },
     { key: 'Genes', header: 'Genes', render: (value) => value.join(', ') },
     { key: 'GeneSet', header: 'Gene Set' },
   ];
@@ -529,7 +528,7 @@ const PathwayAnalysisTable = ({ enrichmentRaw, enrichmentLog2 }) => {
   const downloadCSV = () => {
     const headers = columns.map(col => col.header).join(",");
     const rows = enrichment.map(row => 
-      [row.Term, row['P-value'].toExponential(4), row['Adjusted P-value'].toExponential(4), row.Genes.join(", "), row.GeneSet || ""].join(",")
+      [row.Term, row['FDR'].toExponential(4), row.Genes.join(", "), row.GeneSet || ""].join(",")
     );
     const content = [headers, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
@@ -569,7 +568,7 @@ const PathwayAnalysisTable = ({ enrichmentRaw, enrichmentLog2 }) => {
       <DataTable
         data={enrichment}
         columns={columns}
-        defaultSortKey="P-value"
+        defaultSortKey="FDR"
         defaultSortOrder="asc"
         className="border rounded-md"
         containerWidth="100%"
@@ -707,12 +706,7 @@ const UploadResults = () => {
                     </Alert>
                   ) : (
                     <>
-                      {results.raw.enrichment?.length > 0 && results.log2.enrichment?.length > 0 && (
-                        <PathwayAnalysisTable
-                          enrichmentRaw={results.raw.enrichment}
-                          enrichmentLog2={results.log2.enrichment}
-                        />
-                      )}
+                      
                       {results.raw.heatmap_data && results.raw.top_genes &&
                       results.log2.heatmap_data && results.log2.top_genes && (
                         <PathwayBarChart
@@ -722,6 +716,11 @@ const UploadResults = () => {
                           topGenesLog2={results.log2.top_genes}
                           selectedGenes={selectedGenes}
                           setSelectedGenes={setSelectedGenes}
+                        />
+                      )}{results.raw.enrichment?.length > 0 && results.log2.enrichment?.length > 0 && (
+                        <PathwayAnalysisTable
+                          enrichmentRaw={results.raw.enrichment}
+                          enrichmentLog2={results.log2.enrichment}
                         />
                       )}
                     </>

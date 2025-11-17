@@ -58,6 +58,8 @@ const TumourAnalysis = () => {
               // onSiteChange={setSelectedCancerSite}
               selectedCancerTypes={selectedCancerTypes}
               onCancerTypesChange={setSelectedCancerTypes}
+              selectedSites={selectedCancerSite}
+              CancerTypes={selectedCancerTypes}
               onSitesChange={setSelectedCancerSite}
               analysisType={"cancer-specific"}
             />

@@ -81,7 +81,7 @@ const useTumorResultsData = (
     sampleToCancerType: {},
     topNoisyGenes: {},
   });
-
+  
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -317,7 +317,7 @@ const TumourResults: React.FC = () => {
 
   const customFilters = [
     {
-      title: "TH Metrics",
+      title: "Metrics",
       id: "noiseMetrics",
       type: "checkbox" as const,
       options: allNoiseMetrics.map((m) => ({
@@ -332,6 +332,36 @@ const TumourResults: React.FC = () => {
       defaultOpen: false,
     },
   ];
+  const NoisyGenesCard: React.FC<{
+  norm: string;
+  data: { tumor: typeof topNoisyGenes.tpm.tumor; normal: typeof topNoisyGenes.tpm.normal };
+}> = ({ norm, data }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <CollapsibleCard
+      title={`Top 50 Noisy Genes – ${norm.toUpperCase()}`}
+      defaultOpen={open}
+      onToggle={setOpen}
+      className="mb-4"
+    >
+      <div className="grid grid-cols-2 gap-4">
+        {(["tumor", "normal"] as const).map((type) => (
+          <div key={type}>
+            <h4 className="font-semibold capitalize text-blue-800">{type}</h4>
+            <ol className="list-decimal list-inside text-sm space-y-1">
+              {data[type].map((g, i) => (
+                <li key={i}>
+                  <span className="font-mono">{g.gene_symbol}</span>{" "}
+                  <span className="text-gray-600">(CV: {g.cv.toFixed(3)})</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </CollapsibleCard>
+  );
+};
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -350,9 +380,9 @@ const TumourResults: React.FC = () => {
             <div className="flex-1">
               {error && <div className="text-red-600 mb-4">{error}</div>}
               {isLoading ? (
-                <LoadingSpinner message="Loading tumor data..." />
-              ) : resultsData.length === 0 ? (
-                <div className="text-center text-red-600">No data matches the selected filters.</div>
+                <LoadingSpinner message="Please wait..." />
+              // ) : resultsData.length === 0 ? (
+              //   <div className="text-center text-red-600">No data matches the selected filters.</div>
               ) : (
                 <>
                   <Link
@@ -456,7 +486,19 @@ const TumourResults: React.FC = () => {
                             />
                           </CollapsibleCard>
                         </>
+                        
                       )}
+                      {/* <div className="mt-8">
+                    <h3 className="text-2xl font-bold text-blue-900 mb-4">
+                      Top 50 Noisy Genes (by CV)
+                    </h3>
+                    {(["tpm", "fpkm", "fpkm_uq"] as const).map((norm) => {
+                      const genes = topNoisyGenes[norm];
+                      return genes ? (
+                        <NoisyGenesCard key={norm} norm={norm} data={genes} />
+                      ) : null;
+                    })}
+                  </div> */}
                     </div>
                   )}
                 </>
