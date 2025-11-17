@@ -112,6 +112,17 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                 d.normalizationMethod === normalizationMethod &&
                 d.dataFormat === currentDataFormat
             );
+            const sortKey =
+              metric === "logfc"
+                ? "logfc"
+                : selectedGroups.includes("tumor")
+                ? `${metric}_tumor`
+                : `${metric}_normal`;
+
+            // ---------- sorted data ----------
+            const sortedData = [...metricData].sort(
+              (a, b) => (a[sortKey] ?? 0) - (b[sortKey] ?? 0)
+            );
             console.log(`Metric ${metric} Data Length:`, metricData.length, "Format:", currentDataFormat, "Sample:", metricData.slice(0, 2));
             return (
               selectedNoiseMetrics.includes(displayMetric) && visiblePlots[metric] && (
@@ -154,7 +165,12 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                                 // colors={logfcColors[metric]}
                                 colors={metricData.map((d) => (d.logfc < 0 ? "#ef4444c3" : "#3b83f6af"))}
                                 orientation="v"
-                                showLegend={false}
+                                showLegend={true}
+                                showTrendLine={false}
+                                sortByKey="logfc"
+                                sortOrder="asc"
+                                hideXAxisExtras={true}       
+                                absoluteBars={true}     
                               />
                             ) : (
                               <div className="text-center text-red-600">
@@ -187,6 +203,9 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                             )}
                             orientation="v"
                             legendLabels={["Normal", "Tumor"]}
+                            // sortByKey={sortKey}
+                            // sortOrder="desc"
+                            hideXAxisExtras={true}  
                           />
                         ) : (
                           <PlotlyBarChart
@@ -209,6 +228,9 @@ const StatisticalMetrics: React.FC<StatisticalMetricsProps> = ({
                             )}
                             orientation="v"
                             legendLabels={["Normal", "Tumor"]}
+                            // sortByKey={sortKey}
+                            // sortOrder="desc"
+                            hideXAxisExtras={true}  
                           />
                         )}
                       </div>
