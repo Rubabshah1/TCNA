@@ -305,8 +305,8 @@ def get_top_noisy_genes(
 
         if not table_exists:
             # Path to your SQL dump file (adjust path as needed)
-            sql_dump_path = os.path.join(os.path.dirname(__file__), "noisy_gene_cache.sql")
-            
+            # sql_dump_path = os.path.join(os.path.dirname(__file__), "noisy_gene_cache.sql")
+            sql_dump_path = "./noisy_gene_cache.sql"                
             if not os.path.exists(sql_dump_path):
                 raise HTTPException(
                     status_code=500,
