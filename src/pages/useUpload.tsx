@@ -39,11 +39,14 @@ const customSelectStyles = {
   }),
 };
 
+
+
 /* -------------------------------------------------------------------------- */
 /*  UploadAnalysis component                                                  */
 /* -------------------------------------------------------------------------- */
 const UploadAnalysis = () => {
-  const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+  // const [selectedGenes, setSelectedGenes] = useState<string[]>([]);
+  const [selectedGenes, setSelectedGenes] = useState<SelectedGene[]>([]);
   const [expressionFile, setExpressionFile] = useState<File | null>(null);
   const [topN, setTopN] = useState<string>("15");
   const [analysisType, setAnalysisType] = useState<string>("Gene");
@@ -62,10 +65,11 @@ const UploadAnalysis = () => {
   const { toast } = useToast();
   const { getCachedData, setCachedData, generateCacheKey } = useCache();
   const navigate = useNavigate();
-
+  
   /* ---------------------------------------------------------------------- */
   /*  1. File handling (unchanged)                                          */
   /* ---------------------------------------------------------------------- */
+  
   const handleExpressionFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
@@ -138,7 +142,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
 
   useEffect(() => {
     if (analysisType === "Pathway" && selectedGenes.length) {
-      fetchEnrichedPathways(selectedGenes);
+      fetchEnrichedPathways(selectedGenes.map((g) => g.gene_symbol));
     } else {
       setEnrichedPathways([]);
       setSelectedPathway(null);
@@ -160,7 +164,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
       const genes = data.genes || [];
 
       setSelectedPathway({ ...option, genes });
-      setSelectedGenes(genes);                 // <-- replace gene list
+      setSelectedGenes(genes.map((g) => ({ gene_symbol: g, ensembl_id: "" })));               // <-- replace gene list
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -186,7 +190,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
     setIsLoading(true);
 
     const cacheParams = {
-      genes: selectedGenes.sort().join(','),
+      genes: selectedGenes.map((g) => g.gene_symbol).sort().join(','),
       expressionFile: expressionFile ? `${expressionFile.name}_${expressionFile.size}` : null,
       analysisType,
       geneSet,
@@ -203,7 +207,7 @@ ENSG00000000419.13,DPM1,117.9028,97.2087`;
     }
 
     const formData = new FormData();
-    if (selectedGenes.length) formData.append('genes', selectedGenes.join(','));
+    if (selectedGenes.length) formData.append('genes', selectedGenes.map((g) => g.gene_symbol).join(','));
     if (expressionFile) {
       formData.append('expression_file', expressionFile);
       formData.append('top_n', topN);

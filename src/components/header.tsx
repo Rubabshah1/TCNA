@@ -16,6 +16,7 @@ const Header = () => {
     { to: "/pathway-analysis", label: "Pathway", match: ["/pathway-analysis", "/pathway-results"] },
     { to: "/tumour-analysis", label: "Tumor", match: ["/tumour-analysis", "/tumor-analysis-results"] },
     { to: "/upload-analysis", label: "Custom Data", match: ["/upload-analysis", "/upload-results"] },
+    { to: "/global-noise", label: "Top Noisy Genes", match: ["/global-noise", "/global-noise"] },
   ];
 
   return (

@@ -670,7 +670,7 @@ const PathwayResults: React.FC = () => {
         URL.revokeObjectURL(url);
       } else if (type === "mean_expression") {
         data = Object.entries(currentResults.gene_stats);
-        headers = ["Gene", "Ensembl ID", ...selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])];
+        headers = ["Gene", ...selectedSites.flatMap((site) => [`${site} Normal`, `${site} Tumor`])];
         filename = `mean_expression_${filename}.csv`;
         const rows = data.map(([gene, stats]) => {
           const metrics = selectedSites
@@ -692,10 +692,12 @@ const PathwayResults: React.FC = () => {
         URL.revokeObjectURL(url);
       } else if (type === "noise_metrics") {
         data = Object.entries(resultsData.log2[filterState.normalizationMethod]?.gene_stats || {});
-        headers = ["Gene", "Ensembl ID", ...selectedSites.flatMap((site) => [`${site} Normal CV`, `${site} Tumor CV`, `${site} Log2FC`])];
+        headers = ["Gene", ...selectedSites.flatMap((site) => [`${site} Normal CV`, `${site} Tumor CV`, `${site} Log2FC`])];
         filename = `noise_metrics_${filename}.csv`;
         const rows = data.map(([gene, stats]) => {
+          const ensembl_id = stats.ensembl_id || "N/A";
           const metrics = selectedSites
+          
             .map((site) => {
               const lowerSite = site.toLowerCase();
               const metric = stats[lowerSite] || {};
@@ -706,7 +708,7 @@ const PathwayResults: React.FC = () => {
               ];
             })
             .flat();
-          return [gene, stats.ensembl_id || "N/A", ...metrics].join(",");
+          return [gene, ensembl_id, ...metrics].join(","); 
         });
         const content = [headers.join(","), ...rows].join("\n");
         const blob = new Blob([content], { type: "text/csv" });
