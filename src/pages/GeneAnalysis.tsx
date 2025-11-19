@@ -22,9 +22,7 @@ interface CachedState {
   analysisType: "pan-cancer" | "cancer-specific" | null;
 }
 
-/* ------------------------------------------------------------------ */
-/*  GENE ANALYSIS PAGE                                                */
-/* ------------------------------------------------------------------ */
+
 const GeneAnalysis = () => {
   /* -------------------------- STATE -------------------------- */
   const [selectedCancerTypes, setSelectedCancerTypes] = useState<string[]>([]);
