@@ -1,7 +1,7 @@
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19-12.0.2-MariaDB, for osx10.20 (arm64)
 --
--- Host: localhost    Database: cancer_db
+-- Host: localhost    Database: tcna_cancer_db
 -- ------------------------------------------------------
 -- Server version	9.2.0
 
