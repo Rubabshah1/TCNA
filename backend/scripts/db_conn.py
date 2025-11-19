@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 # Database configuration
 DB_CONFIG = {
     "host": "localhost",
-    "user": "rubab", #replace with new
-    "password": "initiate123", #replace with new
+    "user": "abc", #replace with new
+    "password": "xyz", #replace with new
     "database": "cancer_db",
     "port": 3310,
     "cursorclass": pymysql.cursors.DictCursor,
