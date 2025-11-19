@@ -10,7 +10,7 @@ DB_CONFIG = {
     "host": "localhost",
     "user": "abc", #replace with new
     "password": "xyz", #replace with new
-    "database": "cancer_db",
+    "database": "tcna_cancer_db",
     "port": 3310,
     "cursorclass": pymysql.cursors.DictCursor,
 }
