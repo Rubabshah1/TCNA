@@ -75,7 +75,7 @@ const GeneSelector = ({ selectedGenes, onGenesChange, maxGenes }: GeneSelectorPr
 
   const handleSuggestedGeneAdd = (gene: string) => {
     const geneItems = allGeneItems.filter((item) => item.gene === gene);
-    if (geneItems.length > 0) handleSelect(geneItems[0]);
+    handleSelect(geneItems[0]);
   };
 
   const handleClearGenes = () => onGenesChange([]);
