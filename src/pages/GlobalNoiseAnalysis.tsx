@@ -259,7 +259,7 @@ const GlobalNoiseAnalysis: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="tpm">TPM</SelectItem>
                       <SelectItem value="fpkm">FPKM</SelectItem>
-                      <SelectItem value="fpkm_uq">FPKM-UQ</SelectItem>
+                      <SelectItem value="fpkm_uq">FPKM_UQ</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -323,7 +323,7 @@ const GlobalNoiseAnalysis: React.FC = () => {
                         // { key: "rank", header: "Rank", render: (_, __, i) => i + 1 },
                         { key: "gene_symbol", header: "Gene", sortable: true },
                         { key: "cv_tumor", header: "CV (Tumor)", render: (v: number) => v.toFixed(4), sortable: true },
-                        { key: "site_name", header: "Site", render: (r: NoisyGene) => r.site_name || "Pan-Cancer" },
+                        // { key: "site_name", header: "Site", render: (r: NoisyGene) => r.site_name || "Pan-Cancer" },
                       ]}
                     />
                     <PlotlyBarChart
