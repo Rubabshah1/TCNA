@@ -55,10 +55,180 @@ const filterReducer = (state: FilterState, action: FilterAction): FilterState =>
 };
 
 // === Custom Hook: useTumorResultsData (No Caching) ===
+// const useTumorResultsData = (
+//   params: { cancerSite: string; cancerTypes: string[] },
+//   filterState: FilterState
+// ) => {
+//   const [state, setState] = useState<{
+//     rawData: { [norm: string]: TumorData[] };
+//     filteredData: TumorData[];
+//     isLoading: boolean;
+//     error: string | null;
+//     totalTumorSamples: number;
+//     sampleToCancerType: { [sampleId: string]: SampleInfo };
+//     topNoisyGenes: {
+//       [norm in "tpm" | "fpkm" | "fpkm_uq"]?: {
+//         tumor: { gene_symbol: string; cv: number }[];
+//         normal: { gene_symbol: string; cv: number }[];
+//       };
+//     };
+//   }>({
+//     rawData: { tpm: [], fpkm: [], fpkm_uq: [] },
+//     filteredData: [],
+//     isLoading: false,
+//     error: null,
+//     totalTumorSamples: 0,
+//     sampleToCancerType: {},
+//     topNoisyGenes: {},
+//   });
+  
+//   const abortControllerRef = useRef<AbortController | null>(null);
+//   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+//   // Updated: tith → depth
+//   const noiseMetrics = { DEPTH2: "depth2", DEPTH: "depth" } as const;
+//   const normalizationMethods = ["tpm", "fpkm", "fpkm_uq"] as const;
+
+//   const fetchData = useCallback(
+//     async (signal: AbortSignal) => {
+//       const { cancerSite, cancerTypes } = params;
+//       const { selectedNoiseMetrics } = filterState;
+
+//       if (!cancerSite || selectedNoiseMetrics.length === 0) {
+//         setState((prev) => ({
+//           ...prev,
+//           error: "Cancer site and at least one metric are required.",
+//           filteredData: [],
+//           isLoading: false,
+//         }));
+//         return;
+//       }
+
+//       setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+//       try {
+//         const queryParams = new URLSearchParams();
+//         queryParams.append("cancer_site", cancerSite);
+//         cancerTypes.forEach((type) => queryParams.append("cancer_types", type));
+
+//         const response = await fetch(`/api/tumor_results?${queryParams.toString()}`, { signal });
+//         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+//         const apiData = await response.json();
+//         if (apiData.error) throw new Error(apiData.error);
+
+//         const topNoisy = apiData.top_noisy_genes || {};
+//         const sampleToCancerType: { [sampleId: string]: SampleInfo } = {};
+//         const dataByNorm: { [norm: string]: TumorData[] } = { tpm: [], fpkm: [], fpkm_uq: [] };
+
+//         apiData.results.forEach((row: any) => {
+//           const sampleId = row.sample_id.toString();
+//           const sampleInfo: SampleInfo = {
+//             barcode: row.sample_barcode,
+//             cancerType: row.cancer_type || "Unknown",
+//           };
+//           sampleToCancerType[sampleId] = sampleInfo;
+
+//           normalizationMethods.forEach((norm) => {
+//             const item: TumorData = {
+//               sample: sampleInfo.barcode,
+//               cancer_type: sampleInfo.cancerType,
+//             };
+
+//             if (selectedNoiseMetrics.includes("DEPTH2")) {
+//               item.depth2 = row[`${norm}_depth2`];
+//             }
+//             if (selectedNoiseMetrics.includes("DEPTH")) {
+//               item.depth = row[`${norm}_depth`]; 
+//             }
+
+//             dataByNorm[norm].push(item);
+//           });
+//         });
+
+//         const currentNormData = dataByNorm[filterState.normalizationMethod];
+//         const filtered = currentNormData.filter((d) =>
+//           selectedNoiseMetrics.some((m) => {
+//             const field = noiseMetrics[m as keyof typeof noiseMetrics];
+//             const val = d[field];
+//             return val != null && !isNaN(val);
+//           })
+//         );
+
+//         setState({
+//           rawData: dataByNorm,
+//           filteredData: filtered,
+//           isLoading: false,
+//           error: null,
+//           totalTumorSamples: apiData.sample_counts?.tumor || currentNormData.length,
+//           sampleToCancerType,
+//           topNoisyGenes: topNoisy,
+//         });
+//       } catch (err: any) {
+//         if (err.name === "AbortError") return;
+//         setState((prev) => ({
+//           ...prev,
+//           error: "Failed to load data. Please try again.",
+//           filteredData: [],
+//           isLoading: false,
+//         }));
+//       }
+//     },
+//     [params.cancerSite, params.cancerTypes, filterState.selectedNoiseMetrics, filterState.normalizationMethod]
+//   );
+
+//   const triggerFetch = useCallback(() => {
+//     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+//     timeoutRef.current = setTimeout(() => {
+//       if (abortControllerRef.current) abortControllerRef.current.abort();
+//       const controller = new AbortController();
+//       abortControllerRef.current = controller;
+//       fetchData(controller.signal);
+//     }, 300);
+//   }, [fetchData]);
+
+//   useEffect(() => {
+//     triggerFetch();
+//     return () => {
+//       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+//       if (abortControllerRef.current) abortControllerRef.current.abort();
+//     };
+//   }, [triggerFetch]);
+
+//   useEffect(() => {
+//     const current = state.rawData[filterState.normalizationMethod] || [];
+//     const filtered = current.filter((d) =>
+//       filterState.selectedNoiseMetrics.some((m) => {
+//         const field = noiseMetrics[m as keyof typeof noiseMetrics];
+//         const val = d[field];
+//         return val != null && !isNaN(val);
+//       })
+//     );
+//     setState((prev) => ({
+//       ...prev,
+//       filteredData: filtered,
+//       totalTumorSamples: filtered.length,
+//       error: filtered.length === 0 ? "No samples match selected filters." : null,
+//     }));
+//   }, [filterState.normalizationMethod, filterState.selectedNoiseMetrics, state.rawData]);
+
+//   return {
+//     data: state.filteredData,
+//     isLoading: state.isLoading,
+//     error: state.error,
+//     totalTumorSamples: state.totalTumorSamples,
+//     sampleToCancerType: state.sampleToCancerType,
+//     topNoisyGenes: state.topNoisyGenes,
+//     refetch: triggerFetch,
+//   };
+// };
+// === Custom Hook: useTumorResultsData (WITH CACHING per normalization) ===
 const useTumorResultsData = (
   params: { cancerSite: string; cancerTypes: string[] },
   filterState: FilterState
 ) => {
+  // Persistent cache ref (survives re-renders)
+  const cacheRef = useRef<Record<string, any>>({}); // key: normalization method
+
   const [state, setState] = useState<{
     rawData: { [norm: string]: TumorData[] };
     filteredData: TumorData[];
@@ -81,44 +251,38 @@ const useTumorResultsData = (
     sampleToCancerType: {},
     topNoisyGenes: {},
   });
-  
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Updated: tith → depth
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const noiseMetrics = { DEPTH2: "depth2", DEPTH: "depth" } as const;
   const normalizationMethods = ["tpm", "fpkm", "fpkm_uq"] as const;
 
-  const fetchData = useCallback(
-    async (signal: AbortSignal) => {
+  const fetchAndCache = useCallback(
+    async (norm: string, signal: AbortSignal) => {
       const { cancerSite, cancerTypes } = params;
-      const { selectedNoiseMetrics } = filterState;
 
-      if (!cancerSite || selectedNoiseMetrics.length === 0) {
-        setState((prev) => ({
-          ...prev,
-          error: "Cancer site and at least one metric are required.",
-          filteredData: [],
-          isLoading: false,
-        }));
-        return;
-      }
+      if (!cancerSite) return;
 
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
         const queryParams = new URLSearchParams();
         queryParams.append("cancer_site", cancerSite);
         cancerTypes.forEach((type) => queryParams.append("cancer_types", type));
 
-        const response = await fetch(`/api/tumor_results?${queryParams.toString()}`, { signal });
-        if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+        const url = `/api/tumor_results?${queryParams.toString()}`;
+        const response = await fetch(url, { signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
         const apiData = await response.json();
         if (apiData.error) throw new Error(apiData.error);
 
-        const topNoisy = apiData.top_noisy_genes || {};
+        // Cache full response per normalization
+        cacheRef.current[norm] = apiData;
+
+        // Process only for current normalization
         const sampleToCancerType: { [sampleId: string]: SampleInfo } = {};
-        const dataByNorm: { [norm: string]: TumorData[] } = { tpm: [], fpkm: [], fpkm_uq: [] };
+        const dataByNorm: { [n: string]: TumorData[] } = { tpm: [], fpkm: [], fpkm_uq: [] };
 
         apiData.results.forEach((row: any) => {
           const sampleId = row.sample_id.toString();
@@ -128,86 +292,112 @@ const useTumorResultsData = (
           };
           sampleToCancerType[sampleId] = sampleInfo;
 
-          normalizationMethods.forEach((norm) => {
+          normalizationMethods.forEach((n) => {
             const item: TumorData = {
               sample: sampleInfo.barcode,
               cancer_type: sampleInfo.cancerType,
             };
 
-            if (selectedNoiseMetrics.includes("DEPTH2")) {
-              item.depth2 = row[`${norm}_depth2`];
+            if (filterState.selectedNoiseMetrics.includes("DEPTH2")) {
+              item.depth2 = row[`${n}_depth2`];
             }
-            if (selectedNoiseMetrics.includes("DEPTH")) {
-              item.depth = row[`${norm}_depth`]; 
+            if (filterState.selectedNoiseMetrics.includes("DEPTH")) {
+              item.depth = row[`${n}_depth`];
             }
 
-            dataByNorm[norm].push(item);
+            dataByNorm[n].push(item);
           });
         });
 
-        const currentNormData = dataByNorm[filterState.normalizationMethod];
-        const filtered = currentNormData.filter((d) =>
-          selectedNoiseMetrics.some((m) => {
-            const field = noiseMetrics[m as keyof typeof noiseMetrics];
-            const val = d[field];
-            return val != null && !isNaN(val);
-          })
-        );
+        const topNoisy = apiData.top_noisy_genes || {};
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           rawData: dataByNorm,
-          filteredData: filtered,
-          isLoading: false,
-          error: null,
-          totalTumorSamples: apiData.sample_counts?.tumor || currentNormData.length,
+          filteredData: dataByNorm[norm],
+          totalTumorSamples: apiData.sample_counts?.tumor || dataByNorm[norm].length,
           sampleToCancerType,
           topNoisyGenes: topNoisy,
-        });
+          isLoading: false,
+          error: null,
+        }));
       } catch (err: any) {
         if (err.name === "AbortError") return;
         setState((prev) => ({
           ...prev,
-          error: "Failed to load data. Please try again.",
-          filteredData: [],
+          error: "Failed to load data.",
           isLoading: false,
         }));
       }
     },
-    [params.cancerSite, params.cancerTypes, filterState.selectedNoiseMetrics, filterState.normalizationMethod]
+    [params.cancerSite, params.cancerTypes, filterState.selectedNoiseMetrics]
   );
 
-  const triggerFetch = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
+  // Main effect: fetch missing normalizations
+  useEffect(() => {
+    if (!params.cancerSite || filterState.selectedNoiseMetrics.length === 0) {
+      setState(prev => ({ ...prev, error: "Select cancer site and metric", filteredData: [] }));
+      return;
+    }
+
+    const missingNorms = normalizationMethods.filter(
+      (norm) => !cacheRef.current[norm]
+    );
+
+    if (missingNorms.length === 0) {
+      // All cached — just re-filter
+      const cachedData = cacheRef.current[filterState.normalizationMethod];
+      if (cachedData) {
+        // Rebuild filteredData from cached raw data
+        const dataByNorm = state.rawData;
+        const current = dataByNorm[filterState.normalizationMethod] || [];
+        const filtered = current.filter((d) =>
+          filterState.selectedNoiseMetrics.some((m) => {
+            const field = noiseMetrics[m as keyof typeof noiseMetrics];
+            return d[field] != null && !isNaN(d[field] as number);
+          })
+        );
+
+        setState(prev => ({
+          ...prev,
+          filteredData: filtered,
+  totalTumorSamples: filtered.length || cachedData.sample_counts?.tumor || 0,
+          isLoading: false,
+        }));
+      }
+      return;
+    }
+
+    // Fetch missing normalizations one by one (or in parallel)
+    missingNorms.forEach((norm) => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      fetchData(controller.signal);
-    }, 300);
-  }, [fetchData]);
+      fetchAndCache(norm, controller.signal);
+    });
+  }, [
+    params.cancerSite,
+    params.cancerTypes,
+    filterState.selectedNoiseMetrics,
+    filterState.normalizationMethod, // triggers re-filter when switching
+  ]);
 
+  // Re-filter when normalization or metrics change (no refetch if cached)
   useEffect(() => {
-    triggerFetch();
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    };
-  }, [triggerFetch]);
-
-  useEffect(() => {
-    const current = state.rawData[filterState.normalizationMethod] || [];
-    const filtered = current.filter((d) =>
+    const currentRaw = state.rawData[filterState.normalizationMethod] || [];
+    const filtered = currentRaw.filter((d) =>
       filterState.selectedNoiseMetrics.some((m) => {
         const field = noiseMetrics[m as keyof typeof noiseMetrics];
         const val = d[field];
-        return val != null && !isNaN(val);
+        return val != null && !isNaN(val as number);
       })
     );
-    setState((prev) => ({
+
+    setState(prev => ({
       ...prev,
       filteredData: filtered,
       totalTumorSamples: filtered.length,
-      error: filtered.length === 0 ? "No samples match selected filters." : null,
+      error: filtered.length === 0 ? "No samples match filters." : null,
     }));
   }, [filterState.normalizationMethod, filterState.selectedNoiseMetrics, state.rawData]);
 
@@ -218,7 +408,6 @@ const useTumorResultsData = (
     totalTumorSamples: state.totalTumorSamples,
     sampleToCancerType: state.sampleToCancerType,
     topNoisyGenes: state.topNoisyGenes,
-    refetch: triggerFetch,
   };
 };
 
@@ -241,7 +430,7 @@ const TumourResults: React.FC = () => {
     totalTumorSamples,
     sampleToCancerType,
     topNoisyGenes,
-    refetch,
+    // refetch,
   } = useTumorResultsData(rawParams, filterState);
 
   const noiseMetrics = { DEPTH2: "depth2", DEPTH: "depth" } as const; // Updated
