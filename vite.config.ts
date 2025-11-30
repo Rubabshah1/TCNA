@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => ({
     fs: {
       deny: ['.git', '.env', 'node_modules'],
     },
+    hmr: {
+      overlay: false,
+    },
   },
   plugins: [
     react(),
