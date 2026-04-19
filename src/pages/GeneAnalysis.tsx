@@ -79,12 +79,21 @@ const GeneAnalysis = () => {
         ensembl_id: symbol, // Use symbol as ID so it's non-empty and unique
       }));
 
-      // Force new array reference + clear any previous genes
-      setSelectedGenes([...parsedGenes]);
+      // Explicitly replace any existing genes with the uploaded list (Reset previous)
+      setSelectedGenes(parsedGenes);
 
       if (geneSymbols.length > 50) {
         alert(`Only the first 50 genes were loaded (maximum limit is 50).`);
       }
+
+      // Update session storage immediately to reflect the reset
+      const updatedCache: CachedState = {
+        selectedCancerTypes,
+        selectedGenes: parsedGenes,
+        selectedSites,
+        analysisType,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCache));
 
       // Optional: clear the file input so user can upload the same file again
       e.target.value = "";
